@@ -766,8 +766,9 @@ class SubmissionsPOMS:
             logit.log("recovery position %d" % s.recovery_position)
 
             rtype = rlist[s.recovery_position].recovery_type
+            param_overrides = rlist[s.recovery_position].param_overrides
 
-            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, param_overrides)
+            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
 
             if nfiles > 0:
 
@@ -781,7 +782,7 @@ class SubmissionsPOMS:
                 self.launch_jobs(
                     ctx,
                     s.campaign_stage_snapshot_obj.campaign_stage_id,
-                    launch_user.exerimenter_id,
+                    launch_user.experimenter_id,
                     dataset_override=rname,
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
@@ -792,19 +793,17 @@ class SubmissionsPOMS:
         return 0
 
     # h3. launch_recovery_for
-    def launch_recovery_for(self, *kwargs):
+    def launch_recovery_for(self, **kwargs):
         ctx = kwargs["ctx"]
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-        stime = datetime.datetime.now(utc)
+        s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs['submission_id']).one()
+        stime = datetime.now(utc)
 
-        res = self.submissionsPOMS.launch_recovery_if_needed(
-            ctx.db, ctx.sam, ctx.config_get, ctx.experiment, ctx.role, ctx.username, ctx.HTTPError, s, kwargs["recovery_type"]
-        )
+        res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
 
         if res:
             new = (
                 ctx.db.query(Submission)
-                .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
+                .filter(Submission.recovery_tasks_parent == s.submission_id, Submission.created >= stime)
                 .first()
             )
             outdir, outfile, outfullpath = self.get_output_dir_file(ctx, new.created, ctx.username, new.campaign_stage_id)

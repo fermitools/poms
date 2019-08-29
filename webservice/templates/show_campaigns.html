@@ -96,32 +96,32 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{experiment}}/{{role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
+                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
                 <td style="text-align:right">{{s.campaign_id}}</td>
                 <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
-                    <a href="{{pomspath}}/campaign_stage_submissions/{{experiment}}/{{role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+                    <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_task_files/{{experiment}}/{{role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+                    <a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="clipboard outline icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{experiment}}/{{role}}?campaign_id={{s.campaign_id}}')">
+                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
                         <i class="chart rocket icon blue"></i>
                     </button>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps/{{experiment}}/{{role}}?campaign_name={{s.name|urlencode}}">
+                    <a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">
                         <button type="button">
                             <i class="sitemap icon"></i>
                         </button>
@@ -129,8 +129,8 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 </td>
                 <td>
                     {%if data.authorized[loop.index0] %}
-                    <a href="{{pomspath}}/gui_wf_edit/{{experiment}}/{{role}}?campaign={{s.name|urlencode}}">
-                        <button class="ui button">
+                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}">
+                        <button class="ui button blue">
                             <i class="edit icon"></i>
                         </button>
                     </a>
@@ -146,7 +146,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     </button>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps_ini/{{experiment}}/{{role}}?name={{s.name|urlencode}}">
+                    <a href="{{pomspath}}/campaign_deps_ini/{{session_experiment}}/{{session_role}}?name={{s.name|urlencode}}">
                         <button type="button">
                             <i class="list icon"></i>
                         </button>
@@ -218,7 +218,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit/{{experiment}}/{{role}}?">
+    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?">
       <div class="two fields">
         <div class="field">
           <label>Existing Campaign Name</label>
@@ -253,7 +253,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 Deletions will <b>not</b> occur if the campaign has been submitted.
             </p>
         </div>
-        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}"> -->
+        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}"> -->
         <form id="delete_campaign_form" class="ui form" method="POST" action="" onsubmit="this.action=location.href">
             <div class="one field">
                 <div class="field">
@@ -296,7 +296,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     <div id="tag_container">
                         {% for tag in tags %}
                             <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
-                            <a href="{{pomspath}}/search_tags/{{experiment}}/{{role}}?q={{tag.tag_name|urlencode}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                            <a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q={{tag.tag_name|urlencode}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
                         {% endfor %}
                     </div>
                 </div>
@@ -447,7 +447,7 @@ function pop_add_campaign_modal() {
       onApprove : function() {
         var formdata = {'campaign_name': $("#add_campaign_name").val()};
         $.ajax({
-            url: "{{pomspath}}/campaign_add_name/{{experiment}}/{{role}}",
+            url: "{{pomspath}}/campaign_add_name/{{session_experiment}}/{{session_role}}",
             type: 'GET',
             data: formdata,
             success: function(data){
@@ -490,7 +490,7 @@ function pop_tag_untag_modal() {
             for (const tag of data.result) {
                 const [tag_id, tag_name] = tag;
                 const cids = csv.join('c');
-                const new_tag = `<span><a href="{{pomspath}}/search_tags/{{experiment}}/{{role}}?q=${encodeURIComponent(tag_name)}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                const new_tag = `<span><a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q=${encodeURIComponent(tag_name)}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
                 const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
                 $('#tag_container').append(new_tag + new_trash_can);
                 add_click_handler();
@@ -559,7 +559,7 @@ $('#add_button').on('click', function (e) {
             const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
             $('#response').html(data.msg);
 
-            const new_tag = `<span><a href="{{pomspath}}/search_tags/{{experiment}}/{{role}}?q=${encodeURIComponent(data.tag_name)}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+            const new_tag = `<span><a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q=${encodeURIComponent(data.tag_name)}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
             const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${campaigns_tags_composite_key}" style="border-radius: 5px;"></i></span>`;
             $('#tag_container').append(new_tag + new_trash_can);
             //$('#tag_container').append(new_tag);
@@ -606,7 +606,7 @@ $('#tag_field').keypress(function (event) {
                         'cl': $("#campaign_ids").val()
                        };
         $.ajax({
-            url: "{{pomspath}}/mark_campaign_active/{{experiment}}/{{role}}",
+            url: "{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}",
             type: 'GET',
             data: formdata,
             success: function(data){

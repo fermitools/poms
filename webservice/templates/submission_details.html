@@ -25,12 +25,28 @@ Submission Details {%include 'help_button.html'%}
 </style>
 {%endblock%}
 {%block content%}
+<script>
+ function confirm_call(msg, url) {
+     var r = confirm(msg);
+     if ( r ) {
+         location.assign(url)
+     }
+ }
+ function confirm_validate(msg) {
+     var r = confirm(msg);
+     if ( r ) {
+         return true;
+     } else {
+         return false;
+     }
+ }
+</script>
 <h3>
 Submission #{{submission.submission_id}}<br>
 jobsub_job_Id: {{submission.jobsub_job_id}} <br>
-Campaign Stage <a href="{{pomspath}}/campaign_stage_info/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a>
+Campaign Stage <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a>
 <span class="ui label">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br/>
-in Campaign <a href="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}?just_one={{submission.campaign_stage_obj.campaign_obj.name}}">{{submission.campaign_stage_obj.campaign_obj.name}}</a>
+in Campaign <a href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}?just_one={{submission.campaign_stage_obj.campaign_obj.name}}">{{submission.campaign_stage_obj.campaign_obj.name}}</a>
 <span class="ui label">{{submission.campaign_stage_obj.campaign_obj.campaign_id}}</span>
 
 </h3>
@@ -42,7 +58,7 @@ in Campaign <a href="{{pomspath}}/show_campaigns/{{experiment}}/{{role}}?just_on
 
 Submission was:
 {%if submission.recovery_tasks_parent %}
-a recovery launch for <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
+a recovery launch for <a href="./submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
 {%else%}
 a regular launch
 {%endif%}
@@ -50,7 +66,7 @@ a regular launch
 
 {%if dataset %}
 {%if dataset[:13] == 'poms_depends_' %}
-...launched on completion of  <a href="./submission_details/{{experiment}}/{{role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
+...launched on completion of  <a href="./submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
 {%endif%}
 {%endif%}
 
@@ -74,15 +90,15 @@ a regular launch
 {%set owner=submission.experimenter_creator_obj.username %}
 
 <!-- submission_log_format {{submission_log_format}}
-View <a href="{{pomspath}}/list_launch_file?/{{experiment}}/{{role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
+View <a href="{{pomspath}}/list_launch_file?/{{session_experiment}}/{{session_role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 -->
 
 {%if submission_log_format == 3 %}
-View <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 {%elif submission_log_format == 2%}
-View <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
 {%elif submission_log_format == 1%}
-View <a href="{{pomspath}}/list_launch_file/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
 {%endif%}
 
 View in
@@ -97,7 +113,7 @@ Landscape (disabled, no info found) <br>
 {%endif%}
 
 {%if submission.project %}
-View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{experiment}}/stations/{{experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
+View the <a href="http://samweb.fnal.gov:8480/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
 {%endif%}
 
 {%if submission.jobsub_job_id %}
@@ -114,16 +130,16 @@ Job Logs
 <h3>Actions</h3>
 
 {%if history[-1].status_id < 7000 and history[-1].status_id != 2000 %}
-Hold Condor Jobs <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
-Release Condor Jobs <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
-Kill Condor Jobs <a href="{{pomspath}}/kill_jobs/{{experiment}}/{{role}}?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
+Hold Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
+Release Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
+Kill Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
 Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%elif history[-1].status_id == 7000 %}
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
 Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
 Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
 Kick to Located
-<a href="{{pomspath}}/force_locate_submission/{{experiment}}/{{role}}?submission_id={{submission.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+<a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
 {%else%}
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
 Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
@@ -132,11 +148,11 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-Re-Launch Submission on dataset {{dataset}} <a href="{{pomspath}}/launch_jobs/{{experiment}}/{{role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}"><button>Relaunch</button></a> <br>
+Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}')">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission
-<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{experiment}}/{{role}}">
+<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}" onsubmit="return confirm_validate('Are you sure you want to launch jobs now?')">
 <select name="recovery_type">
 {% for r in recoverymap %}
 <option value="{{recoverymap[r][0]}}" >{{r}} </option>

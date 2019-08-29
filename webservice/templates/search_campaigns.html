@@ -27,7 +27,7 @@ Search Term: {{search_term}}
   {% for row in results %}
   <tr>
       <td>{{row.Campaign.name}}</td>
-      <td><a href="{{pomspath}}/campaign_stage_info/{{experiment}}/{{role}}?campaign_stage_id={{row.CampaignStage.campaign_stage_id}}">{{row.CampaignStage.name}}</a></td>
+      <td><a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{row.CampaignStage.campaign_stage_id}}">{{row.CampaignStage.name}}</a></td>
   </tr>
   {% endfor %}
 

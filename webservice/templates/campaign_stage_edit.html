@@ -448,7 +448,7 @@ setup_form_validation()
 $("#ae_launch_id").change(function() {
   var formdata = {'ae_launch_id': $("#ae_launch_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_stage_edit_query/{{experiment}}/{{role}}",
+      url: "{{pomspath}}/campaign_stage_edit_query/{{session_experiment}}/{{session_role}}",
       type: 'GET',
       data: formdata,
       success: function(dat){
@@ -463,7 +463,7 @@ $("#ae_launch_id").change(function() {
 $("#ae_campaign_definition_id").change(function() {
   var formdata = {'ae_campaign_definition_id': $("#ae_campaign_definition_id").val()};
   $.ajax({
-      url: "{{pomspath}}/campaign_stage_edit_query/{{experiment}}/{{role}}",
+      url: "{{pomspath}}/campaign_stage_edit_query/{{session_experiment}}/{{session_role}}",
       type: 'GET',
       data: formdata,
       success: function(dat){

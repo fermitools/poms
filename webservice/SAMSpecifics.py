@@ -23,7 +23,7 @@ class sam_specifics:
         dataset = details.get("dataset_def_name", None)
         return dataset
 
-    def create_recovery_dataset(self, s, rtype, param_overrides):
+    def create_recovery_dataset(self, s, rtype, rlist):
 
         isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
