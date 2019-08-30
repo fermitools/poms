@@ -215,15 +215,15 @@ def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile
         configfile=configfile)
     return data
 
-def update_stage_param_overrides(experiment, campaign_name, campaign_stage_name, param, test=None, configfile=None):
+def update_stage_param_overrides(experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, configfile=None):
     """
     """
     data, status = make_poms_call(
         method="update_stage_param_overrides",
         experiment=experiment,
-        campaign_name=campaign_name,
-        campaign_stage_name=campaign_stage_name,
-        param_overrides=param,
+        campaign_stage=campaign_stage,
+        param_overrides=param_overrides,
+        test_param_overrides=test_param_overrides,
         test=test,
         configfile=configfile)
     return data

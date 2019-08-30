@@ -467,36 +467,63 @@ class StagesPOMS:
         return json.dumps(data)
 
     # h3. update_stage_param_overrides
-    def update_stage_param_overrides(self, ctx, campaign_name, campaign_stage_name, param_overrides):
+    def update_stage_param_overrides(self, ctx, campaign_stage, param_overrides=None, test_param_overrides=None):
         """
         """
         print("****** reached update_stage_param_overrides")
+        print(f"****** campaign_stage: '{campaign_stage}', type: {type(campaign_stage)}")
         print(f"****** param_overrides: '{param_overrides}'")
-        stage = (
-            ctx.db.query(CampaignStage)
-            .filter(
-                CampaignStage.name == campaign_stage_name,
-                CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
-                CampaignStage.experiment == ctx.experiment,
+        stage = None
+        if isinstance(campaign_stage, list):
+            campaign_name, stage_name = campaign_stage
+            stage = (
+                ctx.db.query(CampaignStage)
+                .filter(
+                    CampaignStage.name == stage_name,
+                    CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
+                    CampaignStage.experiment == ctx.experiment,
+                )
+                .scalar()
             )
-            .scalar()
-        )
+        else:
+            try:
+                campaign_stage = int(campaign_stage)
+                stage = ctx.db.query(CampaignStage).get(campaign_stage)
+            except Exception:
+                print("*** Oops, unrecognized arg type!")
         if not stage:
             return None
-        # Process param_overrides
-        param_overrides = OrderedDict(ast.literal_eval(param_overrides))
-        po = stage.param_overrides
-        for p in po:
-            print(f"------ p: {p}")
-        opo = OrderedDict(po)
-        for k in param_overrides:  # For all new k/v pairs
-            if param_overrides[k]:
-                opo[k] = param_overrides[k]  # Update or add new value
-            else:
-                opo.pop(k, None)  # Remove k/v if new v is empty
-        stage.param_overrides = list(opo.items())  # Update the record
-        ctx.db.commit()  # Update DB
-        return str(list(opo.items())) if stage else None
+
+        if param_overrides:
+            # Process param_overrides
+            param_overrides = OrderedDict(ast.literal_eval(param_overrides))
+            po = stage.param_overrides
+            for p in po:
+                print(f"------ p: {p}")
+            opo = OrderedDict(po)
+            for k in param_overrides:  # For all new k/v pairs
+                if param_overrides[k]:
+                    opo[k] = param_overrides[k]  # Update or add new value
+                else:
+                    opo.pop(k, None)  # Remove k/v if new v is empty
+            stage.param_overrides = list(opo.items())  # Update the record
+            ctx.db.commit()  # Update DB
+            # return str(stage.param_overrides)
+        if test_param_overrides:
+            # Process test_param_overrides
+            test_param_overrides = OrderedDict(ast.literal_eval(test_param_overrides))
+            po = stage.test_param_overrides
+            for p in po:
+                print(f"------ p: {p}")
+            opo = OrderedDict(po)
+            for k in test_param_overrides:  # For all new k/v pairs
+                if test_param_overrides[k]:
+                    opo[k] = test_param_overrides[k]  # Update or add new value
+                else:
+                    opo.pop(k, None)  # Remove k/v if new v is empty
+            stage.test_param_overrides = list(opo.items())  # Update the record
+            ctx.db.commit()  # Update DB
+        return str((stage.param_overrides if param_overrides else None, stage.test_param_overrides if test_param_overrides else None))
 
     # h3. show_campaign_stages
     def show_campaign_stages(self, ctx, campaign_ids=None, campaign_name=None, **kwargs):
