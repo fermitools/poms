@@ -247,9 +247,9 @@ class Agent:
 
         if since:
             LOGIT.info("check_submissions: since %s", since)
-            since = ', from: \\"%s\\", to=\\"now\\"' % since
+            since = ', from: \\"%s\\", to:\\"now\\"' % since
         elif self.lastconn.get(group, None):
-            since = ', from: \\"%s\\", to=\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 120))
+            since = ', from: \\"%s\\", to:\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 120))
 
         if group == "samdev":
             group = "fermilab"

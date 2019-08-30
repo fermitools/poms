@@ -23,7 +23,7 @@ class sam_specifics:
         dataset = details.get("dataset_def_name", None)
         return dataset
 
-    def create_recovery_dataset(self, s, rtype, param_overrides):
+    def create_recovery_dataset(self, s, rtype, rlist):
 
         isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
@@ -119,6 +119,7 @@ class sam_specifics:
         else:
             dim_bits = "file_name like '%s'" % jobtype.file_patterns
         cdate = s.created.strftime("%Y-%m-%dT%H:%M:%S%z")
+        ndate = s.updated.strftime("%Y-%m-%dT%H:%M:%S%z")
 
         if s.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
             basedims = "defname:%s" % s.submission_params.get("dataset", dname)
@@ -130,6 +131,12 @@ class sam_specifics:
                 s.campaign_stage_snapshot_obj.software_version,
                 cdate,
             )
+            # if we have an updated time past our creation, use it for the
+            # time window -- this makes our dependency definition basically 
+            # frozen after we run, so it doesn't collect later similar projects
+            # output.
+            if ndate != cdate:
+                basedims ="%s and create_date <= '%s'" % (basedims, ndate)
 
         dims = "%s and %s" % (basedims, dim_bits)
 
@@ -287,24 +294,17 @@ class sam_project_checker:
             if pat == "None":
                 pat = "%"
 
-            if pat.find(" ") > 0:
-                allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
-                    allkiddims,
-                    isparentof,
-                    pat,
-                    submission.campaign_stage_snapshot_obj.software_version,
-                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    isclose,
-                )
-            else:
-                allkiddims = "%s and %s file_name '%s' and version '%s' and create_date > '%s' with availability physical %s " % (
-                    allkiddims,
-                    isparentof,
-                    pat,
-                    submission.campaign_stage_snapshot_obj.software_version,
-                    submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                    isclose,
-                )
+            if pat.find(" ") < 0:
+               pat = "file_name %s" % pat
+
+            allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
+                allkiddims,
+                isparentof,
+                pat,
+                submission.campaign_stage_snapshot_obj.software_version,
+                submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                isclose,
+            )
 
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)

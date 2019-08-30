@@ -20,8 +20,8 @@ POMS:Campaign Stage {{cs.name}} Scheduled Launches
   <form class="ui form raised segment" action="{{pomspath}}/update_launch_schedule" method="GET">
 
    <input type="hidden" name="campaign_stage_id" value="{{campaign_stage_id}}">
-   <input type="hidden" name="experiment" value="{{experiment}}">
-   <input type="hidden" name="role" value="{{role}}">
+   <input type="hidden" name="experiment" value="{{session_experiment}}">
+   <input type="hidden" name="role" value="{{session_role}}">
 
    <div class=field>
     <label>  Minutes(s) of the hour:</label>

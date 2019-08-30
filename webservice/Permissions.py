@@ -215,7 +215,7 @@ class Permissions:
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             logit.log("can_do: resp: fail")
-            raise PermissionError("Must be role %s to do this" % role)
+            raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         if role and ctx.role == "analysis" and owner and owner != ctx.username:
             logit.log("can_do: resp: fail")

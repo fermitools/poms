@@ -244,7 +244,7 @@ class SubmissionsPOMS:
 
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
-            if now - s.updated > timedelta(days=2):
+            if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get('force_located',False)):
                 finish_up_submissions.append(s.submission_id)
             elif s.project:
                 self.checker.add_project_submission(s)
@@ -257,7 +257,7 @@ class SubmissionsPOMS:
             res.append("marking submission %s located " % s)
             self.update_submission_status(ctx, s, "Located")
 
-       #
+        #
         # now commit having marked things located, to release database
         # locks.
         #
@@ -320,8 +320,9 @@ class SubmissionsPOMS:
         for projre in (
             "-e SAM_PROJECT=([^ ]*)",
             "-e SAM_PROJECT_NAME=([^ ]*)",
-            "--sam_project ([^ ]*)",
-            "--project_name=([^ ]*)",
+            "--sam_project[ =]([^ ]*)",
+            "--project_name[ =]([^ ]*)",
+            "--project[ =]([^ ]*)",
         ):
             m = re.search(projre, command_executed)
             if m:
@@ -350,7 +351,10 @@ class SubmissionsPOMS:
             if ctx.username != "poms":
                 s.creator = ctx.get_experimenter().experimenter_id
 
-            s.updated = tim
+            # do NOT update updated time here; only update it at creation
+            # and final state change (Located, Failed, etc.)
+            # because we will use this time for dependency dataset time range
+            # s.updated = tim
         else:
             s = Submission(
                 campaign_stage_id=cs.campaign_stage_id,
@@ -419,7 +423,8 @@ class SubmissionsPOMS:
         # note that we *intentionally don't* have LaunchFailed here, as we 
         # *could*  have a launch that took a Really Long Time, and we might 
         # have falsely concluded that the launch failed...
-        if lasthist and lasthist.status_id in (self.status_Located, self.status_Removed, self.status_Failed):
+        final_states = (self.status_Located, self.status_Removed, self.status_Failed)
+        if lasthist and lasthist.status_id in final_states:
             return
 
         # don't roll back Completed
@@ -436,7 +441,11 @@ class SubmissionsPOMS:
         sh.created = when
         ctx.db.add(sh)
 
-        if status_id >= self.status_Completed:
+        #
+        # update Submission.updated *only* if this is a final state, as
+        # this time will be used for the date range on the submission
+        #
+        if status_id in final_states:
             s.updated = sh.created
             ctx.db.add(s)
 
@@ -625,13 +634,17 @@ class SubmissionsPOMS:
 
     # h3. force_locate_submission
     def force_locate_submission(self, ctx, submission_id):
-        # this doesn't actually mark it located, rather it bumps
-        # the timestamp backwards so it will look timed out...
+        # this now sets a flag in the submission_params rather than
+        # backdating the time; we need the updated time for date ranges
+        # for datasets, and setting it back here will make that goofy
 
         e = ctx.get_experimenter()
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         cs = s.campaign_stage_obj
-        s.updated = s.updated - timedelta(days=2)
+        if s.submission_params:
+           s.submission_params['force_located'] = True
+        else:
+           s.submission_params= {'force_located': True}
         ctx.db.add(s)
         ctx.db.commit()
         return "Ok."
@@ -753,8 +766,9 @@ class SubmissionsPOMS:
             logit.log("recovery position %d" % s.recovery_position)
 
             rtype = rlist[s.recovery_position].recovery_type
+            param_overrides = rlist[s.recovery_position].param_overrides
 
-            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, param_overrides)
+            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
 
             if nfiles > 0:
 
@@ -768,7 +782,7 @@ class SubmissionsPOMS:
                 self.launch_jobs(
                     ctx,
                     s.campaign_stage_snapshot_obj.campaign_stage_id,
-                    launch_user.exerimenter_id,
+                    launch_user.experimenter_id,
                     dataset_override=rname,
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
@@ -779,19 +793,17 @@ class SubmissionsPOMS:
         return 0
 
     # h3. launch_recovery_for
-    def launch_recovery_for(self, *kwargs):
+    def launch_recovery_for(self, **kwargs):
         ctx = kwargs["ctx"]
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-        stime = datetime.datetime.now(utc)
+        s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs['submission_id']).one()
+        stime = datetime.now(utc)
 
-        res = self.submissionsPOMS.launch_recovery_if_needed(
-            ctx.db, ctx.sam, ctx.config_get, ctx.experiment, ctx.role, ctx.username, ctx.HTTPError, s, kwargs["recovery_type"]
-        )
+        res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
 
         if res:
             new = (
                 ctx.db.query(Submission)
-                .filter(Submission.recovery_tasks_parent == submission_id, Submission.created >= stime)
+                .filter(Submission.recovery_tasks_parent == s.submission_id, Submission.created >= stime)
                 .first()
             )
             outdir, outfile, outfullpath = self.get_output_dir_file(ctx, new.created, ctx.username, new.campaign_stage_id)
