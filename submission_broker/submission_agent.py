@@ -11,6 +11,8 @@ import time
 from http.client import HTTPConnection
 import requests
 import re
+import configparser
+import argparse
 
 HTTPConnection.debuglevel = 1
 
@@ -42,24 +44,12 @@ class Agent:
         recent submissions and reports them to POMS
     """
 
-    full_query = """
-         {"query":"{submissions(group: \\"%s\\" %s){id pomsTaskID done running idle held failed completed } }","operationName":null}
-         """
-
-    submission_project_query = """
-          {"query":"{submission(id:\\"%s\\"){id SAM_PROJECT:env(name:\\"SAM_PROJECT\\")  SAM_PROJECT_NAME:env(name:\\"SAM_PROJECT_NAME\\")  args}}","operationName":null}
-        """
-
-    submission_info_query = """
-          {"query":"{submission(id:\\"%s\\"){id pomsTaskID done running idle held failed completed } }","operationName":null}
-        """
 
     def __init__(
         self,
-        poms_uri="http://127.0.0.1:8080/poms/",
-        submission_uri="https://landscape.fnal.gov/lens/query",
-        submission_uri_dev="https://landscape.fnal.gov/lens/query",
-        # submission_uri_dev="https://landscapeitb.fnal.gov/lens/query",
+        config,
+        poms_uri=None,
+        submission_uri=None
     ):
 
         """
@@ -70,11 +60,11 @@ class Agent:
 
         self.psess = requests.Session()
         self.ssess = requests.Session()
-        self.poms_uri = poms_uri
-        if os.environ.get("HOSTNAME", "").find("pomsgpvm") == 0:
-            self.submission_uri = submission_uri
-        else:
-            self.submission_uri = submission_uri_dev
+        self.cfg = configparser.ConfigParser()
+        self.cfg.read(config)
+      
+        self.poms_uri = self.cfg.get('submission_agent','poms_uri')
+        self.submission_uri = self.cfg.get('submission_agent','submission_uri')
         # biggest time window we should ask LENS for
         self.maxtimedelta = 3600
         self.known = {}
@@ -165,7 +155,7 @@ class Agent:
 
         postresult = self.ssess.post(
             self.submission_uri,
-            data=Agent.submission_info_query % jobsubjobid,
+            data=self.cfg.get('submission_agent','submission_info_query') % jobsubjobid,
             timeout=self.timeouts,
             headers=self.submission_headers,
         )
@@ -198,7 +188,7 @@ class Agent:
 
         postresult = self.ssess.post(
             self.submission_uri,
-            data=Agent.submission_project_query % entry["id"],
+            data=self.cfg.get('submission_agent', 'submission_project_query') % entry["id"],
             timeout=self.timeouts,
             headers=self.submission_headers,
         )
@@ -258,7 +248,7 @@ class Agent:
             start = time.time()
             htr = self.ssess.post(
                 self.submission_uri,
-                data=Agent.full_query % (group, since),
+                data=self.cfg.get('submission_agent', 'full_query') % (group, since),
                 timeout=self.timeouts,
                 headers=self.submission_headers,
             )
@@ -429,29 +419,30 @@ def main():
            instantiate an Agent object.
     """
 
-    if len(sys.argv) > 1 and sys.argv[1] == "--since":
-        since = sys.argv[2]
-        sys.argv = [sys.argv[0]] + sys.argv[3:]
-    else:
-        since = ""
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-c", "--config", default="./submission_agent.cfg")
+    ap.add_argument("-d", "--debug", action="store_true")
+    ap.add_argument("--since", type=str)
+    ap.add_argument("-t","--test", action="store_true", default=False)
+    ap.add_argument("-T","--one-time", action="store_true", default=False)
 
-    if len(sys.argv) > 1 and sys.argv[1] == "-d":
+    args = ap.parse_args()
+
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
-    if len(sys.argv) > 1 and sys.argv[1] == "-t":
-        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"])
+    if args.test:
+        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"],config=args.config)
         for exp in agent.elist:
-            agent.check_submissions(exp, since=since)
-    elif len(sys.argv) > 1 and sys.argv[1] == "-T":
-        agent = Agent()
+            agent.check_submissions(exp, since=args.since)
+    elif args.one_time:
+        agent = Agent(config=args.config)
         for exp in agent.elist:
-            agent.check_submissions(exp, since=since)
+            agent.check_submissions(exp, since=args.since)
     else:
-        agent = Agent()
-        agent.poll(since)
-
+        agent = Agent(config=args.config)
+        agent.poll(since=args.since)
 
 main()
