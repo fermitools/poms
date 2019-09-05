@@ -299,11 +299,34 @@ def launch_campaign_stage_jobs(campaign_stage_id, test=None, test_launch=None, e
         submission_id = None
     return data, status, submission_id
 
+def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=None, configfile=None):
+    '''
+    launch jobs for a cammpaign stage: returns
+    '''
 
-def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=None):
+    # pass recoveries as a json dump if itsn't already
+    if not isinstance(recoveries, str):
+        recoveries = json.dumps(recoveries)
+
+    data, status = make_poms_call(
+        method='modify_job_type_recoveries',
+        job_type_id = job_type_id,
+        recoveries = recoveries,
+        test=test,
+        configfile=configfile,
+        experiment=experiment)
+
+    if data:
+        data = json.loads(data)
+
+    return data, status, job_type_id
+
+
+def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=None, configfile=None):
     data, status = make_poms_call(
         method='launch_campaign',
         campaign_id=campaign_id,
+        test_launch = test_launch,
         test=test,
         configfile=configfile,
         experiment=experiment)

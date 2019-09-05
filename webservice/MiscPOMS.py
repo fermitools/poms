@@ -262,6 +262,45 @@ class MiscPOMS:
         data["message"] = message
         return data
 
+    # h3. modify_job_type_recoveries
+    def modify_job_type_recoveries(self, ctx, job_type_id, recoveries, **kwargs):
+      
+        #
+        # recoveries are represented to the client as a json dump
+        # of a list of pairs of with list of pairs second values
+        # but to update them, we want OrderedDicts so we can just
+        # use OrderedDict.update() so some dict conversions ...
+        #
+
+        newrc = OrderedDict(json.loads(recoveries))
+        for k in newrc:
+            newrc[k] = OrderedDict(newrc[k])
+
+        if jt.recoveries:
+            currc = OrderedDict(self.get_recoveries(ctx, job_type_id))
+            for k in currc:
+                currc[k] = OrderedDict(currc[k])
+
+            if k in newrc:
+                currc[k].update(newrc[k])
+
+            for k in newrc:
+                if not k in currc:
+                    currc[k] = newrc[k]
+        else:  
+            currc = newrc
+
+        # ... and then back to lists of pairs...
+        recoveries = [[x,[[y,currc[x][y]] for y in currc[x]]] for x in currc]
+
+        # now put them back..
+        self.fixup_recoveries(ctx, job_type_id, recoveries)
+
+        #  and commit
+        ctx.db.commit()
+        return recoveries
+  
+
     # h3. job_type_edit
     def job_type_edit(self, ctx, **kwargs):
         """
@@ -632,23 +671,23 @@ class MiscPOMS:
         ctx.db.commit()
 
     # h3. get_recoveries
-    def get_recoveries(self, ctx, cid):
+    def get_recoveries(self, ctx, job_type_id):
         """
-        Build the recoveries dict for job_types cids
+        Build the recoveries dict for job_types job_type_ids
         """
         recs = (
             ctx.db.query(CampaignRecovery)
-            .filter(CampaignRecovery.job_type_id == cid)
+            .filter(CampaignRecovery.job_type_id == job_type_id)
             .order_by(CampaignRecovery.job_type_id, CampaignRecovery.recovery_order)
             .all()
         )
 
-        logit.log("get_recoveries(%d) got %d items" % (cid, len(recs)))
+        logit.log("get_recoveries(%d) got %d items" % (job_type_id, len(recs)))
         rec_list = []
         for rec in recs:
-            logit.log("get_recoveries(%d) -- rec %s" % (cid, repr(rec)))
+            logit.log("get_recoveries(%d) -- rec %s" % (job_type_id, repr(rec)))
             if isinstance(rec.param_overrides, str):
-                logit.log("get_recoveries(%d) -- saw string param_overrides" % cid)
+                logit.log("get_recoveries(%d) -- saw string param_overrides" % job_type_id)
                 if rec.param_overrides in ("", "{}", "[]"):
                     rec.param_overrides = []
                 rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
@@ -657,7 +696,7 @@ class MiscPOMS:
 
             rec_list.append(rec_vals)
 
-        logit.log("get_recoveries(%d) returning %s" % (cid, repr(rec_list)))
+        logit.log("get_recoveries(%d) returning %s" % (job_type_id, repr(rec_list)))
         return rec_list
 
     # h3. fixup_recoveries
@@ -666,7 +705,7 @@ class MiscPOMS:
          fixup_recoveries -- factored out so we can use it
             from either edit endpoint.
          Given a JSON dump of the recoveries, clean out old
-         recoveriy entries, add new ones.  It probably should
+         recovery entries, add new ones.  It probably should
          check if they're actually different before doing this..
         """
         (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
