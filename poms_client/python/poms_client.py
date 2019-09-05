@@ -300,10 +300,11 @@ def launch_campaign_stage_jobs(campaign_stage_id, test=None, test_launch=None, e
     return data, status, submission_id
 
 
-def launch_campaign_jobs(campaign_id, test=None, experiment=None, configfile=None):
+def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=None, configfile=None):
     data, status = make_poms_call(
         method='launch_campaign',
         campaign_id=campaign_id,
+        test_launch = test_launch,
         test=test,
         configfile=configfile,
         experiment=experiment)
