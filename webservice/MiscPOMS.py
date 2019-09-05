@@ -271,13 +271,15 @@ class MiscPOMS:
         # but to update them, we want OrderedDicts so we can just
         # use OrderedDict.update() so some dict conversions ...
         #
+        job_type_id = int(job_type_id)
 
         newrc = OrderedDict(json.loads(recoveries))
         for k in newrc:
             newrc[k] = OrderedDict(newrc[k])
 
-        if jt.recoveries:
-            currc = OrderedDict(self.get_recoveries(ctx, job_type_id))
+        currc = self.get_recoveries(ctx, job_type_id)
+        if currc:
+            currc = OrderedDict(currc)
             for k in currc:
                 currc[k] = OrderedDict(currc[k])
 
@@ -708,9 +710,11 @@ class MiscPOMS:
          recovery entries, add new ones.  It probably should
          check if they're actually different before doing this..
         """
+        if isinstance(recoveries, str):
+            recoveries = json.loads(recoveries)
         (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
         i = 0
-        for rtn in json.loads(recoveries):
+        for rtn in recoveries:
             rect = rtn[0]
             recpar = rtn[1]
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
