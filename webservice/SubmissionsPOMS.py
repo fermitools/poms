@@ -212,7 +212,7 @@ class SubmissionsPOMS:
 
         # get completed jobs, lock them, double check
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
-        ll = ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).with_for_update(read=True).all()
+        ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(Submission.submission_id).with_for_update(read=True).all()
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed, completed_sids)
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
@@ -395,7 +395,7 @@ class SubmissionsPOMS:
 
         # always lock the submission first to prevent races
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).order_by(Submission.submission_id).with_for_update(read=True).first()
 
         status_id = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())[0]
 
@@ -656,7 +656,7 @@ class SubmissionsPOMS:
     # h3. update_submission
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).order_by(Submission.submission_id).with_for_update(read=True).first()
         if not s:
             return "Unknown."
 
