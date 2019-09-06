@@ -347,8 +347,11 @@ class SubmissionsPOMS:
         if submission_id:
 
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
-            s.command_executed = command_executed
-            if ctx.username != "poms":
+
+            if command_executed and command_executed != s.command_executed:
+                s.command_executed = command_executed
+
+            if ctx.username != "poms" and s.creator != ctx.get_experimenter().experimenter_id:
                 s.creator = ctx.get_experimenter().experimenter_id
 
             # do NOT update updated time here; only update it at creation
@@ -448,6 +451,7 @@ class SubmissionsPOMS:
         if status_id in final_states:
             s.updated = sh.created
             ctx.db.add(s)
+
 
     # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
