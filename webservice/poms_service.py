@@ -110,8 +110,8 @@ class PomsService:
         "error_page.401": "%s/%s" % (tdir, "unauthorized_user.html"),
         "error_page.404": "%s/%s" % (tdir, "page_not_found.html"),
         "error_page.429": "%s/%s" % (tdir, "too_many.html"),
-        "error_page.407": "%s/%s" % (tdir, "lauch_held.html"),
-        "error_page.423": "%s/%s" % (tdir, "lauch_held.html"),
+        "error_page.407": "%s/%s" % (tdir, "launch_held.html"),
+        "error_page.423": "%s/%s" % (tdir, "launch_held.html"),
     }
 
     # h3. Module init
@@ -610,10 +610,12 @@ class PomsService:
     # h4. mark_campaign_hold
     @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")
     def mark_campaign_hold(self, **kwargs):
-        kwargs["campaign_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
+        kwargs["campaign_stage_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
+        logit.log("ids2HR is %s" % kwargs["ids2HR"])
+        logit.log("campaign_stage_ids is %s" % kwargs["campaign_stage_ids"])
         del kwargs["ids2HR"]
-        for cid in kwargs["campaign_ids"]:
-            self.permissions.can_modify(kwargs["ctx"], t="Campaign", item_id=cid)
+        for cid in kwargs["campaign_stage_ids"]:
+            self.permissions.can_modify(kwargs["ctx"], t="CampaignStage", item_id=cid)
         return self.stagesPOMS.mark_campaign_hold(**kwargs)
 
     # see &l=webservice/StagesPOMS.py#mark_campaign_hold&

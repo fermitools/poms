@@ -954,18 +954,18 @@ class StagesPOMS:
         return c_s, job, launch_flist
 
     # h3. mark_campaign_hold
-    def mark_campaign_hold(self, ctx, campaign_ids, is_hold):
+    def mark_campaign_hold(self, ctx, campaign_stage_ids, is_hold):
         session_experimenter = ctx.get_experimenter()
-        for campaign in ctx.db.query(Campaign).filter(Campaign.campaign_id.in_(campaign_ids)).all():
+        for cs in ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all():
             if is_hold in ("Hold", "Queue"):
-                campaign.hold_experimenter_id = sessionExperimenter.experimenter_id
-                campaign.role_held_with = role
+                cs.hold_experimenter_id = session_experimenter.experimenter_id
+                cs.role_held_with = ctx.role
             elif is_hold == "Release":
-                campaign.hold_experimenter_id = None
-                campaign.role_held_with = None
+                cs.hold_experimenter_id = None
+                cs.role_held_with = None
             else:
                 raise ctx.HTTPError(400, "The action is not supported. You can only Hold/Queue or Release.")
-            ctx.db.add(campaign)
+            ctx.db.add(cs)
         ctx.db.commit()
 
     # h3. update_launch_schedule

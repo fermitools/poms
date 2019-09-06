@@ -136,7 +136,9 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
     <div class="header">
         Campaign Stages to Queue/Release:
     </div>
-    <form class="ui form" action="mark_campaign_hold" method="GET">
+    <form class="ui form" action="{{pomspath}}/mark_campaign_hold" method="GET">
+        <input type="hidden" name="experiment" value="{{session_experiment}}">
+        <input type="hidden" name="role" value="{{session_role}}">
         <div class="field">
             <textarea id="campaign_names_hold" readonly></textarea>
             <input type="hidden" id="campaign_ids2HR" name="ids2HR">

@@ -271,13 +271,15 @@ class MiscPOMS:
         # but to update them, we want OrderedDicts so we can just
         # use OrderedDict.update() so some dict conversions ...
         #
+        job_type_id = int(job_type_id)
 
         newrc = OrderedDict(json.loads(recoveries))
         for k in newrc:
             newrc[k] = OrderedDict(newrc[k])
 
-        if jt.recoveries:
-            currc = OrderedDict(self.get_recoveries(ctx, job_type_id))
+        currc = self.get_recoveries(ctx, job_type_id)
+        if currc:
+            currc = OrderedDict(currc)
             for k in currc:
                 currc[k] = OrderedDict(currc[k])
 
@@ -708,9 +710,11 @@ class MiscPOMS:
          recovery entries, add new ones.  It probably should
          check if they're actually different before doing this..
         """
+        if isinstance(recoveries, str):
+            recoveries = json.loads(recoveries)
         (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == job_type_id).delete(synchronize_session=False))  #
         i = 0
-        for rtn in json.loads(recoveries):
+        for rtn in recoveries:
             rect = rtn[0]
             recpar = rtn[1]
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.name == rect).first()
@@ -720,14 +724,25 @@ class MiscPOMS:
 
     # h3. held_launches
     def held_launches(self, ctx):
-        eid = ctx.get_experimenter().experimenter_id
-        hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
+        
+        if ctx.role == 'analysis':
+            # analysis users see their own held jobs
+            eid = ctx.get_experimenter().experimenter_id
+            hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
+        if ctx.role == 'production':
+            # production users see their experiment production
+            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment,CampaignStage.creator_role == ctx.role).all()
+
+        if ctx.role == 'superuser':
+            # superusers see all their experiment's jobs
+            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment).all()
+
         return {"hjl": hjl}
 
     # h3. held_launches_remove
-    def held_launches_remove(self, ctx, createds):
+    def held_launches_remove(self, ctx, createds, delete):
         eid = ctx.get_experimenter().experimenter_id
         if isinstance(createds, str):
             createds = [createds]
-        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete()
+        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete(synchronize_session=False)
         ctx.db.commit()

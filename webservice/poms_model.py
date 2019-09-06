@@ -363,6 +363,7 @@ class HeldLaunch(Base):
     dataset = Column(Text)
     param_overrides = Column(JSON)
     launcher = Column(Integer, ForeignKey("experimenters.experimenter_id"))
+    campaign_stage_obj = relationship("CampaignStage")
 
 
 class FaultyRequest(Base):
