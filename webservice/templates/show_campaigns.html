@@ -327,6 +327,15 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
     </div> <!-- Ends Modal -->
 
 <script>
+   $(function() {
+       $('#global_datepicker_container').show();
+   });
+
+   $(document).ready(function() {
+     $('#double-scroll').doubleScroll();
+   });
+</script>
+<script>
 
 $(document).ready(function() {
     $('#campaign_table').tablesorter( {
