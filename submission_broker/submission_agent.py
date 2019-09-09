@@ -44,13 +44,7 @@ class Agent:
         recent submissions and reports them to POMS
     """
 
-
-    def __init__(
-        self,
-        config,
-        poms_uri=None,
-        submission_uri=None
-    ):
+    def __init__(self, config, poms_uri=None, submission_uri=None):
 
         """
             Setup webservice http session objects, uri's to reach things,
@@ -62,9 +56,9 @@ class Agent:
         self.ssess = requests.Session()
         self.cfg = configparser.ConfigParser()
         self.cfg.read(config)
-      
-        self.poms_uri = self.cfg.get('submission_agent','poms_uri')
-        self.submission_uri = self.cfg.get('submission_agent','submission_uri')
+
+        self.poms_uri = self.cfg.get("submission_agent", "poms_uri")
+        self.submission_uri = self.cfg.get("submission_agent", "submission_uri")
         # biggest time window we should ask LENS for
         self.maxtimedelta = 3600
         self.known = {}
@@ -155,7 +149,7 @@ class Agent:
 
         postresult = self.ssess.post(
             self.submission_uri,
-            data=self.cfg.get('submission_agent','submission_info_query') % jobsubjobid,
+            data=self.cfg.get("submission_agent", "submission_info_query") % jobsubjobid,
             timeout=self.timeouts,
             headers=self.submission_headers,
         )
@@ -188,7 +182,7 @@ class Agent:
 
         postresult = self.ssess.post(
             self.submission_uri,
-            data=self.cfg.get('submission_agent', 'submission_project_query') % entry["id"],
+            data=self.cfg.get("submission_agent", "submission_project_query") % entry["id"],
             timeout=self.timeouts,
             headers=self.submission_headers,
         )
@@ -248,7 +242,7 @@ class Agent:
             start = time.time()
             htr = self.ssess.post(
                 self.submission_uri,
-                data=self.cfg.get('submission_agent', 'full_query') % (group, since),
+                data=self.cfg.get("submission_agent", "full_query") % (group, since),
                 timeout=self.timeouts,
                 headers=self.submission_headers,
             )
@@ -423,8 +417,8 @@ def main():
     ap.add_argument("-c", "--config", default="./submission_agent.cfg")
     ap.add_argument("-d", "--debug", action="store_true")
     ap.add_argument("--since", type=str)
-    ap.add_argument("-t","--test", action="store_true", default=False)
-    ap.add_argument("-T","--one-time", action="store_true", default=False)
+    ap.add_argument("-t", "--test", action="store_true", default=False)
+    ap.add_argument("-T", "--one-time", action="store_true", default=False)
 
     args = ap.parse_args()
 
@@ -434,7 +428,7 @@ def main():
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
     if args.test:
-        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"],config=args.config)
+        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
         for exp in agent.elist:
             agent.check_submissions(exp, since=args.since)
     elif args.one_time:
@@ -444,5 +438,6 @@ def main():
     else:
         agent = Agent(config=args.config)
         agent.poll(since=args.since)
+
 
 main()
