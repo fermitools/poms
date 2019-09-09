@@ -65,6 +65,12 @@ class MiscPOMS:
         """
             callback to actually change launch templates from edit screen
         """
+        print("*"*80)
+        print("*"*80)
+        for item in kwargs.items():
+            print(item)
+        print("*"*80)
+        print("*"*80)
 
         experimenter = ctx.get_experimenter()
         data = {}
@@ -114,6 +120,9 @@ class MiscPOMS:
 
         elif action in ("add", "edit"):
             logit.log("login_setup_edit: add,edit case")
+            ae_active = kwargs.pop("ae_active", False)
+            if isinstance(ae_active, str):
+                ae_active = True
             if pcl_call == 1:
                 if isinstance(ae_launch_name, str):
                     ae_launch_name = ae_launch_name.strip()
@@ -163,6 +172,7 @@ class MiscPOMS:
                             launch_host=ae_launch_host,
                             launch_account=ae_launch_account,
                             launch_setup=ae_launch_setup,
+                            active=ae_active,
                             creator=experimenter_id,
                             created=datetime.now(utc),
                             creator_role=role,
@@ -177,6 +187,7 @@ class MiscPOMS:
                         "launch_host": ae_launch_host,
                         "launch_account": ae_launch_account,
                         "launch_setup": ae_launch_setup,
+                        "active": ae_active,
                         "updated": datetime.now(utc),
                         "updater": experimenter_id,
                     }
