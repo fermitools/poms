@@ -608,16 +608,16 @@ class CampaignsPOMS:
         if not csl:
             return csl, "", msg, data
 
-        data["authorized"]= []
+        data["authorized"] = []
         for c_s in csl:
-            # permissions module raises exceptions when not authorized, 
-            # so we have to use a try: block to decide if we're authorized 
+            # permissions module raises exceptions when not authorized,
+            # so we have to use a try: block to decide if we're authorized
             try:
-                self.poms_service.permissions.can_modify(ctx,"Campaign", item_id=c_s.campaign_id)
+                self.poms_service.permissions.can_modify(ctx, "Campaign", item_id=c_s.campaign_id)
                 data["authorized"].append(True)
             except:
                 data["authorized"].append(False)
-         
+
         last_activity_l = (
             ctx.db.query(func.max(Submission.updated))
             .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)

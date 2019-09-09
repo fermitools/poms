@@ -65,18 +65,18 @@ class Permissions:
 
         if t == "Submission":
             k = "sub:%s" % (item_id or name)
-            q = ctx.db.query(CampaignStage.experiment, Experimenter.username,  CampaignStage.creator_role).join(  #
-                Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id
-            ).join( #
-                  Experimenter, CampaignStage.creator == Experimenter.experimenter_id
+            q = (
+                ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role)
+                .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)  #
+                .join(Experimenter, CampaignStage.creator == Experimenter.experimenter_id)  #
             )
             if item_id:
                 q = q.filter(Submission.submission_id == item_id)
             if name:
                 q = q.filter(Submission.jobsub_job_id == name)
         elif t == "CampaignStage":
-            q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role).join( #
-                  Experimenter, CampaignStage.creator == Experimenter.experimenter_id
+            q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role).join(  #
+                Experimenter, CampaignStage.creator == Experimenter.experimenter_id
             )
             if item_id:
                 k = "cs:%s" % item_id
@@ -87,8 +87,8 @@ class Permissions:
                     CampaignStage.name == name, CampaignStage.campaign_id == campaign_id, CampaignStage.experiment == experiment
                 )
         elif t == "Campaign":
-            q = ctx.db.query(Campaign.experiment, Experimenter.username,  Campaign.creator_role).join( #
-                  Experimenter, Campaign.creator == Experimenter.experimenter_id
+            q = ctx.db.query(Campaign.experiment, Experimenter.username, Campaign.creator_role).join(  #
+                Experimenter, Campaign.creator == Experimenter.experimenter_id
             )
             if item_id:
                 k = "c:%s" % item_id
@@ -97,7 +97,9 @@ class Permissions:
                 k = "c:%s_%s" % (experiment, name)
                 q = q.filter(Campaign.name == name, Campaign.experiment == experiment)
         elif t == "LoginSetup":
-            q = ctx.db.query(LoginSetup.experiment, Experimenter.username, LoginSetup.creator_role).join(Experimenter, LoginSetup.creator == Experimenter.experimenter_id)
+            q = ctx.db.query(LoginSetup.experiment, Experimenter.username, LoginSetup.creator_role).join(
+                Experimenter, LoginSetup.creator == Experimenter.experimenter_id
+            )
             if item_id:
                 k = "ls:%s" % item_id
                 q = q.filter(LoginSetup.login_setup_id == item_id)
@@ -105,7 +107,9 @@ class Permissions:
                 k = "ls:%s_%s" % (experiment, name)
                 q = q.filter(LoginSetup.name == name, LoginSetup.experiment == experiment)
         elif t == "JobType":
-            q = ctx.db.query(JobType.experiment, Experimenter.username, JobType.creator_role).join(Experimenter, Experimenter.experimenter_id==JobType.creator)
+            q = ctx.db.query(JobType.experiment, Experimenter.username, JobType.creator_role).join(
+                Experimenter, Experimenter.experimenter_id == JobType.creator
+            )
             if item_id:
                 k = "c:%s" % item_id
                 q = q.filter(JobType.job_type_id == item_id)
@@ -146,7 +150,9 @@ class Permissions:
         exp, owner, role = self.get_exp_owner_role(
             ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
         )
-        logit.log("can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        logit.log(
+            "can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
+        )
         if exp and exp != ctx.experiment:
             logit.log("can_view: resp: fail")
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
@@ -178,7 +184,9 @@ class Permissions:
 
         self.check_experiment_role(ctx)
 
-        logit.log("can_modify: %s cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+        logit.log(
+            "can_modify: %s cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
+        )
         if exp and exp != ctx.experiment:
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)

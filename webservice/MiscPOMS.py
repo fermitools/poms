@@ -264,7 +264,7 @@ class MiscPOMS:
 
     # h3. modify_job_type_recoveries
     def modify_job_type_recoveries(self, ctx, job_type_id, recoveries, **kwargs):
-      
+
         #
         # recoveries are represented to the client as a json dump
         # of a list of pairs of with list of pairs second values
@@ -289,11 +289,11 @@ class MiscPOMS:
             for k in newrc:
                 if not k in currc:
                     currc[k] = newrc[k]
-        else:  
+        else:
             currc = newrc
 
         # ... and then back to lists of pairs...
-        recoveries = [[x,[[y,currc[x][y]] for y in currc[x]]] for x in currc]
+        recoveries = [[x, [[y, currc[x][y]] for y in currc[x]]] for x in currc]
 
         # now put them back..
         self.fixup_recoveries(ctx, job_type_id, recoveries)
@@ -301,7 +301,6 @@ class MiscPOMS:
         #  and commit
         ctx.db.commit()
         return recoveries
-  
 
     # h3. job_type_edit
     def job_type_edit(self, ctx, **kwargs):
@@ -724,18 +723,28 @@ class MiscPOMS:
 
     # h3. held_launches
     def held_launches(self, ctx):
-        
-        if ctx.role == 'analysis':
+
+        if ctx.role == "analysis":
             # analysis users see their own held jobs
             eid = ctx.get_experimenter().experimenter_id
             hjl = ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid).all()
-        if ctx.role == 'production':
+        if ctx.role == "production":
             # production users see their experiment production
-            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment,CampaignStage.creator_role == ctx.role).all()
+            hjl = (
+                ctx.db.query(HeldLaunch)
+                .join(CampaignStage, HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .filter(CampaignStage.experiment == ctx.experiment, CampaignStage.creator_role == ctx.role)
+                .all()
+            )
 
-        if ctx.role == 'superuser':
+        if ctx.role == "superuser":
             # superusers see all their experiment's jobs
-            hjl = ctx.db.query(HeldLaunch).join(CampaignStage,HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id).filter(CampaignStage.experiment == ctx.experiment).all()
+            hjl = (
+                ctx.db.query(HeldLaunch)
+                .join(CampaignStage, HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .filter(CampaignStage.experiment == ctx.experiment)
+                .all()
+            )
 
         return {"hjl": hjl}
 
@@ -744,5 +753,7 @@ class MiscPOMS:
         eid = ctx.get_experimenter().experimenter_id
         if isinstance(createds, str):
             createds = [createds]
-        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete(synchronize_session=False)
+        ctx.db.query(HeldLaunch).filter(HeldLaunch.launcher == eid, HeldLaunch.created.in_(createds)).delete(
+            synchronize_session=False
+        )
         ctx.db.commit()

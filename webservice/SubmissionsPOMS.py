@@ -212,7 +212,9 @@ class SubmissionsPOMS:
 
         # get completed jobs, lock them, double check
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
-        ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(Submission.submission_id).with_for_update(read=True).all()
+        ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(
+            Submission.submission_id
+        ).with_for_update(read=True).all()
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed, completed_sids)
 
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
@@ -244,7 +246,7 @@ class SubmissionsPOMS:
 
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
-            if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get('force_located',False)):
+            if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get("force_located", False)):
                 finish_up_submissions.append(s.submission_id)
             elif s.project:
                 self.checker.add_project_submission(s)
@@ -395,7 +397,13 @@ class SubmissionsPOMS:
 
         # always lock the submission first to prevent races
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).order_by(Submission.submission_id).with_for_update(read=True).first()
+        s = (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id == submission_id)
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
+            .first()
+        )
 
         status_id = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())[0]
 
@@ -423,8 +431,8 @@ class SubmissionsPOMS:
         )
 
         # don't roll back Located, Failed, or Removed (final states)
-        # note that we *intentionally don't* have LaunchFailed here, as we 
-        # *could*  have a launch that took a Really Long Time, and we might 
+        # note that we *intentionally don't* have LaunchFailed here, as we
+        # *could*  have a launch that took a Really Long Time, and we might
         # have falsely concluded that the launch failed...
         final_states = (self.status_Located, self.status_Removed, self.status_Failed)
         if lasthist and lasthist.status_id in final_states:
@@ -451,7 +459,6 @@ class SubmissionsPOMS:
         if status_id in final_states:
             s.updated = sh.created
             ctx.db.add(s)
-
 
     # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
@@ -646,9 +653,9 @@ class SubmissionsPOMS:
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         cs = s.campaign_stage_obj
         if s.submission_params:
-           s.submission_params['force_located'] = True
+            s.submission_params["force_located"] = True
         else:
-           s.submission_params= {'force_located': True}
+            s.submission_params = {"force_located": True}
         ctx.db.add(s)
         ctx.db.commit()
         return "Ok."
@@ -656,7 +663,13 @@ class SubmissionsPOMS:
     # h3. update_submission
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).order_by(Submission.submission_id).with_for_update(read=True).first()
+        s = (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id == submission_id)
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
+            .first()
+        )
         if not s:
             return "Unknown."
 
@@ -799,7 +812,7 @@ class SubmissionsPOMS:
     # h3. launch_recovery_for
     def launch_recovery_for(self, **kwargs):
         ctx = kwargs["ctx"]
-        s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs['submission_id']).one()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs["submission_id"]).one()
         stime = datetime.now(utc)
 
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])

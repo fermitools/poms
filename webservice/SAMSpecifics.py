@@ -132,11 +132,11 @@ class sam_specifics:
                 cdate,
             )
             # if we have an updated time past our creation, use it for the
-            # time window -- this makes our dependency definition basically 
+            # time window -- this makes our dependency definition basically
             # frozen after we run, so it doesn't collect later similar projects
             # output.
             if ndate != cdate:
-                basedims ="%s and create_date <= '%s'" % (basedims, ndate)
+                basedims = "%s and create_date <= '%s'" % (basedims, ndate)
 
         dims = "%s and %s" % (basedims, dim_bits)
 
@@ -295,7 +295,7 @@ class sam_project_checker:
                 pat = "%"
 
             if pat.find(" ") < 0:
-               pat = "file_name %s" % pat
+                pat = "file_name %s" % pat
 
             allkiddims = "%s and %s %s and version '%s' and create_date > '%s'  with availability physical %s " % (
                 allkiddims,

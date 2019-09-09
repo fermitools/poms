@@ -523,7 +523,9 @@ class StagesPOMS:
                     opo.pop(k, None)  # Remove k/v if new v is empty
             stage.test_param_overrides = list(opo.items())  # Update the record
             ctx.db.commit()  # Update DB
-        return str((stage.param_overrides if param_overrides else None, stage.test_param_overrides if test_param_overrides else None))
+        return str(
+            (stage.param_overrides if param_overrides else None, stage.test_param_overrides if test_param_overrides else None)
+        )
 
     # h3. show_campaign_stages
     def show_campaign_stages(self, ctx, campaign_ids=None, campaign_name=None, **kwargs):
