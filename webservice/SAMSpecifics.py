@@ -164,7 +164,7 @@ class sam_specifics:
             basedims = "snapshot_for_project_name %s " % s.project
             base_dim_list.append(basedims)
 
-            isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
+            isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
             ischildof = "ischildof:(" * s.campaign_stage_obj.output_ancestor_depth
             isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
