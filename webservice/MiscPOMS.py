@@ -65,13 +65,6 @@ class MiscPOMS:
         """
             callback to actually change launch templates from edit screen
         """
-        print("*"*80)
-        print("*"*80)
-        for item in kwargs.items():
-            print(item)
-        print("*"*80)
-        print("*"*80)
-
         experimenter = ctx.get_experimenter()
         data = {}
         template = None
@@ -363,6 +356,9 @@ class MiscPOMS:
 
         elif action in ("add", "edit"):
             logit.log("job_type_edit: add or exit case")
+            ae_active = kwargs.pop("ae_active", False)
+            if isinstance(ae_active, str):
+                ae_active = True
             job_type_id = None
             definition_parameters = kwargs.pop("ae_definition_parameters")
             if definition_parameters:
@@ -424,6 +420,7 @@ class MiscPOMS:
                             output_file_patterns=output_file_patterns,
                             launch_script=launch_script,
                             definition_parameters=definition_parameters,
+                            active=ae_active,
                             creator=experimenter_id,
                             created=datetime.now(utc),
                             creator_role=role,
@@ -440,6 +437,7 @@ class MiscPOMS:
                         "output_file_patterns": output_file_patterns,
                         "launch_script": launch_script,
                         "definition_parameters": definition_parameters,
+                        "active": ae_active,
                         "updated": datetime.now(utc),
                         "updater": experimenter_id,
                     }
