@@ -205,7 +205,7 @@ gui_editor.toggle_form = function (id) {
             }
         ).then(
             new wf_uploader().make_poms_call('get_jobtype_id', {
-                name: `${name}`
+                'name': `${name}`
             }).then(
                 (data) => {
                     if (data) {
@@ -256,7 +256,7 @@ gui_editor.toggle_form = function (id) {
             }
         ).then(
             new wf_uploader().make_poms_call('get_loginsetup_id', {
-                name: `${name}`
+                'name': `${name}`
             }).then(
                 (data) => {
                     if (data) {
