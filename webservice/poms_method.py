@@ -194,6 +194,9 @@ def poms_method(
                 else:
                     self.permissions.can_view(**pargs)
 
+            redirflag = kwargs.get("redirect",None)
+            if redirflag:
+                del kwargs["redirect"]
             fmtflag = kwargs.get("fmt", "")
             if fmtflag:
                 del kwargs["fmt"]
@@ -231,7 +234,7 @@ def poms_method(
             elif rtype == "rawjavascript":
                 cherrypy.response.headers["Content-Type"] = "text/javascript"
                 return values
-            elif rtype == "redirect":
+            elif rtype == "redirect" and redirflag != "0":
                 if isinstance(values, dict):
                     redict = values
                 else:

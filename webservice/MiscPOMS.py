@@ -93,7 +93,7 @@ class MiscPOMS:
             raise PermissionError("You are not acting as the right experiment")
 
         if action == "delete":
-            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=username, experiment=ctx.experiment)
+            self.poms_service.permissions.can_modify(ctx, "LoginSetup", name=ae_launch_name, experiment=ctx.experiment)
             name = ae_launch_name
             try:
                 ctx.db.query(LoginSetup).filter(
