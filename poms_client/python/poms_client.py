@@ -120,7 +120,7 @@ def submission_details(experiment, role, submission_id, test=None, configfile=No
     return status in (200, 201), json.loads(data)
 
 
-def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False, experiment = None, role = None):
+def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False, role = None):
     '''
     upload a campaign .ini file to the server, returns boolan OK flag, and json data from server
     '''
@@ -191,7 +191,7 @@ def get_campaign_name(experiment, campaign_id, test=None, role=None, configfile=
         method='get_campaign_name',
         experiment=experiment,
         campaign_id=campaign_id,
-        role=role
+        role=role,
         test=test,
         configfile=configfile)
     return data
