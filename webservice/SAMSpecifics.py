@@ -179,8 +179,8 @@ class sam_specifics:
             somekidsdecldims = "%s and %s version %s with availability anylocation %s" % (
                 basedims,
                 isparentof,
-                isclose,
                 s.campaign_stage_snapshot_obj.software_version,
+                isclose,
             )
             some_kids_decl_needed.append(somekidsdecldims)
 
