@@ -194,6 +194,10 @@ def poms_method(
                 else:
                     self.permissions.can_view(**pargs)
 
+            fmtflag = kwargs.get("fmt", "")
+            if fmtflag:
+                del kwargs["fmt"]
+
             kwargs["ctx"] = ctx
             if call_args:
                 values = func(self, *args)
@@ -219,7 +223,7 @@ def poms_method(
             # stop Chrome from offering to translate half our pages..
             cherrypy.response.headers["Content-Language"] = "en"
 
-            if kwargs.get("fmt", "") == "json" or rtype == "json":
+            if fmtflag  == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
                 if isinstance(values, dict) and "ctx" in values:
                     del values["ctx"]
