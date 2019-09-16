@@ -73,11 +73,13 @@ def show_campaign_stages(campaign_name=None, test=None, **kwargs):
     )
     return status in (200, 201), json.loads(data)
 
-def update_submission(submission_id, status, test=None, configfile=None, **kwargs):
+def update_submission(submission_id, jobsub_job_id=None, status=None, project=None, test=None, configfile=None, **kwargs):
     data, status = make_poms_call(
         method = 'update_submission',
         submission_id = submission_id,
-        status = status,
+        status=status,
+        jobsub_job_id=jobsub_job_id,
+        project=project,
         test_client=test,
         configfile=configfile,
         **kwargs)

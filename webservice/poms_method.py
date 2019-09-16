@@ -18,6 +18,8 @@ import logging
 import datetime
 import time
 
+from collections import deque
+
 # h3. locals
 from .Ctx import Ctx
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
@@ -106,6 +108,9 @@ class JSONORMEncoder(json.JSONEncoder):
             res.update({c.key: list(getattr(obj, c.key)) for c in inspect(obj).mapper.relationships if c.key == "stages"})
 
             return res
+
+        if isinstance(obj, deque):
+            return list(obj)
 
         if isinstance(obj, datetime.datetime):
             return obj.strftime("%Y-%m-%dT%H:%M:%S")
@@ -197,6 +202,7 @@ def poms_method(
             redirflag = kwargs.get("redirect",None)
             if redirflag:
                 del kwargs["redirect"]
+
             fmtflag = kwargs.get("fmt", "")
             if fmtflag:
                 del kwargs["fmt"]

@@ -283,7 +283,7 @@ class PomsService:
     # h4. job_type_rm
     @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
-        return self.campaignsPOMS.job_type_edit(action="delete", **kwargs)
+        return self.miscPOMS.job_type_edit(action="delete", **kwargs)
 
     # h4. modify_job_type_recoveries
     @poms_method(p=[{"p": "can_modify", "t": "JobType", "item_id": "job_type_id"}], rtype="json")
