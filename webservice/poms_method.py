@@ -18,6 +18,8 @@ import logging
 import datetime
 import time
 
+from collections import deque
+
 # h3. locals
 from .Ctx import Ctx
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
@@ -107,6 +109,9 @@ class JSONORMEncoder(json.JSONEncoder):
 
             return res
 
+        if isinstance(obj, deque):
+            return list(obj)
+
         if isinstance(obj, datetime.datetime):
             return obj.strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -194,6 +199,14 @@ def poms_method(
                 else:
                     self.permissions.can_view(**pargs)
 
+            redirflag = kwargs.get("redirect",None)
+            if redirflag:
+                del kwargs["redirect"]
+
+            fmtflag = kwargs.get("fmt", "")
+            if fmtflag:
+                del kwargs["fmt"]
+
             kwargs["ctx"] = ctx
             if call_args:
                 values = func(self, *args)
@@ -219,7 +232,7 @@ def poms_method(
             # stop Chrome from offering to translate half our pages..
             cherrypy.response.headers["Content-Language"] = "en"
 
-            if kwargs.get("fmt", "") == "json" or rtype == "json":
+            if fmtflag  == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
                 if isinstance(values, dict) and "ctx" in values:
                     del values["ctx"]
@@ -227,7 +240,7 @@ def poms_method(
             elif rtype == "rawjavascript":
                 cherrypy.response.headers["Content-Type"] = "text/javascript"
                 return values
-            elif rtype == "redirect":
+            elif rtype == "redirect" and redirflag != "0":
                 if isinstance(values, dict):
                     redict = values
                 else:

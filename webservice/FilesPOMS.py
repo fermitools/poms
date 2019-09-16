@@ -153,16 +153,16 @@ class FilesStatus:
                             + psummary.get("tot_skipped", 0)
                             + psummary.get("tot_delivered", 0)
                         ),
-                        listfiles % base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered ",
+                        listfiles % (base_dim_list[i] + " and consumed_status consumed,failed,skipped,delivered "),
                     ],
                     ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
                     [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status consumed"],
                     [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
                     [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-                    [some_kids_decl_list[i], listfiles % some_kids_needed[i]],
-                    [all_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                    [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
                     [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-                    [pending, listfiles % base_dim_list[i] + "minus ( %s ) " % all_kids_decl_needed[i]],
+                    [some_kids_list[i], listfiles % some_kids_needed[i]],
+                    [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
                 ]
             )
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
