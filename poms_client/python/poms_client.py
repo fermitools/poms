@@ -29,7 +29,7 @@ rs = requests.Session()
 
 
 def show_campaigns(test=None, **kwargs):
-    # experiment=None, configfile=None, view_active=None, view_inactive=None,
+    # experiment=None, role = None, configfile=None, view_active=None, view_inactive=None,
     #                view_mine=None, view_others=None, view_production=None, update_view=None):
     """
     Return data about campaigns for the current experiment.
@@ -53,7 +53,7 @@ def show_campaigns(test=None, **kwargs):
 
 
 def show_campaign_stages(campaign_name=None, test=None, **kwargs):
-                        #  experiment=None, configfile=None,
+                        #  experiment=None, role=None, configfile=None,
                         #  view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None):
     """
     Return campaign stages for campaign for the current experiment.
@@ -118,7 +118,7 @@ def submission_details(experiment, role, submission_id, test=None, configfile=No
     return status in (200, 201), json.loads(data)
 
 
-def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False):
+def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False, experiment = None, role = None):
     '''
     upload a campaign .ini file to the server, returns boolan OK flag, and json data from server
     '''
@@ -127,6 +127,8 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=Fa
         files={'upload': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
         configfile=configfile,
+        experiment=experiment,
+        role=role,
         pcl_call=1,
         replace=replace
     )
@@ -134,7 +136,7 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=Fa
     return status in (200, 201), json.loads(data)
 
 
-def upload_file(file_name, test=None, experiment=None, configfile=None):
+def upload_file(file_name, test=None, experiment=None, role=None, configfile=None):
     '''
     upload a file to your $UPLOADS area on the poms server to be used in job launches.  returns boolean "Ok" value
     '''
@@ -143,11 +145,12 @@ def upload_file(file_name, test=None, experiment=None, configfile=None):
         files={'filename': (os.path.basename(file_name), open(file_name, 'rb'))},
         test_client=test,
         experiment=experiment,
+        role=role,
         configfile=configfile)
     return status == 303
 
 
-def uploaded_files_rm(experiment, filename, test=None, configfile=None):
+def uploaded_files_rm(experiment, filename, test=None, role=None, configfile=None):
     """
     remove file(s) from your $UPLOADS area on the poms server.
     """
@@ -158,12 +161,13 @@ def uploaded_files_rm(experiment, filename, test=None, configfile=None):
         action='delete',
         redirect=0,
         test_client=test,
+        role=role,
         configfile=configfile,
     )
     return data, status
 
 
-def get_campaign_id(experiment, campaign_name, test=None, configfile=None):
+def get_campaign_id(experiment, campaign_name, test=None, role=None, configfile=None):
     '''
     Get a campaign id by name. Returns integer campaign_id
     '''
@@ -171,12 +175,13 @@ def get_campaign_id(experiment, campaign_name, test=None, configfile=None):
         method='get_campaign_id',
         experiment=experiment,
         campaign_name=campaign_name,
+        role=role,
         test=test,
         configfile=configfile)
     return int(data)
 
 
-def get_campaign_name(experiment, campaign_id, test=None, configfile=None):
+def get_campaign_name(experiment, campaign_id, test=None, role=None, configfile=None):
     '''
     Get a campaign name by id. Returns campaign name
     '''
@@ -184,18 +189,20 @@ def get_campaign_name(experiment, campaign_id, test=None, configfile=None):
         method='get_campaign_name',
         experiment=experiment,
         campaign_id=campaign_id,
+        role=role
         test=test,
         configfile=configfile)
     return data
 
 
-def get_campaign_stage_id(experiment, campaign_name, campaign_stage_name, test=None, configfile=None):
+def get_campaign_stage_id(experiment, campaign_name, campaign_stage_name, test=None, role=None, configfile=None):
     '''
     Get a campaign stage id by name. Returns stage id
     '''
     data, status = make_poms_call(
         method='get_campaign_stage_id',
         experiment=experiment,
+        role=role,
         campaign_name=campaign_name,
         campaign_stage_name=campaign_stage_name,
         test=test,
@@ -203,24 +210,26 @@ def get_campaign_stage_id(experiment, campaign_name, campaign_stage_name, test=N
     return int(data)
 
 
-def get_campaign_stage_name(experiment, campaign_stage_id, test=None, configfile=None):
+def get_campaign_stage_name(experiment, campaign_stage_id, test=None, role=None, configfile=None):
     '''
     Get a campaign stage name by id. Returns stage name
     '''
     data, status = make_poms_call(
         method='get_campaign_stage_name',
         experiment=experiment,
+        role=None,
         campaign_stage_id=campaign_stage_id,
         test=test,
         configfile=configfile)
     return data
 
-def update_stage_param_overrides(experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, configfile=None):
+def update_stage_param_overrides(experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, role=None, configfile=None):
     """
     """
     data, status = make_poms_call(
         method="update_stage_param_overrides",
         experiment=experiment,
+        role=role,
         campaign_stage=campaign_stage,
         param_overrides=param_overrides,
         test_param_overrides=test_param_overrides,
@@ -229,7 +238,7 @@ def update_stage_param_overrides(experiment, campaign_stage, param_overrides=Non
     return data
 
 
-def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, configfile=None):
+def register_poms_campaign(campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, role=None, configfile=None):
     '''
     deprecated: register campaign stage. returns "Campaign=<stage_id>"
     '''
@@ -239,6 +248,7 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
         campaign_name=campaign_name,
         user=user,
         experiment=experiment,
+        role=role,
         version=version,
         dataset=dataset,
         campaign_definition=campaign_definition,
@@ -249,12 +259,12 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     data = data.replace('Campaign=', '')
     return int(data)
 
-def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, configfile=None):
+def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, role=None, configfile=None):
 
     logging.warning("Notice: poms_client.get_task_id_for() is deprecated, use get_submission_id")
-    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, configfile)
+    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, configfile, role=role)
 
-def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, configfile=None):
+def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, role=None, configfile=None):
     '''
     get a submission id for a submission / or register the command
         executed for an existing submission.  Returns "Task=<submission_id>"
@@ -268,21 +278,23 @@ def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, i
         input_dataset=input_dataset,
         parent_submission_id=parent_submission_id,
         submission_id=submission_id,
+        experiment=experiment,
+        role=role,
         test=test,
         configfile=configfile)
     data = data.replace('Task=', '')
     return int(data)
 
 
-def launch_jobs(campaign, test=None, experiment=None, configfile=None):
+def launch_jobs(campaign, test=None, experiment=None, role=None, configfile=None):
     '''
     depecated: backward compatible call to launch jobs for a campaign stage
     '''
     logging.warning("Notice: poms_client.launch_jobs() is deprecated, use launch_campaign_stage_jobs")
-    return launch_campaign_stage_jobs(campaign, test, experiment, configfile)[1] == 303
+    return launch_campaign_stage_jobs(campaign, test, experiment, role, configfile)[1] == 303
 
 
-def launch_campaign_stage_jobs(campaign_stage_id, test=None, test_launch=None, experiment=None, configfile=None):
+def launch_campaign_stage_jobs(campaign_stage_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):
     '''
     launch jobs for a cammpaign stage: returns
     '''
@@ -292,14 +304,15 @@ def launch_campaign_stage_jobs(campaign_stage_id, test=None, test_launch=None, e
         test_launch = test_launch,
         test=test,
         configfile=configfile,
-        experiment=experiment)
+        experiment=experiment,
+        role=role)
     if status == 303:
         submission_id = int(data[data.rfind("_") + 1:])
     else:
         submission_id = None
     return data, status, submission_id
 
-def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=None, configfile=None):
+def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=None, role=None, configfile=None):
     '''
     launch jobs for a cammpaign stage: returns
     '''
@@ -314,7 +327,8 @@ def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=No
         recoveries = recoveries,
         test=test,
         configfile=configfile,
-        experiment=experiment)
+        experiment=experiment, 
+        role=role)
 
     if data:
         data = json.loads(data)
@@ -322,13 +336,14 @@ def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=No
     return data, status, job_type_id
 
 
-def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=None, configfile=None):
+def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):
     data, status = make_poms_call(
         method='launch_campaign',
         campaign_id=campaign_id,
         test_launch = test_launch,
         test=test,
         configfile=configfile,
+        role=role,
         experiment=experiment)
     if status == 303:
         submission_id = int(data[data.rfind("_") + 1:])
@@ -338,30 +353,31 @@ def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=No
     return data, status, submission_id
 
 
-def job_type_rm(experiment, name, test=False, configfile=None):
+def job_type_rm(experiment, name, test=False, role=None, configfile=None):
     data, status = make_poms_call(
         method='job_type_rm',
         pcl_call=1,
         experiment=experiment,
+        role=role,
         ae_definition_name=name,
         test=test,
         configfile=configfile)
     return data, status
 
 
-def login_setup_rm(experiment, name, test=False, configfile=None):
+def login_setup_rm(experiment, name, test=False, role=None, configfile=None):
     data, status = make_poms_call(
         method='login_setup_rm',
         pcl_call=1,
         experiment=experiment,
+        role=role,
         ae_launch_name=name,
         test=test,
         configfile=configfile)
     return data, status
 
 
-def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None,
-                         experiment=None, pc_username=None, test_client=False, configfile=None):
+def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None, experiment=None, pc_username=None, test_client=False, role=None, configfile=None):
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = 'launch_template_edit'
     ae_launch_name = launch_name
@@ -396,6 +412,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     ae_launch_account=ae_launch_account,
                     ae_launch_setup=ae_launch_setup,
                     experiment=experiment,
+                    role=role,
                     test_client=test_client,
                     configfile=configfile)
                 return "status_code", status_code
@@ -413,6 +430,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     action=action,
                     ae_launch_name=ae_launch_name,
                     experiment=experiment,
+                    role=role,
                     ae_launch_host=ae_launch_host,
                     ae_launch_account=ae_launch_account,
                     ae_launch_setup=ae_launch_setup,
@@ -436,6 +454,7 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
                     action=action,
                     ae_launch_name=ae_launch_name,
                     experiment=experiment,
+                    role=role,
 
                     ae_launch_host=launch_host,
                     ae_launch_account=user_account,
@@ -454,14 +473,13 @@ def launch_template_edit(action=None, launch_name=None, launch_host=None, user_a
         return "failed", -1
 
 
-def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
-                             action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
+def campaign_definition_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None, action=None, name=None, experiment=None, recoveries=None,  test_client=False, role=None, configfile=None):
     logging.warning("Notice: poms_client.campaign_definition_edit() is deprecated, use job_type_edit")
     return job_type_edit(output_file_patterns, launch_script, def_parameter, pc_username,
-                             action, name, experiment, recoveries, test_client, configfile)
+                             action, name, experiment, recoveries, test_client, role, configfile)
 
 def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_username=None,
-                             action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None):
+                             action=None, name=None, experiment=None, recoveries=None, test_client=False, role=None, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
     method = "campaign_definition_edit"
@@ -492,6 +510,7 @@ def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_us
                                        action=action,
                                        ae_definition_name=ae_definition_name,
                                        experiment=experiment,
+                                       role=role,
 
                                        ae_output_file_patterns=ae_output_file_patterns,
                                        ae_launch_script=ae_launch_script,
@@ -505,16 +524,18 @@ def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_us
 
 
 def campaign_edit(**kwargs):
-    print("campaign_edit has been replaced by campaign_stage_edit")
+    logging.warning("Notice: campaign_edit has been replaced by campaign_stage_edit")
+    raise DeprecationWarning("campaign_edit has been replaced by campaign_stage_edit")
 
 
-def campaign_rm(experiment, name, test=False, configfile=None):
+def campaign_rm(experiment, name, test=False, role=None, configfile=None):
     data, status = make_poms_call(
         pcl_call=1,
         method='show_campaigns',
         action='delete',
         fmt='json',
         experiment=experiment,
+        role=role,
         del_campaign_name=name,
         test=test,
         configfile=configfile)
@@ -524,7 +545,7 @@ def campaign_rm(experiment, name, test=False, configfile=None):
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
                         dataset, ae_active, ae_split_type, ae_software_version,
                         ae_completion_type, ae_completion_pct, ae_param_overrides,
-                        ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, configfile=None):
+                        ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, role=None, configfile=None):
     logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
     method = "campaign_stage_edit"
     logging.debug("#" * 10)
@@ -556,6 +577,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                                        ae_stage_name=ae_stage_name,
                                        pc_username=pc_username,
                                        experiment=experiment,
+                                       role=role,
                                        ae_vo_role=vo_role,
                                        ae_dataset=dataset,
                                        # ae_active=ae_active,
@@ -574,9 +596,9 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
     #return data['message']
 
 
-def get_campaign_list(test_client=False):
+def get_campaign_list(experiment=None, role=None, test_client=False):
     logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='campaign_list_json', test_client=test_client)
+    res, sc = make_poms_call(method='campaign_list_json', experiment=experiment, role=role, test_client=test_client)
     d = {}
     logging.debug("got back: %s", res)
     for nid in json.loads(res):
@@ -584,9 +606,9 @@ def get_campaign_list(test_client=False):
     return d
 
 
-def tag_campaigns(tag, cids, experiment, test_client=False):
+def tag_campaigns(tag, cids, experiment, role=None, test_client=False):
     logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
-    res, sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment=experiment, test_client=test_client)
+    res, sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment=experiment, role=role, test_client=test_client)
     return sc == 200
 
 global_role = None
