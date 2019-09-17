@@ -216,7 +216,7 @@ class PomsService:
     #
     # list of experiments we support for submission agent, etc to use.
     #
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def experiment_list(self, **kwargs):
         return list(
             map((lambda x: x[0]), kwargs["ctx"].db.query(Experiment.experiment).filter(Experiment.active.is_(True)).all())
@@ -283,6 +283,7 @@ class PomsService:
     # h4. job_type_rm
     @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
+        # note: job_type_edit checks for delete permission
         return self.miscPOMS.job_type_edit(action="delete", **kwargs)
 
     # h4. modify_job_type_recoveries
@@ -321,7 +322,7 @@ class PomsService:
 
     # h4. get_campaign_id
 
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}])
     def get_campaign_id(self, **kwargs):
         return self.campaignsPOMS.get_campaign_id(**kwargs)
 
@@ -337,7 +338,9 @@ class PomsService:
 
     # h4. get_campaign_stage_id
 
-    @poms_method(rtype="json")
+    @poms_method(
+        rtype="json", p=[{"p": "can_view", "t": "CampaignStage", "name": "campaign_stage_name", "campaign_name": "campaign_name"}]
+    )
     def get_campaign_stage_id(self, **kwargs):
         return self.stagesPOMS.get_campaign_stage_id(**kwargs)
 
@@ -345,7 +348,7 @@ class PomsService:
 
     # h4. get_campaign_stage_name
 
-    @poms_method()
+    @poms_method(p=[{"p": "can_view", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def get_campaign_stage_name(self, **kwargs):
         return self.stagesPOMS.get_campaign_stage_name(**kwargs)
 
@@ -353,7 +356,12 @@ class PomsService:
 
     # h4. update_stage_param_overrides
 
-    @poms_method()
+    @poms_method(
+        p=[
+            {"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"},
+            {"p": "can_modify", "t": "CampaignStage", "name": "campaign_stage"},
+        ]
+    )
     def update_stage_param_overrides(self, **kwargs):
         return self.stagesPOMS.update_stage_param_overrides(**kwargs)
 
@@ -361,7 +369,7 @@ class PomsService:
 
     # h4. campaign_add_name
 
-    @poms_method()
+    @poms_method(p=[{"p": "can_modify", "t": "Experiment", "item_id": "experiment"}])
     def campaign_add_name(self, **kwargs):
         return self.campaignsPOMS.campaign_add_name(**kwargs)
 
@@ -413,7 +421,7 @@ class PomsService:
 
     # h4. campaign_list_json
 
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def campaign_list_json(self, **kwargs):
         return self.campaignsPOMS.campaign_list(kwargs["ctx"])
 
@@ -488,7 +496,7 @@ class PomsService:
     # see &l=webservice/StagesPOMS.py#reset_campaign_split&
 
     # h4. campaign_stage_datasets
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def campaign_stage_datasets(self, **kwargs):
         return self.submissionsPOMS.campaign_stage_datasets(kwargs["ctx"])
 
@@ -550,7 +558,7 @@ class PomsService:
         return {"data": self.stagesPOMS.campaign_stage_submissions(**kwargs)}
 
     #   h4. session_status_history
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}])
     def session_status_history(self, **kwargs):
         return self.submissionsPOMS.session_status_history(**kwargs)
 
@@ -673,7 +681,7 @@ class PomsService:
     # see &l=webservice/SubmissionsPOMS.py#mark_failed_submissions&
 
     # h4. running_submissions
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def running_submissions(self, **kwargs):
         cl = list(map(int, kwargs["campaign_id_list"].split(",")))
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
@@ -836,7 +844,7 @@ class PomsService:
     # see &l=webservice/SubmissionsPOMS.py#launch_recovery_for&
 
     # h4. jobtype_list
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def jobtype_list(self, **kwargs):
         data = self.jobsPOMS.jobtype_list(kwargs["ctx"])
         return data
@@ -931,6 +939,10 @@ class PomsService:
     # see &l=webservice/MiscPOMS.py#split_type_javascript&
 
     # h4. save_campaign
+    #
+    # note: this does the permissions check down in the code, because
+    # we have to parse the post data to get the name, etc.
+    #
     @poms_method(rtype="json")
     def save_campaign(self, *args, **kwargs):
         return self.campaignsPOMS.save_campaign(*args, **kwargs)
@@ -938,21 +950,21 @@ class PomsService:
     # see &l=webservice/CampaignsPOMS.py#save_campaign&
 
     # h4. get_jobtype_id
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "JobType", "name": "name"}])
     def get_jobtype_id(self, **kwargs):
         return self.miscPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"])
 
     # see &l=webservice/MiscPOMS.py#get_jobtype_id&
 
     # h4. get_loginsetup_id
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "LoginSetup", "name": "name"}])
     def get_loginsetup_id(self, **kwargs):
         return self.miscPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"])
 
     # see &l=webservice/MiscPOMS.py#get_loginsetup_id&
 
     # h4. loginsetup_list
-    @poms_method(rtype="json")
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def loginsetup_list(self, **kwargs):
         if kwargs.get("full", None):
             data = (
@@ -1035,10 +1047,16 @@ class PomsService:
 
         return data
 
-    @poms_method(t="held_launches.html", help_page="HeldLaunchesHelp")
+    @poms_method(
+        t="held_launches.html", help_page="HeldLaunchesHelp", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}]
+    )
     def held_launches(self, **kwargs):
         return self.miscPOMS.held_launches(**kwargs)
 
-    @poms_method(redirect="%(poms_path)s/held_launches/%(experiment)s/%(role)s", rtype="redirect")
+    @poms_method(
+        redirect="%(poms_path)s/held_launches/%(experiment)s/%(role)s",
+        rtype="redirect",
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+    )
     def held_launches_remove(self, **kwargs):
         return self.miscPOMS.held_launches_remove(**kwargs)

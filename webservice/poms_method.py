@@ -199,7 +199,7 @@ def poms_method(
                 else:
                     self.permissions.can_view(**pargs)
 
-            redirflag = kwargs.get("redirect",None)
+            redirflag = kwargs.get("redirect", None)
             if redirflag:
                 del kwargs["redirect"]
 
@@ -232,7 +232,7 @@ def poms_method(
             # stop Chrome from offering to translate half our pages..
             cherrypy.response.headers["Content-Language"] = "en"
 
-            if fmtflag  == "json" or rtype == "json":
+            if fmtflag == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
                 if isinstance(values, dict) and "ctx" in values:
                     del values["ctx"]

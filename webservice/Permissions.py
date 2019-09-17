@@ -56,7 +56,7 @@ class Permissions:
 
         return self.excache[key]
 
-    def get_exp_owner_role(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+    def get_exp_owner_role(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
         if not name and not item_id:
             raise AssertionError("need either item_id or name")
 
@@ -85,6 +85,15 @@ class Permissions:
                 k = "cs:%s_%s_%d" % (experiment, name, campaign_id)
                 q = q.filter(
                     CampaignStage.name == name, CampaignStage.campaign_id == campaign_id, CampaignStage.experiment == experiment
+                )
+            elif name and campaign_name:
+                q = q.join(Campaign, CampaignStage.campaign_id == Campaign.campaign_id).filter(
+                    CampaignStage.name == name, Campaign.name == campaign_name, CampaignStage.experiment == experiment
+                )
+            elif name and name.find(",") > 0:
+                campaign_name, stage_name = name.split(",", 2)
+                q = q.join(Campaign, CampaignStage.campaign_id == Campaign.campaign_id).filter(
+                    CampaignStage.name == stage_name, Campaign.name == campaign_name, CampaignStage.experiment == experiment
                 )
         elif t == "Campaign":
             q = ctx.db.query(Campaign.experiment, Experimenter.username, Campaign.creator_role).join(  #
@@ -132,7 +141,7 @@ class Permissions:
 
         return self.icache[k]
 
-    def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+    def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
         if self.is_superuser(ctx):
             return
 
@@ -148,7 +157,7 @@ class Permissions:
             return
 
         exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
         )
         logit.log(
             "can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
@@ -158,7 +167,7 @@ class Permissions:
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
         logit.log("can_view: resp: ok")
 
-    def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+    def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
         if self.is_superuser(ctx):
             return None
         if not item_id and not name:
@@ -173,7 +182,7 @@ class Permissions:
             return
 
         exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
         )
 
         # if no owner, role passed in from url, default to one in item
@@ -199,7 +208,7 @@ class Permissions:
             raise PermissionError("Must be user %s to change this" % owner)
         logit.log("can_modify: resp: ok")
 
-    def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None):
+    def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
         if self.is_superuser(ctx):
             return
         if not item_id and not name:
@@ -214,7 +223,7 @@ class Permissions:
         self.check_experiment_role(ctx)
 
         exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id
+            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
         )
 
         logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
