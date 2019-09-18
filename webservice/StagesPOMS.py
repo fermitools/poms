@@ -118,7 +118,7 @@ class StagesPOMS:
         if action == "delete":
             name = kwargs.get("ae_stage_name", kwargs.get("name", None))
             self.poms_service.permissions.can_modify(
-                ctx, "CampaignStage", name=name, campaign_id=campaign_id, experiment=ctx.experiment
+                ctx, "CampaignStage", name=name, campaign_id=campaign_id, experiment=experiment
             )
             if isinstance(name, str):
                 name = name.strip()
@@ -127,7 +127,7 @@ class StagesPOMS:
                     ctx.db.query(CampaignStage)
                     .filter(
                         CampaignStage.name == name,
-                        CampaignStage.experiment == ctx.experiment,
+                        CampaignStage.experiment == experiment,
                         CampaignStage.campaign_id == campaign_id,
                     )
                     .one()
@@ -206,14 +206,14 @@ class StagesPOMS:
                 #        .format(exp, launch_name, campaign_definition_name))
                 login_setup_id = (
                     ctx.db.query(LoginSetup)
-                    .filter(LoginSetup.experiment == ctx.experiment)
+                    .filter(LoginSetup.experiment == experiment)
                     .filter(LoginSetup.name == launch_name)
                     .one()
                     .login_setup_id
                 )
                 job_type_id = (
                     ctx.db.query(JobType)
-                    .filter(JobType.name == campaign_definition_name, JobType.experiment == ctx.experiment)
+                    .filter(JobType.name == campaign_definition_name, JobType.experiment == experiment)
                     .one()
                     .job_type_id
                 )
@@ -222,7 +222,7 @@ class StagesPOMS:
                         ctx.db.query(CampaignStage)
                         .filter(
                             CampaignStage.name == name,
-                            CampaignStage.experiment == ctx.experiment,
+                            CampaignStage.experiment == experiment,
                             CampaignStage.campaign_id == campaign_id,
                         )
                         .one()
@@ -262,12 +262,12 @@ class StagesPOMS:
                 if action == "add":
                     if not completion_pct:
                         completion_pct = 95
-                    if role not in ("analysis", "production"):
+                    if ctx.role not in ("analysis", "production"):
                         message = "Your active role must be analysis " "or production to add a campaign."
                     else:
                         c_s = CampaignStage(
                             name=name,
-                            experiment=ctx.experiment,
+                            experiment=experiment,
                             vo_role=vo_role,
                             # active=active,
                             cs_split_type=split_type,
@@ -281,7 +281,7 @@ class StagesPOMS:
                             completion_pct=completion_pct,
                             creator=experimenter_id,
                             created=datetime.now(utc),
-                            creator_role=role,
+                            creator_role=ctx.role,
                             campaign_stage_type=campaign_type,
                             campaign_id=campaign_id,
                         )
@@ -320,7 +320,7 @@ class StagesPOMS:
                         .filter(
                             CampaignStage.name.in_(depends["campaign_stages"]),
                             CampaignStage.campaign_id == campaign_id,
-                            CampaignStage.experiment == ctx.experiment,
+                            CampaignStage.experiment == experiment,
                         )
                         .all()
                     )
@@ -331,7 +331,7 @@ class StagesPOMS:
                         .filter(
                             CampaignStage.name.in_(depends["campaigns"]),
                             CampaignStage.campaign_id == campaign_id,
-                            CampaignStage.experiment == ctx.experiment,
+                            CampaignStage.experiment == experiment,
                         )
                         .all()
                     )
@@ -379,9 +379,9 @@ class StagesPOMS:
             state = kwargs.pop("state", None)
             jumpto = kwargs.pop("jump_to_campaign", None)
             data["state"] = state
-            data["curr_experiment"] = ctx.experiment
+            data["curr_experiment"] = experiment
             data["authorized"] = []
-            cquery = ctx.db.query(CampaignStage, Campaign).outerjoin(Campaign).filter(CampaignStage.experiment == ctx.experiment)
+            cquery = ctx.db.query(CampaignStage, Campaign).outerjoin(Campaign).filter(CampaignStage.experiment == experiment)
             if data["view_analysis"] and data["view_production"]:
                 pass
             elif data["view_analysis"]:
@@ -412,14 +412,14 @@ class StagesPOMS:
                 cquery = c2.union_all(cquery)
 
             data["campaign_stages"] = cquery.all()
-            data["definitions"] = ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment).order_by(JobType.name)
-            data["templates"] = ctx.db.query(LoginSetup).filter(LoginSetup.experiment == ctx.experiment).order_by(LoginSetup.name)
+            data["definitions"] = ctx.db.query(JobType).filter(JobType.experiment == experiment).order_by(JobType.name)
+            data["templates"] = ctx.db.query(LoginSetup).filter(LoginSetup.experiment == experiment).order_by(LoginSetup.name)
             csq = data["campaign_stages"]
 
             for c_s in csq:
                 if self.poms_service.permissions.is_superuser(ctx):
                     data["authorized"].append(True)
-                elif c_s.CampaignStage.creator_role == "production" and role == "production":
+                elif c_s.CampaignStage.creator_role == "production" and ctx.role == "production":
                     data["authorized"].append(True)
                 elif c_s.CampaignStage.creator_role == ctx.role and c_s.CampaignStage.creator == experimenter.experimenter_id:
                     data["authorized"].append(True)
