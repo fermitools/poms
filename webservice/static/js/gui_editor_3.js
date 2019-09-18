@@ -205,7 +205,8 @@ gui_editor.toggle_form = function (id) {
             }
         ).then(
             new wf_uploader().make_poms_call('get_jobtype_id', {
-                'name': `${name}`
+                'name': `${name}`,
+                'experiment': `${gui_editor.experiment}`
             }).then(
                 (data) => {
                     if (data) {
@@ -256,7 +257,8 @@ gui_editor.toggle_form = function (id) {
             }
         ).then(
             new wf_uploader().make_poms_call('get_loginsetup_id', {
-                'name': `${name}`
+                'name': `${name}`,
+                'experiment': `${gui_editor.experiment}`
             }).then(
                 (data) => {
                     if (data) {
@@ -634,6 +636,9 @@ gui_editor.prototype.fix_dependencies = function (before, after) {
  */
 gui_editor.prototype.set_state_clone = function (ini_dump, from, to, experiment, role) {
 
+    gui_editor.experiment = experiment;
+    gui_editor.role = role;
+
     const prep_jobtype_list = (data) => {
         for (const val of data) {
             console.log('jobtype=', val.name);
@@ -698,6 +703,9 @@ gui_editor.prototype.make_poms_call = function (url) {
 }
 
 gui_editor.prototype.set_state = function (ini_dump, experiment, role) {
+
+    gui_editor.experiment = experiment;
+    gui_editor.role = role;
 
     const prep_jobtype_list = (data) => {
         for (const val of data) {
