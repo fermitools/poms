@@ -64,8 +64,10 @@ class StagesPOMS:
         """
             return the campaign stage id for a stage name in our experiment/campaign
         """
-        stage = (
-            ctx.db.query(CampaignStage)
+        stage_id = (
+            ctx.db.query(CampaignStage.campaign_stage_id)
+            .select_from(CampaignStage)
+            .join(CampaignStage.campaign_obj)
             .filter(
                 CampaignStage.name == campaign_stage_name,
                 CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
@@ -73,19 +75,21 @@ class StagesPOMS:
             )
             .scalar()
         )
-        return stage.campaign_stage_id if stage else None
+        return stage_id if stage_id else None
 
     # h3. get_campaign_stage_name
     def get_campaign_stage_name(self, ctx, campaign_stage_id):
         """
             return the campaign stage name for a stage id in our experiment
         """
-        stage = (
-            ctx.db.query(CampaignStage)
+        names = (
+            ctx.db.query(Campaign.name, CampaignStage.name)
+            .select_from(CampaignStage)
+            .join(CampaignStage.campaign_obj)
             .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.experiment == ctx.experiment)
-            .scalar()
+            .first()
         )
-        return stage.name if stage else None
+        return names if names else None
 
     # h3. campaign_stage_edit
     def campaign_stage_edit(self, ctx, **kwargs):

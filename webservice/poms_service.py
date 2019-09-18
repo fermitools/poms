@@ -346,7 +346,7 @@ class PomsService:
 
     # h4. get_campaign_stage_name
 
-    @poms_method(p=[{"p": "can_view", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def get_campaign_stage_name(self, **kwargs):
         return self.stagesPOMS.get_campaign_stage_name(**kwargs)
 

@@ -233,7 +233,7 @@ def get_campaign_stage_name(experiment, campaign_stage_id, test=None, role=None,
         campaign_stage_id=campaign_stage_id,
         test=test,
         configfile=configfile)
-    return data
+    return json.loads(data)
 
 def update_stage_param_overrides(experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, role=None, configfile=None):
     """
