@@ -252,12 +252,12 @@ class PomsService:
 
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
-    def login_setup_edit(self, **kwargs):
+    def login_setup_edit(self, ctx, **kwargs):
         res = {"data": self.miscPOMS.login_setup_edit(**kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"
-                % (self.path, experiment, role, data["login_setup_id"])
+                % (self.path, ctx.experiment, ctx.role, data["login_setup_id"])     # FIXME: data is undefined!
             )
         return res
 
@@ -296,7 +296,7 @@ class PomsService:
     # h4. job_type_edit
 
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
-    def job_type_edit(self, **kwargs):
+    def job_type_edit(self, ctx, **kwargs):
         res = {"data": self.miscPOMS.job_type_edit(**kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
@@ -304,20 +304,18 @@ class PomsService:
             )
             raise cherrypy.HTTPRedirect(
                 "%s/%s/%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job"
-                % (self.path, experiment, role, test_campaign)
+                % (self.path, ctx.experiment, ctx.role, test_campaign)
             )
         return res
 
     # h4. make_test_campaign_for
 
     @poms_method(p=[{"p": "can_modify", "t": "JobType", "name": "campaign_def_name", "experiment": "experiment"}])
-    def make_test_campaign_for(self, **kwargs):
-        cid = self.campaignsPOMS.make_test_campaign_for(
-            ctx.db, ctx.username, experiment, role, campaign_def_id, campaign_def_name
-        )
+    def make_test_campaign_for(self, ctx, **kwargs):
+        cid = self.campaignsPOMS.make_test_campaign_for(**kwargs)
         raise cherrypy.HTTPRedirect(
             "%s/campaign_stage_edit/%s/%s?campaign_stage_id=%d&extra_edit_flag=launch_test_job"
-            % (self.path, experiment, role, cid)
+            % (self.path, ctx.experiment, ctx.role, cid)
         )
 
     # h4. get_campaign_id
@@ -381,14 +379,14 @@ class PomsService:
         help_page="POMS_User_Documentation",
         t="campaign_stage_edit.html",
     )
-    def campaign_stage_edit(self, **kwargs):
+    def campaign_stage_edit(self, ctx, **kwargs):
         data = self.stagesPOMS.campaign_stage_edit(**kwargs)
         if kwargs.get("pcl_call", "0") == "1" and data["message"]:
             raise cherrypy.HTTPError(400, data["message"])
 
         if kwargs.get("launch_test_job", None) and kwargs.get("ae_campaign_id", None):
             raise cherrypy.HTTPRedirect(
-                "%s/%s/%s/launch_jobs?campaign_stage_id=%s" % (self.path, experiment, role, kwargs.get("ae_campaign_id"))
+                "%s/%s/%s/launch_jobs?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("ae_campaign_id"))
             )
 
         return {"data": data, "jquery_ui": False}
@@ -718,7 +716,7 @@ class PomsService:
         u=["file_stat_list", "total", "experimenters", "quota"],
         t="file_uploads.html",
     )
-    def file_uploads_json(self, experiment, role, checkuser=None):
+    def file_uploads_json(self, ctx, checkuser=None):
         return self.filesPOMS.file_uploads(ctx, checkuser)
 
     # see &l=webservice/FilesPOMS.py#file_uploads&
@@ -771,16 +769,16 @@ class PomsService:
     # h4. set_job_launches
 
     @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
-    def set_job_launches(self, **kwarg):
-        return self.submissionsPOMS.set_job_launches(ctx.db, experiment, role, ctx.username, hold)
+    def set_job_launches(self, ctx, **kwargs):
+        return self.submissionsPOMS.set_job_launches(ctx, hold)     # FIXME: 'hold' is undefined
 
     # see &l=webservice/SubmissionsPOMS.py#set_job_launches&
 
     # h4. launch_queued_job
 
     @poms_method(p=[{"p", "is_superuser"}])
-    def launch_queued_job(self, **kwargs):
-        return self.submissionsPOMS.launch_queued_job(kwargs["ctx"])
+    def launch_queued_job(self, ctx, **kwargs):
+        return self.submissionsPOMS.launch_queued_job(ctx)
 
     # see &l=webservice/SubmissionsPOMS.py#launch_queued_job&
 
@@ -791,13 +789,13 @@ class PomsService:
         rtype="redirect",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
-    def launch_campaign(self, **kwargs):
-        if kwargs["ctx"].username != "poms" or kwargs.get("launcher", "") == "":
-            launch_user = kwargs["ctx"].username
+    def launch_campaign(self, ctx, **kwargs):
+        if ctx.username != "poms" or kwargs.get("launcher", "") == "":
+            launch_user = ctx.username
         else:
             launch_user = kwargs.get("launcher", "")
 
-        return self.campaignsPOMS.launch_campaign(**kwargs)
+        return self.campaignsPOMS.launch_campaign(ctx, **kwargs)
 
     # see &l=webservice/CampaignsPOMS.py#launch_campaign&
 
@@ -951,15 +949,15 @@ class PomsService:
 
     # h4. get_jobtype_id
     @poms_method(rtype="json", p=[{"p": "can_view", "t": "JobType", "name": "name"}])
-    def get_jobtype_id(self, **kwargs):
-        return self.miscPOMS.get_jobtype_id(kwargs["ctx"], kwargs["name"])
+    def get_jobtype_id(self, ctx, **kwargs):
+        return self.miscPOMS.get_jobtype_id(ctx, kwargs["name"])
 
     # see &l=webservice/MiscPOMS.py#get_jobtype_id&
 
     # h4. get_loginsetup_id
     @poms_method(rtype="json", p=[{"p": "can_view", "t": "LoginSetup", "name": "name"}])
-    def get_loginsetup_id(self, **kwargs):
-        return self.miscPOMS.get_loginsetup_id(kwargs["ctx"], kwargs["name"])
+    def get_loginsetup_id(self, ctx, **kwargs):
+        return self.miscPOMS.get_loginsetup_id(ctx, kwargs["name"])
 
     # see &l=webservice/MiscPOMS.py#get_loginsetup_id&
 

@@ -219,7 +219,7 @@ def get_campaign_stage_name(experiment, campaign_stage_id, test=None, role=None,
     data, status = make_poms_call(
         method='get_campaign_stage_name',
         experiment=experiment,
-        role=None,
+        role=role,
         campaign_stage_id=campaign_stage_id,
         test=test,
         configfile=configfile)
@@ -261,12 +261,14 @@ def register_poms_campaign(campaign_name, user=None, experiment=None, version=No
     data = data.replace('Campaign=', '')
     return int(data)
 
-def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, role=None, configfile=None):
+def get_task_id_for(campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None,
+                    task_id=None, test=None, experiment=None, role=None, configfile=None):
 
     logging.warning("Notice: poms_client.get_task_id_for() is deprecated, use get_submission_id")
-    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, configfile, role=role)
+    return get_submission_id_for(campaign, user, command_executed, input_dataset, parent_task_id, task_id, test, experiment, role, configfile)
 
-def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, role=None, configfile=None):
+def get_submission_id_for(campaign_stage_id, user=None, command_executed=None, input_dataset=None,
+                          parent_submission_id=None, submission_id=None, test=None, experiment=None, role=None, configfile=None):
     '''
     get a submission id for a submission / or register the command
         executed for an existing submission.  Returns "Task=<submission_id>"
@@ -325,11 +327,11 @@ def modify_job_type_recoveries(job_type_id, recoveries, test=None, experiment=No
 
     data, status = make_poms_call(
         method='modify_job_type_recoveries',
-        job_type_id = job_type_id,
-        recoveries = recoveries,
+        job_type_id=job_type_id,
+        recoveries=recoveries,
         test=test,
         configfile=configfile,
-        experiment=experiment, 
+        experiment=experiment,
         role=role)
 
     if data:

@@ -214,8 +214,8 @@ class CampaignsPOMS:
             c_s.creator = experimenter_id
             c_s.created = datetime.now(utc)
             c_s.updated = datetime.now(utc)
-            c_s.vo_role = "Production" if role == "production" else "Analysis"
-            c_s.creator_role = role
+            c_s.vo_role = "Production" if ctx.role == "production" else "Analysis"
+            c_s.creator_role = ctx.role
             c_s.dataset = ""
             c_s.login_setup_id = l_t.login_setup_id
             c_s.software_version = ""
