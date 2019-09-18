@@ -71,7 +71,7 @@ Uploaded Files
       {%set mtime = fs[2] %}
       <tr>
          <td><input id="filename" name="filename" value="{{file}}" type="checkbox"></td>
-         <td> {{file}} </td><td> {{size}} </td><td> {{mtime}}</td>
+         <td> <a href="{{pomspath}}/download_file/{{session_experiment}}/{{session_role}}?filename={{file}}">{{file}}</a> </td><td> {{size}} </td><td> {{mtime}}</td>
       </tr>
   {% endfor %}
   <tr><td colspan=4></td></tr>

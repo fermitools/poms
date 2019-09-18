@@ -138,6 +138,16 @@ def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=Fa
     return status in (200, 201), json.loads(data)
 
 
+def download_file(file_name, test=None, experiment=None, role=None, configfile=None):
+    data, status = make_poms_call(
+        method='download_file',
+        filename=file_name,
+        test_client=test,
+        experiment=experiment,
+        role=role,
+        configfile=configfile)
+    return data
+
 def upload_file(file_name, test=None, experiment=None, role=None, configfile=None):
     '''
     upload a file to your $UPLOADS area on the poms server to be used in job launches.  returns boolean "Ok" value

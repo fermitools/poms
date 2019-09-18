@@ -204,6 +204,15 @@ class FilesStatus:
         quota = ctx.config_get("base_uploads_quota", 10485760)
         return file_stat_list, total, experimenters, quota
 
+    # h3. download_file
+
+    def download_file(self, ctx, filename):
+        fname = self.get_file_upload_path(ctx, filename)
+        f = open(fname,"r")
+        data = f.read()   
+        f.close()
+        return data
+
     # h3. upload_file
     def upload_file(self, ctx, quota, filename):
         logit.log("upload_file: entry")

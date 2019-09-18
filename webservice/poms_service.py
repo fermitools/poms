@@ -736,6 +736,13 @@ class PomsService:
             filename=kwargs["filename"],
         )
 
+    @poms_method(
+        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
+        rtype="text/plain"
+    )
+    def download_file(self, **kwargs):
+        return self.filesPOMS.download_file(ctx=kwargs['ctx'], filename=kwargs['filename'])
+
     # h4. remove_uploaded_files
     @poms_method(
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
