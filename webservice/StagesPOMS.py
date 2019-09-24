@@ -471,8 +471,12 @@ class StagesPOMS:
         updated = False
         for name in kwargs:
             if name in cols:
+                print(f"k={name!r}, v={kwargs[name]}, t={type(kwargs[name])}")  # DEBUG
                 # change the attribute
-                setattr(stage, name, kwargs[name])
+                if str(CampaignStage.__table__.columns[name].type) == 'JSON':
+                    setattr(stage, name, ast.literal_eval(kwargs[name]))
+                else:
+                    setattr(stage, name, kwargs[name])
                 updated = True
         if updated:
             setattr(stage, "updated", datetime.now(utc))
