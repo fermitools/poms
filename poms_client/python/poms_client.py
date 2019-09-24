@@ -120,7 +120,7 @@ def submission_details(experiment, role, submission_id, test=None, configfile=No
     return status in (200, 201), json.loads(data)
 
 
-def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False, role = None):
+def upload_wf(file_name, test=None, experiment=None, configfile=None, replace=False, role=None):
     '''
     upload a campaign .ini file to the server, returns boolan OK flag, and json data from server
     '''
@@ -354,7 +354,7 @@ def launch_campaign_jobs(campaign_id, test=None, test_launch=None, experiment=No
     data, status = make_poms_call(
         method='launch_campaign',
         campaign_id=campaign_id,
-        test_launch = test_launch,
+        test_launch=test_launch,
         test=test,
         configfile=configfile,
         role=role,
@@ -555,11 +555,25 @@ def campaign_rm(experiment, name, test=False, role=None, configfile=None):
         configfile=configfile)
     return data, status
 
+def update_campaign_stage(campaign_stage, experiment=None, role=None, test=None, configfile=None, **kwargs):
+    data, status_code = make_poms_call(
+        pcl_call=1,
+        method="update_campaign_stage",
+        campaign_stage=campaign_stage,
+        experiment=experiment,
+        role=role,
+        test=test,
+        configfile=configfile,
+        **kwargs
+    )
+    return "status_code", status_code
+
 
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
                         dataset, ae_active, ae_split_type, ae_software_version,
                         ae_completion_type, ae_completion_pct, ae_param_overrides,
-                        ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, role=None, configfile=None):
+                        ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides,
+                        test_client=None, role=None, configfile=None):
     logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
     method = "campaign_stage_edit"
     logging.debug("#" * 10)
@@ -621,7 +635,7 @@ def get_campaign_list(experiment=None, role=None, test_client=False):
 
 
 def tag_campaigns(tag, cids, experiment, role=None, test_client=False):
-    logging.debug("in get get_campaign_list  test_client = " + repr(test_client))
+    logging.debug("in get get_campaign_list  test_client = %s", repr(test_client))
     res, sc = make_poms_call(method='link_tags', campaign_id=cids, tag_name=tag, experiment=experiment, role=role, test_client=test_client)
     return sc == 200
 
@@ -629,7 +643,7 @@ global_role = None
 global_experiment = None
 
 def update_session_experiment(experiment, test_client=False):
-    logging.debug("in update_session_experiment test_client = %s experiment %s " % (repr(test_client), experiment))
+    logging.debug("in update_session_experiment test_client = %s experiment %s ", repr(test_client), experiment)
     global global_experiment
     global_experiment = experiment
     return True
@@ -694,7 +708,7 @@ def base_path(test_client, config):
         else:
             base = config.get('url', 'base_dev_ssl')
 
-        logging.debug("base = " + base)
+        logging.debug("base = %r", base)
     else:
         #base=config['url']['base_prod']
         base = config.get('url', 'base_prod')
@@ -716,8 +730,8 @@ def check_stale_proxy(options):
                 pdate = datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
 
                 if options.verbose:
-                    logging.info("proxy on POMS has date %sZ" % pdate)
-                    logging.info("current time %sZ" % datetime.datetime.utcnow().isoformat())
+                    logging.info("proxy on POMS has date %sZ", pdate)
+                    logging.info("current time %sZ", datetime.datetime.utcnow().isoformat())
                 return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
     except Exception as e:
         logging.exception("Failed getting uploaded certificate date from POMS")
@@ -743,18 +757,18 @@ def make_poms_call(**kwargs):
         del kwargs["test"]
 
     if "experiment" not in kwargs or not kwargs["experiment"]:
-        logging.debug("adding experiment %s" % global_experiment)
+        logging.debug("adding experiment %s", global_experiment)
         kwargs["experiment"] = global_experiment
 
     if "role" not in kwargs or not kwargs["role"]:
-        logging.debug("adding role %s" % global_role)
+        logging.debug("adding role %s", global_role)
         kwargs["role"] = global_role
 
     test_client = kwargs.get("test_client", None)
     if "test_client" in kwargs:
         del kwargs["test_client"]
 
-    logging.debug("in make_poms_call test_client = " + repr(test_client))
+    logging.debug("in make_poms_call test_client = %r", test_client)
 
     base = base_path(test_client, config)
 
@@ -764,12 +778,12 @@ def make_poms_call(**kwargs):
 
     cert = auth_cert()
     if os.environ.get("POMS_CLIENT_DEBUG", None):
-        logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
+        logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s", method, kwargs, base, cert)
     if cert is None and base[:6] == "https:":
         return ("No client certificate", 500)
     rs.cert = (cert, cert)
     rs.verify = False
-    logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s" % (method, kwargs, base, cert))
+    logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s", method, kwargs, base, cert)
 
     # ignore insecure request warnings...
     with warnings.catch_warnings():

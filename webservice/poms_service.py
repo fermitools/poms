@@ -391,8 +391,17 @@ class PomsService:
 
         return {"data": data, "jquery_ui": False}
 
-    # h4. gui_wf_edit
+    # h4. update_campaign_stage
+    @poms_method(
+        p=[
+            {"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"},
+            {"p": "can_modify", "t": "CampaignStage", "name": "campaign_stage"},
+        ]
+    )
+    def update_campaign_stage(self, **kwargs):
+        return self.stagesPOMS.update_campaign_stage(**kwargs)
 
+    # h4. gui_wf_edit
     @poms_method(
         p=[{"p": "can_modify", "t": "Campaign", "name": "campaign", "experiment": "experiment"}],
         t="gui_wf_edit.html",

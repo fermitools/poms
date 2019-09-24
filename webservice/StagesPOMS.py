@@ -442,6 +442,45 @@ class StagesPOMS:
         data["message"] = message
         return data
 
+    # h3. update_campaign_stage
+    def update_campaign_stage(self, ctx, campaign_stage, **kwargs):
+        print("****** reached update_campaign_stage")
+        print(f"****** campaign_stage: '{campaign_stage}', type: {type(campaign_stage)}")
+        stage = None
+        if isinstance(campaign_stage, list):
+            campaign_name, stage_name = campaign_stage
+            stage = (
+                ctx.db.query(CampaignStage)
+                .filter(
+                    CampaignStage.name == stage_name,
+                    CampaignStage.campaign_obj.has(Campaign.name == campaign_name),
+                    CampaignStage.experiment == ctx.experiment,
+                )
+                .scalar()
+            )
+        else:
+            try:
+                campaign_stage = int(campaign_stage)
+                stage = ctx.db.query(CampaignStage).get(campaign_stage)
+            except Exception:
+                print("*** Oops, unrecognized arg type!")
+        if not stage:
+            return None
+
+        cols = [c for c in CampaignStage.__table__.columns.keys() if "creat" not in c and "update" not in c and "_id" not in c]
+        updated = False
+        for name in kwargs:
+            if name in cols:
+                # change the attribute
+                setattr(stage, name, kwargs[name])
+                updated = True
+        if updated:
+            setattr(stage, "updated", datetime.now(utc))
+            setattr(stage, "updater", ctx.get_experimenter().experimenter_id)
+            ctx.db.commit()  # Update DB
+        return "Success"
+
+
     # h3. campaign_stage_edit_query
     def campaign_stage_edit_query(self, ctx, **kwargs):
         """
