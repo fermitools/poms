@@ -238,8 +238,8 @@ class PomsService:
 
     # h4. launch_template_edit
     @poms_method()
-    def launch_template_edit(self, **kwargs):
-        return self.login_setup_edit(**kwargs)
+    def launch_template_edit(self, ctx, **kwargs):
+        return self.login_setup_edit(ctx, **kwargs)
 
     # h4. login_setup_rm
     @poms_method(rtype="json")
@@ -253,7 +253,7 @@ class PomsService:
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
     def login_setup_edit(self, ctx, **kwargs):
-        res = {"data": self.miscPOMS.login_setup_edit(**kwargs)}
+        res = {"data": self.miscPOMS.login_setup_edit(ctx,**kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"

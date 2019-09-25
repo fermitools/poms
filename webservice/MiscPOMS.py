@@ -733,6 +733,8 @@ class MiscPOMS:
     # h3. held_launches
     def held_launches(self, ctx):
 
+        hjl = []
+
         if ctx.role == "analysis":
             # analysis users see their own held jobs
             eid = ctx.get_experimenter().experimenter_id
