@@ -468,12 +468,14 @@ class CampaignsPOMS:
 
         res.append("var nodes = new vis.DataSet([")
 
+        index = 0
         for c_s in csl:
             if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
-                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
+                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (index, c_s.name, pos["x"], pos["y"]))
             else:
-                res.append('  {id: %d, label: "%s"},' % (c_s.campaign_stage_id, c_s.name))
+                res.append('  {id: %d, label: "%s"},' % (index, c_s.name))
+            index  = index + 1
         res.append("]);")
 
         res.append("var edges = new vis.DataSet([")
