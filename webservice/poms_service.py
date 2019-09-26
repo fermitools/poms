@@ -185,12 +185,15 @@ class PomsService:
 
     # h4. update_session_experiment
     @poms_method()
-    def update_session_experiment(self, **kwargs):
-        self.utilsPOMS.update_session_experiment(**kwargs)
+    def update_session_experiment(self, ctx, **kwargs):
+        old_exp = ctx.experiment
+        old_role = ctx.role
+        self.utilsPOMS.update_session_experiment(ctx, **kwargs)
+         
         raise cherrypy.HTTPRedirect(
-            kwargs["ctx"]
-            .headers_get("Referer", "%s/index/%s/%s" % (self.path, kwargs["ctx"].experiment, kwargs["ctx"].role))
-            .replace(kwargs["ctx"].experiment, kwargs["session_experiment"])
+            ctx
+            .headers_get("Referer", "%s/index/%s/%s" % (self.path, old_exp, old_role))
+            .replace(old_exp,ctx.experiment).replace(old_role, ctx.role)
         )
 
     # h4. update_session_role
