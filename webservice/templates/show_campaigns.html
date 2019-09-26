@@ -379,7 +379,7 @@ $('#campaign_table')
 
 function get_running() {
   $.ajax({
-      url: "{{pomspath}}/running_submissions?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
+      url: "{{pomspath}}/running_submissions/{{session_experiment}}/{{session_role}}?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
       type: 'GET',
       dataType: 'json',
       success: update_running,
