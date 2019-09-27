@@ -468,14 +468,12 @@ class CampaignsPOMS:
 
         res.append("var nodes = new vis.DataSet([")
 
-        index = 0
         for c_s in csl:
             if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
-                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (index, c_s.name, pos["x"], pos["y"]))
+                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
             else:
                 res.append('  {id: %d, label: "%s"},' % (index, c_s.name))
-            index  = index + 1
         res.append("]);")
 
         res.append("var edges = new vis.DataSet([")
@@ -490,11 +488,11 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {manipulation: { enabled: false }};")
         res.append("var network = new vis.Network(container, data, options);")
-        res.append("var dests=[")
+        res.append("var dests={")
         for c_s in csl:
             res.append(
-                "  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
-                % (self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+                "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
+                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
             )
         res.append("];")
         res.append(
