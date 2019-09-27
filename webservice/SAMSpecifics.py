@@ -38,6 +38,11 @@ class sam_specifics:
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
+
+            # recovery dimensions can return an empty string if there is nothing to do.
+            if not recovery_dims:
+                return 0,""
+
         elif rtype.name == "delivered_not_consumed":
             recovery_dims = "project_name %s and consumed_status skipped,unknown,delivered,transferred,unconsumed,cancelled"
         elif rtype.name == "pending_files":
