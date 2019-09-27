@@ -98,7 +98,7 @@ data.depth:
                 <i class="ui trash icon blue"></i>
                 </a>
                 <i class="ui forward icon  grey"></i>&nbsp;
-                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed')" title="Approve">
+                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed')" title="Approve">
                 <i class="ui checkmark icon blue"></i>
                 </a>
             {% else %}
