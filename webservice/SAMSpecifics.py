@@ -36,7 +36,7 @@ class sam_specifics:
             recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
         elif rtype.name == "proj_status":
             recovery_dims = self.ctx.sam.recovery_dimensions(
-                s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=ctx.db
+                s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
         elif rtype.name == "delivered_not_consumed":
             recovery_dims = "project_name %s and consumed_status skipped,unknown,delivered,transferred,unconsumed,cancelled"
