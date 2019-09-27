@@ -473,7 +473,7 @@ class CampaignsPOMS:
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
             else:
-                res.append('  {id: %d, label: "%s"},' % (index, c_s.name))
+                res.append('  {id: %d, label: "%s"},' % (c_s.campaign_stage_id, c_s.name))
         res.append("]);")
 
         res.append("var edges = new vis.DataSet([")
@@ -494,7 +494,7 @@ class CampaignsPOMS:
                 "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
                 % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
             )
-        res.append("];")
+        res.append("};")
         res.append(
             "network.on('click', function(params) { if (!params || !params['nodes']){ return; } ; document.location = dests[params['nodes'][0]];})"
         )
