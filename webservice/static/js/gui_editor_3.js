@@ -1474,6 +1474,9 @@ gui_editor.prototype.draw_state = function () {
 
     // Callback passed as parameter is ignored
     function clearNodePopUp() {
+        const label_el = document.getElementById('node-label');
+        label_el.style.borderWidth = 1;
+        label_el.style.borderColor = '';
         document.getElementById('node-saveButton').onclick = null;
         document.getElementById('node-cancelButton').onclick = null;
         document.getElementById('node-popUp').style.display = 'none';
@@ -1501,7 +1504,17 @@ gui_editor.prototype.draw_state = function () {
     };
 
     const saveNodeData = (data, callback) => {
-        const label = document.getElementById('node-label').value;
+        const label_el = document.getElementById('node-label');
+        const label = label_el.value;
+
+        if (label == '') {
+           label_el.style.borderWidth = 2;
+           label_el.style.borderColor = 'red';
+           return
+        } else {
+           label_el.style.borderWidth = 1;
+           label_el.style.borderColor = '';
+        }
         var parentId, pary;
         clearNodePopUp();
         if (data.nodes) {
