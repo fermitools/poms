@@ -97,19 +97,21 @@ class MiscPOMS:
             name = ae_launch_name
             try:
                 ctx.db.query(LoginSetup).filter(
-                    LoginSetup.experiment == experiment,
+                    LoginSetup.experiment == ctx.experiment,
                     LoginSetup.name == name,
                     LoginSetup.creator == experimenter.experimenter_id,
                 ).delete(synchronize_session=False)
                 ctx.db.commit()
                 message = "The login setup '%s' has been deleted." % name
+                logit.log(message)
             except SQLAlchemyError as exc:
                 ctx.db.rollback()
                 message = "The login setup '%s' has been used and may not be deleted." % name
                 logit.log(message)
                 logit.log(" ".join(exc.args))
             finally:
-                return {"message": message}
+                pass
+                #return {"message": message}
 
         elif action in ("add", "edit"):
             logit.log("login_setup_edit: add,edit case")
