@@ -986,7 +986,7 @@ class CampaignsPOMS:
         }
 
     # h3. mark_campaign_active
-    def mark_campaign_active(self, ctx, campaign_id, is_active, camp_l):
+    def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")

@@ -619,7 +619,7 @@ $('#tag_field').keypress(function (event) {
     $("#mark_inactive_modal").submit(function(event) {
         event.preventDefault();
         var formdata = {'is_active': $('input[name=is_active]:checked').val(),
-                        'cl': $("#campaign_ids").val()
+                        'camp_l': $("#campaign_ids").val()
                        };
         $.ajax({
             url: "{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}",
