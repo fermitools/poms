@@ -87,8 +87,9 @@ class sam_specifics:
 
         try:
             logit.log("counting files dims %s" % recovery_dims)
-            nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=ctx.db)
-        except BaseException:
+            nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=self.ctx.db)
+        except BaseException as be:
+            logit.log("exception %s counting files" % be)
             # if we can's count it, just assume there may be a few for
             # now...
             nfiles = 1
@@ -107,6 +108,8 @@ class sam_specifics:
             )
 
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
+        else:
+            rname = None
 
         return nfiles, rname
 

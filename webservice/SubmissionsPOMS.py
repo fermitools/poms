@@ -807,7 +807,7 @@ class SubmissionsPOMS:
                 )
                 return res
 
-        return 0
+        return None
 
     # h3. launch_recovery_for
     def launch_recovery_for(self, **kwargs):
