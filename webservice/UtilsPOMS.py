@@ -100,20 +100,27 @@ class UtilsPOMS:
         # check for switching to an experiment where we can't have our
         # current role...
         exp = ctx.get_experimenter()
-        exex = ctx.db.query(ExperimentsExperimenters).filter(ExperimentsExperimenters.experiment==session_experiment,ExperimentsExperimenters.experimenter_id == exp.experimenter_id).first()
-              
+        exex = (
+            ctx.db.query(ExperimentsExperimenters)
+            .filter(
+                ExperimentsExperimenters.experiment == session_experiment,
+                ExperimentsExperimenters.experimenter_id == exp.experimenter_id,
+            )
+            .first()
+        )
+
         if not exp.root:
             if not exex:
-                raise PermissionError("Cannot change: not a member of experiment %s" % session_experiment) 
+                raise PermissionError("Cannot change: not a member of experiment %s" % session_experiment)
 
-            if exex.role == 'analysis':
-                ctx.role = 'analysis'
+            if exex.role == "analysis":
+                ctx.role = "analysis"
 
-            if exex.role == 'production' and ctx.role == 'superuser':
-                ctx.role = 'production'
+            if exex.role == "production" and ctx.role == "superuser":
+                ctx.role = "production"
 
         ctx.experiment = session_experiment
-        
+
         fields = {"session_experiment": session_experiment, "session_role": ctx.role}
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update(fields)
 

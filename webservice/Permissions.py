@@ -46,10 +46,10 @@ class Permissions:
                 self.excache[key] = rows[0][0]
             else:
                 self.excache[key] = None
-        logit.log("experiment_role(%s,%s,%s) returning: %s" % (ctx.username, ctx.experiment, ctx.role, self.excache[key]) )
+        logit.log("experiment_role(%s,%s,%s) returning: %s" % (ctx.username, ctx.experiment, ctx.role, self.excache[key]))
         if not self.excache[key]:
             raise PermissionError("username %s is not in experiment %s" % (ctx.username, ctx.experiment))
-        if not ctx.role in ("analysis","production","superuser"):
+        if not ctx.role in ("analysis", "production", "superuser"):
             raise PerimissionError("invalid role %s" % ctx.role)
         if self.excache[key] == "analysis" and ctx.role != self.excache[key]:
             raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
@@ -155,7 +155,6 @@ class Permissions:
             if item_id != ctx.username:
                 raise PermissionError("Only user %s can view this" % item_id)
             return
-
 
         if not item_id and not name:
             return

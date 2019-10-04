@@ -473,7 +473,7 @@ class StagesPOMS:
             if name in cols:
                 print(f"k={name!r}, v={kwargs[name]}, t={type(kwargs[name])}")  # DEBUG
                 # change the attribute
-                if str(CampaignStage.__table__.columns[name].type) == 'JSON':
+                if str(CampaignStage.__table__.columns[name].type) == "JSON":
                     setattr(stage, name, ast.literal_eval(kwargs[name]))
                 else:
                     setattr(stage, name, kwargs[name])
@@ -483,7 +483,6 @@ class StagesPOMS:
             setattr(stage, "updater", ctx.get_experimenter().experimenter_id)
             ctx.db.commit()  # Update DB
         return "Success"
-
 
     # h3. campaign_stage_edit_query
     def campaign_stage_edit_query(self, ctx, **kwargs):

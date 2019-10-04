@@ -189,11 +189,11 @@ class PomsService:
         old_exp = ctx.experiment
         old_role = ctx.role
         self.utilsPOMS.update_session_experiment(ctx, **kwargs)
-         
+
         raise cherrypy.HTTPRedirect(
-            ctx
-            .headers_get("Referer", "%s/index/%s/%s" % (self.path, old_exp, old_role))
-            .replace(old_exp,ctx.experiment).replace(old_role, ctx.role)
+            ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, old_exp, old_role))
+            .replace(old_exp, ctx.experiment)
+            .replace(old_role, ctx.role)
         )
 
     # h4. update_session_role
@@ -256,11 +256,11 @@ class PomsService:
     # h4. login_setup_edit
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="login_setup_edit.html")
     def login_setup_edit(self, ctx, **kwargs):
-        res = {"data": self.miscPOMS.login_setup_edit(ctx,**kwargs)}
+        res = {"data": self.miscPOMS.login_setup_edit(ctx, **kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"
-                % (self.path, ctx.experiment, ctx.role, data["login_setup_id"])     # FIXME: data is undefined!
+                % (self.path, ctx.experiment, ctx.role, data["login_setup_id"])  # FIXME: data is undefined!
             )
         return res
 
@@ -300,7 +300,7 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
     def job_type_edit(self, ctx, **kwargs):
-        res = {"data": self.miscPOMS.job_type_edit(ctx,**kwargs), "jquery_ui": False}
+        res = {"data": self.miscPOMS.job_type_edit(ctx, **kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
                 ctx, kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
@@ -748,12 +748,9 @@ class PomsService:
             filename=kwargs["filename"],
         )
 
-    @poms_method(
-        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
-        rtype="text/plain"
-    )
+    @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}], rtype="text/plain")
     def download_file(self, **kwargs):
-        return self.filesPOMS.download_file(ctx=kwargs['ctx'], filename=kwargs['filename'])
+        return self.filesPOMS.download_file(ctx=kwargs["ctx"], filename=kwargs["filename"])
 
     # h4. remove_uploaded_files
     @poms_method(
@@ -789,7 +786,7 @@ class PomsService:
 
     @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
     def set_job_launches(self, ctx, **kwargs):
-        return self.submissionsPOMS.set_job_launches(ctx, hold)     # FIXME: 'hold' is undefined
+        return self.submissionsPOMS.set_job_launches(ctx, hold)  # FIXME: 'hold' is undefined
 
     # see &l=webservice/SubmissionsPOMS.py#set_job_launches&
 

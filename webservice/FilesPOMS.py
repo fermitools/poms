@@ -208,8 +208,8 @@ class FilesStatus:
 
     def download_file(self, ctx, filename):
         fname = self.get_file_upload_path(ctx, filename)
-        f = open(fname,"r")
-        data = f.read()   
+        f = open(fname, "r")
+        data = f.read()
         f.close()
         return data
 

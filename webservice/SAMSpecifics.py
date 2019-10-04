@@ -41,19 +41,18 @@ class sam_specifics:
 
             # recovery dimensions can return an empty string if there is nothing to do.
             if not recovery_dims:
-                return 0,""
+                return 0, ""
         elif rtype.name == "added_files":
-            if s.s_params and s.s_params.get(
-                    'dataset'):
-                dataset = s.s_params.get('dataset')
+            if s.s_params and s.s_params.get("dataset"):
+                dataset = s.s_params.get("dataset")
             elif s.project:
-                details = samhandle.fetch_info(
-                    experiment, s.project, dbhandle)
-                dataset = details['dataset']
+                # details = samhandle.fetch_info(
+                details = ctx.sam.fetch_info(experiment, s.project, dbhandle)
+                dataset = details["dataset"]
             else:
                 dataset = None
-             recovery_dims = "defname:%s minus snapshot_for_project_name %s" % (
-                dataset, s.project)
+
+            recovery_dims = "defname:%s minus snapshot_for_project_name %s" % (dataset, s.project)
         elif rtype.name == "delivered_not_consumed":
             recovery_dims = "project_name %s and consumed_status skipped,unknown,delivered,transferred,unconsumed,cancelled"
         elif rtype.name == "pending_files":
