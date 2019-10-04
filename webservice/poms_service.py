@@ -904,7 +904,7 @@ class PomsService:
         return {"flist": self.filesPOMS.show_dimension_files(kwargs["ctx"], kwargs["dims"])}
 
     # h4. link_tags
-    @poms_method(p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
+    @poms_method(rtype="json", p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
     def link_tags(self, **kwargs):
         return self.tagsPOMS.link_tags(**kwargs)
 
@@ -933,7 +933,7 @@ class PomsService:
 
     @poms_method(rtype="json")
     def search_all_tags(self, **kwargs):
-        return self.tagsPOMS.search_all_tags(kwargs["ctx"], kwargs["cl"])
+        return self.tagsPOMS.search_all_tags(ctx=kwargs["ctx"], cl=kwargs["cl"])
 
     # see &l=webservice/TagsPOMS.py#search_all_tags&
 

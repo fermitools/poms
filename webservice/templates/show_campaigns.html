@@ -500,7 +500,7 @@ function pop_tag_untag_modal() {
     $("#tag_campaign_ids").val(csv.join(','))
 
     $('#tag_container').html('<i class="big spinner loading blue icon"></i>');
-    $.getJSON('/{{pomspath}}/search_all_tags/{{session_experiment}}/{{session_role}}?cl='+csv.join(','), function (data) {
+    $.getJSON('{{pomspath}}/search_all_tags/{{session_experiment}}/{{session_role}}?cl='+csv.join(','), function (data) {
         if (data.msg == "OK") {
             $('#tag_container').html('');
             for (const tag of data.result) {
@@ -540,9 +540,10 @@ function do_delete(item) {
     var t_id = item.id.split("_")[1];
     var clicked_id = "#" + item.id;
     var experiment = "{{session_experiment}}";
+    var role = "{{session_role}}";
     c_id = c_id.replace(/c/g, ',')
 
-    $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment, delete_unused_tag: true }, function (data) {
+    $.post('{{pomspath}}/delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment, role: role, delete_unused_tag: true }, function (data) {
         if (data.msg == "OK") {
             $('#response').html(data.msg);
             $(clicked_id).remove();  //removes the trash can
@@ -565,10 +566,11 @@ $('#add_button').on('click', function (e) {
 
     tag = $('#tag_field').val()
     console.log("tag " + tag)
-    $.post('link_tags', {
+    $.post('{{pomspath}}/link_tags', {
                 tag_name: tag,
                 campaign_id: $("#tag_campaign_ids").val(),
-                experiment: "{{session_experiment}}"
+                experiment: "{{session_experiment}}",
+                role: "{{session_role}}"
             }, function (data) {
 
         if (data.msg == "OK") {
@@ -605,10 +607,11 @@ $('#tag_field').keypress(function (event) {
     const querypath = `${protocol}//${hostname}/${appname}/auto_complete_tags_search`;
 
     const experiment = "{{session_experiment}}";
+    const role = "{{session_role}}";
     $('.ui.search')
         .search({
             apiSettings: {
-                url: querypath + "?q={query}&experiment=" + experiment
+                url: querypath + "?q={query}&experiment=" + experiment+"&role="+role
             },
             fields: {
                 title: 'name'
