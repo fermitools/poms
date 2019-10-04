@@ -43,8 +43,8 @@ class sam_specifics:
             if not recovery_dims:
                 return 0, ""
         elif rtype.name == "added_files":
-            if s.s_params and s.s_params.get("dataset"):
-                dataset = s.s_params.get("dataset")
+            if s.submission_params and s.submission_params.get("dataset"):
+                dataset = s.submission_params.get("dataset")
             elif s.project:
                 # details = samhandle.fetch_info(
                 details = ctx.sam.fetch_info(experiment, s.project, dbhandle)

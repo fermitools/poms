@@ -849,7 +849,7 @@ class PomsService:
     @poms_method(
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         rtype="redirect",
-        redirect="%(pomspath)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
         u=["outfile"],
     )
     def launch_recovery_for(self, **kwargs):
