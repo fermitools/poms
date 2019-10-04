@@ -824,7 +824,7 @@ class SubmissionsPOMS:
                 .first()
             )
             outdir, outfile, outfullpath = self.get_output_dir_file(ctx, new.created, ctx.username, campaign_stage_id=new.campaign_stage_id, submission_id=s.submission_id)
-            return outfile
+            return outdir, outfile, outfullpath
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
