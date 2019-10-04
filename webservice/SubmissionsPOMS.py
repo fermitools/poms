@@ -796,7 +796,7 @@ class SubmissionsPOMS:
                 ctx.experiment = s.campaign_stage_obj.experiment
 
                 # XXX launch_ctx.username.username -- should be id...
-                self.launch_jobs(
+                res = self.launch_jobs(
                     ctx,
                     s.campaign_stage_snapshot_obj.campaign_stage_id,
                     launch_user.experimenter_id,
@@ -805,7 +805,7 @@ class SubmissionsPOMS:
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
                 )
-                return 1
+                return res
 
         return 0
 
@@ -815,16 +815,11 @@ class SubmissionsPOMS:
         s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs["submission_id"]).one()
         stime = datetime.now(utc)
 
+        #return lcmd, cs, campaign_stage_id, outdir, outfile
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
 
         if res:
-            new = (
-                ctx.db.query(Submission)
-                .filter(Submission.recovery_tasks_parent == s.submission_id, Submission.created >= stime)
-                .first()
-            )
-            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, new.created, ctx.username, campaign_stage_id=new.campaign_stage_id, submission_id=s.submission_id)
-            return outdir, outfile, outfullpath
+            return res[3], res[4], "%s/%s" % (res[3],res[4])
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
