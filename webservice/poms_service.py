@@ -931,7 +931,7 @@ class PomsService:
 
     # h4. search_all_tags
 
-    @poms_method()
+    @poms_method(rtype="json")
     def search_all_tags(self, **kwargs):
         return self.tagsPOMS.search_all_tags(kwargs["ctx"], kwargs["cl"])
 

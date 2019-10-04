@@ -500,7 +500,7 @@ function pop_tag_untag_modal() {
     $("#tag_campaign_ids").val(csv.join(','))
 
     $('#tag_container').html('<i class="big spinner loading blue icon"></i>');
-    $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+    $.getJSON('/{{pomspath}}/search_all_tags/{{session_experiment}}/{{session_role}}?cl='+csv.join(','), function (data) {
         if (data.msg == "OK") {
             $('#tag_container').html('');
             for (const tag of data.result) {
