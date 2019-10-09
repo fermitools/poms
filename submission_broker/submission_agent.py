@@ -78,7 +78,7 @@ class Agent:
         }
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
-        self.timeouts = (90, 90)
+        self.timeouts = (300, 300)
         self.strikes = {}
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")

@@ -50,7 +50,7 @@ class Permissions:
         if not self.excache[key]:
             raise PermissionError("username %s is not in experiment %s" % (ctx.username, ctx.experiment))
         if not ctx.role in ("analysis", "production", "superuser"):
-            raise PerimissionError("invalid role %s" % ctx.role)
+            raise PermissionError("invalid role %s" % ctx.role)
         if self.excache[key] == "analysis" and ctx.role != self.excache[key]:
             raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
         if self.excache[key] == "production" and ctx.role == "superuser":
