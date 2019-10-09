@@ -759,11 +759,15 @@ class SubmissionsPOMS:
         if s.parent_obj:
             s = s.parent_obj
 
-        if recovery_type_override is not None:
+        if s.recovery_position is None:
             s.recovery_position = 0
+
+        if recovery_type_override is not None:
+            # advance recovery position so we do not get duplicate dataset definition names
+            s.recovery_position = s.recovery_position + 1
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
             # need to make a temporary CampaignRecovery
-            rlist = [
+            rlist = [ None ] * s.recovery_position + [
                 CampaignRecovery(
                     job_type_id=s.campaign_stage_obj.job_type_id,
                     recovery_order=0,
@@ -776,8 +780,6 @@ class SubmissionsPOMS:
             rlist = self.poms_service.miscPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
         logit.log("recovery list %s" % rlist)
-        if s.recovery_position is None:
-            s.recovery_position = 0
 
         while s.recovery_position is not None and s.recovery_position < len(rlist):
             logit.log("recovery position %d" % s.recovery_position)
