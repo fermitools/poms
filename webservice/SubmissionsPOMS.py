@@ -763,10 +763,9 @@ class SubmissionsPOMS:
             s.recovery_position = 0
 
         if recovery_type_override is not None:
-            # advance recovery position so we do not get duplicate dataset definition names
-            s.recovery_position = s.recovery_position + 1
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
-            # need to make a temporary CampaignRecovery
+            # need to make a temporary CampaignRecovery, put it far enough
+            # out in rlist
             rlist = [None] * s.recovery_position + [
                 CampaignRecovery(
                     job_type_id=s.campaign_stage_obj.job_type_id,
