@@ -767,7 +767,7 @@ class SubmissionsPOMS:
             s.recovery_position = s.recovery_position + 1
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
             # need to make a temporary CampaignRecovery
-            rlist = [ None ] * s.recovery_position + [
+            rlist = [None] * s.recovery_position + [
                 CampaignRecovery(
                     job_type_id=s.campaign_stage_obj.job_type_id,
                     recovery_order=0,
@@ -817,11 +817,11 @@ class SubmissionsPOMS:
         s = ctx.db.query(Submission).filter(Submission.submission_id == kwargs["submission_id"]).one()
         stime = datetime.now(utc)
 
-        #return lcmd, cs, campaign_stage_id, outdir, outfile
+        # return lcmd, cs, campaign_stage_id, outdir, outfile
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
 
         if res:
-            return res[3], res[4], "%s/%s" % (res[3],res[4])
+            return res[3], res[4], "%s/%s" % (res[3], res[4])
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
