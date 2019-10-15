@@ -74,15 +74,17 @@ class Permissions:
                 .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)  #
                 .join(Experimenter, CampaignStage.creator == Experimenter.experimenter_id)  #
             )
-            if item_id:
+            if item_id and item_id.isigit():
                 q = q.filter(Submission.submission_id == item_id)
             if name:
                 q = q.filter(Submission.jobsub_job_id == name)
         elif t == "CampaignStage":
+            if isinstance(name, list):
+                campaign_name, name = name
             q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role).join(  #
                 Experimenter, CampaignStage.creator == Experimenter.experimenter_id
             )
-            if item_id:
+            if item_id and item_id.isdigit():
                 k = "cs:%s" % item_id
                 q = q.filter(CampaignStage.campaign_stage_id == item_id)
             if name and campaign_id:
@@ -104,7 +106,7 @@ class Permissions:
             q = ctx.db.query(Campaign.experiment, Experimenter.username, Campaign.creator_role).join(  #
                 Experimenter, Campaign.creator == Experimenter.experimenter_id
             )
-            if item_id:
+            if item_id and not isinstance(item_id,list) and item_id.isdigit():
                 k = "c:%s" % item_id
                 q = q.filter(Campaign.campaign_id == item_id)
             if name:

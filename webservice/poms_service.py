@@ -398,7 +398,7 @@ class PomsService:
     @poms_method(
         p=[
             {"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"},
-            {"p": "can_modify", "t": "CampaignStage", "name": "campaign_stage", "campaign_id": "campaign_id"},
+            {"p": "can_modify", "t": "CampaignStage", "name": "campaign_stage"},
         ]
     )
     def update_campaign_stage(self, **kwargs):
