@@ -62,6 +62,8 @@ class Permissions:
         if not name and not item_id:
             raise AssertionError("need either item_id or name")
 
+        k = None
+        q = None
         if t == "Experiment":
             return experiment, None, None
 
@@ -89,6 +91,7 @@ class Permissions:
                     CampaignStage.name == name, CampaignStage.campaign_id == campaign_id, CampaignStage.experiment == experiment
                 )
             elif name and campaign_name:
+                k = "cs:%s_%s_%s" % (experiment, name, campaign_name)
                 q = q.join(Campaign, CampaignStage.campaign_id == Campaign.campaign_id).filter(
                     CampaignStage.name == name, Campaign.name == campaign_name, CampaignStage.experiment == experiment
                 )
@@ -129,6 +132,9 @@ class Permissions:
                 q = q.filter(JobType.name == name, JobType.experiment == experiment)
         else:
             raise Exception("unknown item type '%s'" % t)
+
+        if not k or not q:
+            return (None, None, None)
 
         if k not in self.icache:
             rows = q.all()
