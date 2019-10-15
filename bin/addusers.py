@@ -75,45 +75,31 @@ def get_experiments(cursor, experiment):
     return exp_list
 
 def query_ferry(cert, ferry_url, exp, role):
-    results = {}
+    results = []
     logging.debug("query_ferry for experiment: %s  role: %s", exp, role)
-    url = ferry_url + "/getAffiliationMembersRoles?experimentname=%s&rolename=/%s/Role=%s" % (exp, exp, role)
+    url = ferry_url + "/getAffiliationMembersRoles?unitname=%s&role=%s" % (exp, role)
     logging.debug("query_ferry: requested url: %s", url)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    payload = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
+    elif payload.get('ferry_status') != 'success':
+        logging.debug("get_ferry_experiment_users -- ferry_error: %s  -- %s", payload.get('ferry_error'), url)
     else:
-        results = r.json()
-        ferry_error = results.get('ferry_error', None)
-        if ferry_error is not None:
-            logging.debug("get_ferry_experiment_users -- ferry_error: %s  URL: %s", str(ferry_error), url)
-            results = {}
-    return results.get(exp, {})
+        results = payload.get('ferry_output', [])[exp]
+    return results
 
 def query_superusers(cert, ferry_url, exp, anal_users):
     results = []
-    url = ferry_url + "/getSuperUserList?unitname=%s" % (exp)
+    url = ferry_url + "/getGroupMembers?grouptype=BatchSuperusers&groupname=%s" % (exp)
     r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    payload  = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
-        return results
-    #import pdb
-    #pdb.set_trace()
-    # FERRY does not create a proper json string when no super users are found.   This is a hack
-    # until they fix this.   3/4/2019 - swhite
-    if r.text.find('No super users found.') >= 0:
-        logging.debug("query_superusers -- results:  no superusers found")
-        return results
-    rows = json.loads(r.text)
-    for row in rows:
-        uname = row.get('uname')
-        su = {}
-        for u in anal_users:
-            if u['username'] == uname:
-                su = u
-                break
-        results.append({'username': uname, 'commonname': su.get('commonname', 'not known')})
-    logging.debug("query_superusers -- results: %s", results)
+    elif payload.get('ferry_status') != 'success':
+        logging.debug("query_superusers -- ferry_error: %s  -- %s", payload.get('ferry_error'), url)
+    else:
+        results = payload.get('ferry_output')
     return results
 
 def get_ferry_data(cert, ferry_url, exp, skip_analysis):
@@ -139,7 +125,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     for su in su_users:
         users[su.get('username')] = {'commonname': su.get('commonname'), 'role': 'superuser'}
 
-    logging.debug("ferry data: %s", str(users))
+    #logging.debug("ferry data: %s", str(users))
     return users
 
 def get_voms_data(cert, exp):
