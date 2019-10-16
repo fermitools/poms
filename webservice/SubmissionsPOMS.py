@@ -299,7 +299,8 @@ class SubmissionsPOMS:
     def get_task_id_for(
         self,
         ctx,
-        campaign,
+        campaign = None,
+        campaign_stage_id = None,
         command_executed="",
         input_dataset="",
         parent_submission_id=None,
@@ -307,9 +308,12 @@ class SubmissionsPOMS:
         launch_time=None,
         task_id=None,
         user=None,
+        test=None,
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
+        if campaign == None and campaign_stage_id != None:
+            campaign = campaign_stage_id
         logit.log(
             "get_task_id_for(ctx.username='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'"
             % (ctx.username, ctx.experiment, command_executed, input_dataset, parent_submission_id, submission_id)
@@ -337,8 +341,8 @@ class SubmissionsPOMS:
         else:
             q = q.filter(CampaignStage.name.like("%%%s%%" % campaign))
 
-        if ctx.experiment:
-            q = q.filter(CampaignStage.experiment == ctx.experiment)
+            if ctx.experiment:
+                q = q.filter(CampaignStage.experiment == ctx.experiment)
 
         cs = q.one()
         if launch_time:
@@ -995,6 +999,7 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
+        **kwargs
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
