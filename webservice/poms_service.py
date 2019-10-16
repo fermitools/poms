@@ -706,7 +706,6 @@ class PomsService:
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
 
-<<<<<<< HEAD
     # h3. File upload management for Analysis users
     #
     # h4. file_uploads
@@ -746,179 +745,11 @@ class PomsService:
             # see &l=webservice/FilesPOMS.py#upload_file&
             ctx,
             filename=kwargs["filename"],
-=======
-
-# h3. Job actions
-#
-# h4. kill_jobs
-
-
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def kill_jobs(self, campaign_id=None, campaign_stage_id=None, submission_id=None,
-                  task_id=None, job_id=None, confirm=None, act='kill'):
-        if task_id is not None and submission_id is None:
-            submission_id = task_id
-        if confirm is None:
-            what, s, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
-                cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
-                job_id, confirm, act,
-            )
-            template = self.jinja_env.get_template('kill_jobs_confirm.html')
-            return template.render(what=what, task=s, campaign_stage_id=campaign_stage_id,
-                                   submission_id=submission_id, job_id=job_id, act=act,
-                                   help_page="KilledJobsHelp")
-
-        else:
-            output, cs, campaign_stage_id, submission_id, job_id = self.jobsPOMS.kill_jobs(
-                cherrypy.request.db, cherrypy.session.get, campaign_id, campaign_stage_id, submission_id,
-                job_id, confirm, act,
-            )
-            template = self.jinja_env.get_template('kill_jobs.html')
-            return template.render(output=output,
-                                   cs=cs, campaign_stage_id=campaign_stage_id, submission_id=submission_id,
-                                   job_id=job_id, act=act,
-                                   help_page="KilledJobsHelp",
-                                   )
-
-
-# h4. set_job_launches
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def set_job_launches(self, hold):
-        self.taskPOMS.set_job_launches(cherrypy.request.db, cherrypy.session.get, hold)
-        raise cherrypy.HTTPRedirect(self.path + "/")
-
-
-# h4. launch_queued_job
-
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def launch_queued_job(self):
-        return self.taskPOMS.launch_queued_job(cherrypy.request.db,
-                                               cherrypy.request.samweb_lite,
-                                               cherrypy.session,
-                                               cherrypy.request.headers.get,
-                                               cherrypy.session,
-                                               cherrypy.response.status,
-                                               cherrypy.config.get('base_uploads_dir')
-                                               )
-# h4. launch_campaign
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def launch_campaign(self, campaign_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, output_commands=None):
-        if cherrypy.session.get('experimenter').username and (
-                'poms' != cherrypy.session.get('experimenter').username or launcher == ''):
-            launch_user = cherrypy.session.get('experimenter').experimenter_id
-        else:
-            launch_user = launcher
-
-        logit.log( "calling launch_campaign with campaign_id='%s'" % campaign_id)
-
-        vals = self.campaignsPOMS.launch_campaign(
-            cherrypy.request.db,
-            cherrypy.config.get,
-            cherrypy.request.headers.get,
-            cherrypy.session.get,
-            cherrypy.request.samweb_lite,
-            cherrypy.HTTPError,
-            cherrypy.config.get('base_uploads_dir'),
-            campaign_id,
-            launch_user,
-            experiment=experiment,
-            test_launch=test_launch,
-            output_commands=output_commands,
         )
 
-        logit.log("Got vals: %s" % repr(vals))
-
-        if output_commands:
-            cherrypy.response.headers['Content-Type'] = "text/plain"
-            return vals
-
-        lcmd, cs, campaign_stage_id, outdir, outfile = vals
-        if lcmd == "":
-            cherrypy.response.headers['Content-Type'] = "text/plain"
-            return "Launches held, job queued...\n" + outfile
-        else:
-            raise cherrypy.HTTPRedirect(
-                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
-
-
-# h4. test_split_type_editors
-
-    @cherrypy.expose
-    @logit.logstartstop
-    def test_split_type_editors(self):
-        template = self.jinja_env.get_template('test_split_type_editors.html')
-        return template.render()
-
-# h4. launch_jobs
-    @cherrypy.expose
-    @error_rewrite
-    @logit.logstartstop
-    def launch_jobs(self, campaign_stage_id=None, dataset_override=None, parent_submission_id=None, parent_task_id=None, test_login_setup=None,
-                    experiment=None, launcher=None, test_launch=False, test_launch_template=None, campaign_id=None, test=None, output_commands=None):
-        if not campaign_stage_id and campaign_id:
-            campaign_stage_id = campaign_id
-        if not test_login_setup and test_launch_template:
-            test_login_setup = test_launch_template
-        if parent_task_id and not parent_submission_id:
-            parent_submission_id = parent_task_id
-        if cherrypy.session.get('experimenter').username and (
-                'poms' != cherrypy.session.get('experimenter').username or not launcher):
-            launch_user = cherrypy.session.get('experimenter').experimenter_id
-        else:
-            launch_user = launcher
-
-        logit.log(
-            "calling launch_jobs with campaign_stage_id='%s'" %
-            campaign_stage_id)
-
-        vals = self.taskPOMS.launch_jobs(
-            cherrypy.request.db,
-            cherrypy.config.get,
-            cherrypy.request.headers.get,
-            cherrypy.session.get,
-            cherrypy.request.samweb_lite,
-            cherrypy.HTTPError,
-            cherrypy.config.get('base_uploads_dir'),
-            campaign_stage_id,
-            launch_user,
-            dataset_override=dataset_override,
-            parent_submission_id=parent_submission_id, test_login_setup=test_login_setup,
-            experiment=experiment,
-            test_launch=test_launch,
-            output_commands=output_commands,
->>>>>>> 9a74781b49deca6f5f708b429792733712d11ce0
-        )
-
-<<<<<<< HEAD
     @poms_method(p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}], rtype="text/plain")
     def download_file(self, **kwargs):
         return self.filesPOMS.download_file(ctx=kwargs["ctx"], filename=kwargs["filename"])
-=======
-        lcmd, cs, campaign_stage_id, outdir, outfile = vals
-        if lcmd == "":
-            cherrypy.response.headers['Content-Type'] = "text/plain"
-            return outfile
-        else:
-            if test_login_setup:
-                raise cherrypy.HTTPRedirect("%s/list_launch_file?login_setup_id=%s&fname=%s" % (
-                    self.path, test_login_setup, os.path.basename(outfile)))
-            else:
-                raise cherrypy.HTTPRedirect(
-                    "%s/list_launch_file?campaign_stage_id=%s&fname=%s" % (self.path, campaign_stage_id, os.path.basename(outfile)))
-
-
-# h4. launch_recovery_for
->>>>>>> 9a74781b49deca6f5f708b429792733712d11ce0
 
     # h4. remove_uploaded_files
     @poms_method(
