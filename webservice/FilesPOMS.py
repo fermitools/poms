@@ -217,7 +217,7 @@ class FilesStatus:
     def upload_file(self, ctx, filename):
         logit.log("upload_file: entry")
 
-        quota=int(ctx.config_get("base_uploads_quota"))
+        quota = int(ctx.config_get("base_uploads_quota"))
         logit.log("upload_file: quota: %d" % quota)
         # if they pick multiple files, we get a list, otherwise just one
         # item, so if its not a list, make it a list of one item...

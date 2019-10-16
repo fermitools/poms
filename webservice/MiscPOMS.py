@@ -111,7 +111,7 @@ class MiscPOMS:
                 logit.log(" ".join(exc.args))
             finally:
                 pass
-                #return {"message": message}
+                # return {"message": message}
 
         elif action in ("add", "edit"):
             logit.log("login_setup_edit: add,edit case")

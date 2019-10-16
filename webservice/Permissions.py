@@ -84,7 +84,7 @@ class Permissions:
             q = ctx.db.query(CampaignStage.experiment, Experimenter.username, CampaignStage.creator_role).join(  #
                 Experimenter, CampaignStage.creator == Experimenter.experimenter_id
             )
-            if item_id  and str(item_id).isdigit():
+            if item_id and str(item_id).isdigit():
                 k = "cs:%s" % item_id
                 q = q.filter(CampaignStage.campaign_stage_id == item_id)
             if name and campaign_id:

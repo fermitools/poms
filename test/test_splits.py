@@ -110,7 +110,7 @@ split_table = [
     ["gen_cfg", "nfiles(2)", 1],
     ["gen_cfg", "drainingn(2)", 1],
     ["gen_cfg", "stagedfiles(2)", 2],
-    ["gen_cfg", "limitn(2)", 0]
+    ["gen_cfg", "limitn(2)", 0],
 ]
 
 for ds, splitt, should_hit_end in split_table:
