@@ -29,7 +29,7 @@ Selected Campaign Stages{%include 'help_button.html'%}
      {% for cs in campaign_stages %}
      {% set outer_loop = loop %}
             <tr>
-            <td> <a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{cs.campaign_stage_id}}">{{cs.name}}</a></td>
+            <td> <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{cs.campaign_stage_id}}">{{cs.name}}</a></td>
 
             <td>
 

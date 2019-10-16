@@ -48,7 +48,7 @@
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.ice.css">
     <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.dropbox.css">
 
-    
+
     {% if jquery_ui|default(True) %}
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
@@ -117,8 +117,8 @@
       </div>
 	    <div class="column">
         <br>
-        {% if current_experimenter is defined %}
-	      <i class="user icon" style="margin-left: 1em"></i>{{current_experimenter.first_name}} {{current_experimenter.last_name}}
+        {% if first_name is defined %}
+	      <i class="teal user icon" style="margin-left: 1em"></i>{{first_name}} {{last_name}}
         {% endif %}
         <br>
         <br>
@@ -128,9 +128,11 @@
 		      {% endfor %}
 	      </select>
 	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
-		      {% for role in allowed_roles %}
-		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option>
+                      {% if allowed_roles is defined %}
+		      {% for role in allowed_roles[session_experiment] %}
+		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option> 
 		      {% endfor %}
+                      {% endif %}
 	      </select>
          <br>
         &nbsp;
@@ -170,27 +172,11 @@
   });
 
   $("#session_experiment_id").change(function() {
-    var formdata = {'session_experiment': $("#session_experiment_id").val()};
-    $.ajax({
-      url: "{{pomspath}}/update_session_experiment",
-      type: 'GET',
-      data: formdata,
-      success: function(data){
-        location.reload(true);
-      }
-    });
+    window.location.replace('{{pomspath}}/update_session_experiment/{{session_experiment}}/{{session_role}}?session_experiment=' +  $("#session_experiment_id").val());
   });
 
   $("#current_role").change(function() {
-    var formdata = {'session_role': $("#current_role").val()};
-    $.ajax({
-      url: "{{pomspath}}/update_session_role",
-      type: 'GET',
-      data: formdata,
-      success: function(data){
-          location.reload(true);
-        }
-    });
+    window.location.replace('{{pomspath}}/update_session_role/{{session_experiment}}/{{session_role}}?session_role=' + $("#current_role").val());
   });
 
   $('.tbox').popup({
@@ -209,6 +195,17 @@
     }
   });
 
+
+  /* fix utctime fields to local time */
+  $(document).ready( function() {
+     var el, i, ds;
+     el = document.getElementsByClassName("utctime");
+     for (i = 0 ; i< el.length; i++) {
+         ds = (new Date(parseInt(el[i].getAttribute("time_t")) * 1000)).toLocaleString();
+         el[i].innerHtml = ds
+         el[i].setAttribute('class','localetime')
+     }
+  });
 </script>
 
 </body>

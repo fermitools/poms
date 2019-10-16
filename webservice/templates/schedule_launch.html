@@ -17,9 +17,11 @@ POMS:Campaign Stage {{cs.name}} Scheduled Launches
     {{job}}
   </div>
   <h4>Update Entry form</h4>
-  <form class="ui form raised segment" action="update_launch_schedule" method="GET">
+  <form class="ui form raised segment" action="{{pomspath}}/update_launch_schedule" method="GET">
 
    <input type="hidden" name="campaign_stage_id" value="{{campaign_stage_id}}">
+   <input type="hidden" name="experiment" value="{{session_experiment}}">
+   <input type="hidden" name="role" value="{{session_role}}">
 
    <div class=field>
     <label>  Minutes(s) of the hour:</label>
@@ -34,7 +36,7 @@ POMS:Campaign Stage {{cs.name}} Scheduled Launches
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="*" type="hidden" {%if job.dow == '*' %}checked{%endif%}><label>Any</label></div>
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="sun" type="hidden" {%if 'sun' in job.dow|string %}checked{%endif%}><label>Sunday</label></div>
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="mon" type="hidden" {%if 'mon' in job.dow|string %}checked{%endif%}><label>Monday</label></div>
-    <div class="ui checkbox"><input type="checkbox" name="dowlist" value="tue" type="hidden" {%if 'tue' in job.dow|string %}checked{%endif%}><label>Tuseday</label></div>
+    <div class="ui checkbox"><input type="checkbox" name="dowlist" value="tue" type="hidden" {%if 'tue' in job.dow|string %}checked{%endif%}><label>Tuesday</label></div>
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="wed" type="hidden" {%if 'wed' in job.dow|string %}checked{%endif%} {%if '0' in job.dow %}checked{%endif%}><label>Wednesday</label></div>
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="thu" type="hidden" {%if 'thu' in job.dow|string %}checked{%endif%}><label>Thursday</label></div>
     <div class="ui checkbox"><input type="checkbox" name="dowlist" value="fri" type="hidden" {%if 'fri' in job.dow|string %}checked{%endif%}><label>Friday</label></div>

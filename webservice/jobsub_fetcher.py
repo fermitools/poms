@@ -2,17 +2,14 @@
 
 import sys
 import os
-from os import system as os_system
-import threading
-from poms.webservice.logit import log, logstartstop
-import requests
 import re
 import traceback
 from collections import deque
+import requests
+from poms.webservice.logit import log, logstartstop
 
 
-class jobsub_fetcher():
-
+class jobsub_fetcher:
     def __init__(self, cert, key):
         self.sess = requests.Session()
         self.cert = cert
@@ -26,58 +23,52 @@ class jobsub_fetcher():
         pass
 
     @logstartstop
-    def index(self, jobsubjobid, group, role="Production",
-              force_reload=False, retries=3):
+    def index(self, jobsubjobid, group, role="Production", force_reload=False, retries=3, user=None):
 
         res = deque()
         if retries == -1:
             return res
 
+        if user is None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
-        fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
+        fifebatch = jobsubjobid[jobsubjobid.find("@") + 1 :]
 
         if fifebatch == "fakebatch1.fnal.gov":
             # don's get confused by test suite...
             return
 
-        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % (
-            fifebatch, group, user, jobsubjobid)
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/" % (fifebatch, group, user, jobsubjobid)
 
-        log("trying url:" + url)
+        log("DEBUG", "trying url:" + url)
 
         r = None
         try:
-            r = self.sess.get(
-                url,
-                cert=(
-                    self.cert,
-                    self.key),
-                verify=False,
-                headers={
-                    "Accept": "text/html"})
-            log("headers:" + repr(r.request.headers))
-            log("headers:" + repr(r.headers))
+            r = self.sess.get(url, cert=(self.cert, self.key), verify=False, headers={"Accept": "text/html"})
+            log("DEBUG", "headers:" + repr(r.request.headers))
+            log("DEBUG", "headers:" + repr(r.headers))
             sys.stdout.flush()
-            for line in r.text.split('\n'):
-                log("got line: " + line)
+            for line in r.text.split("\n"):
+                log("DEBUG", "got line: " + line)
                 # strip campaigns...
-                line = re.sub('<[^>]*>', '', line)
+                line = re.sub("<[^>]*>", "", line)
                 fields = line.strip().split()
-                if len(fields):
+                if fields:
                     fname = fields[0]
                     fields[0] = ""
                     fields[2] = fields[1]
                     fields.append(fname)
-                    log("got fields: " + repr(fields))
+                    log("DEBUG", "got fields: " + repr(fields))
                     res.append(fields)
         except BaseException:
-            log(traceback.format_exc())
+            log("INFO", traceback.format_exc())
         finally:
             if r:
                 r.close()
@@ -85,51 +76,42 @@ class jobsub_fetcher():
         return res
 
     @logstartstop
-    def contents(self, filename, jobsubjobid, group,
-                 role="Production", retries=3):
+    def contents(self, filename, jobsubjobid, group, role="Production", retries=3, user=None):
 
         if retries == -1:
             return []
 
+        if user is None:
+            # if old code calls without a username, guess
+            if group == "samdev":
+                user = "mengel"  # kluge alert
+            else:
+                user = "%spro" % group
+
         if group == "samdev":
             group = "fermilab"
-            user = "mengel"  # kluge alert
-        else:
-            # XXX this will be wrong when we have real Analysis jobs...
-            user = "%spro" % group
 
-        fifebatch = jobsubjobid[jobsubjobid.find("@") + 1:]
+        fifebatch = jobsubjobid[jobsubjobid.find("@") + 1 :]
 
         if fifebatch == "fakebatch1.fnal.gov":
             # don's get confused by test suite...
             return
 
-        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (
-            fifebatch, group, user, jobsubjobid, filename)
+        url = "https://%s:8443/jobsub/acctgroups/%s/sandboxes/%s/%s/%s/" % (fifebatch, group, user, jobsubjobid, filename)
 
-        log("trying url:" + url)
+        log("DEBUG", "trying url:" + url)
 
         try:
-            r = self.sess.get(
-                url,
-                cert=(
-                    self.cert,
-                    self.key),
-                stream=True,
-                verify=False,
-                headers={
-                    "Accept": "text/plain"})
+            r = self.sess.get(url, cert=(self.cert, self.key), stream=True, verify=False, headers={"Accept": "text/html"})
 
-            log("headers:" + repr(r.request.headers))
-            log("headers:" + repr(r.headers))
+            log("DEBUG", "headers:" + repr(r.request.headers))
+            log("DEBUG", "headers:" + repr(r.headers))
 
             sys.stdout.flush()
-            res = deque()
-            for line in r.text.split('\n'):
-                log("got line: " + line)
-                res.append(line.rstrip('\n'))
+            log("DEBUG", "r.text: '%s'" % r.text)
+            return r.text.replace("<pre>", "\n").split("\n")
         except BaseException:
-            log(traceback.format_exc())
+            log("INFO", traceback.format_exc())
         finally:
             if r:
                 r.close()
@@ -139,12 +121,8 @@ class jobsub_fetcher():
 
 if __name__ == "__main__":
 
-    jf = jobsub_fetcher(
-        "/tmp/x509up_u%d" %
-        os.getuid(),
-        "/tmp/x509up_u%d" %
-        os.getuid())
-    jobid = "18533155.0@fifebatch1.fnal.gov"
+    jf = jobsub_fetcher("/tmp/x509up_u%d" % os.getuid(), "/tmp/x509up_u%d" % os.getuid())
+    jobid = "18771837.0@jobsub02.fnal.gov"
     flist = jf.index(jobid, "samdev", "Analysis")
     print("------------------")
     print(flist)

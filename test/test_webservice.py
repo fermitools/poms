@@ -6,7 +6,7 @@ import pytest
 
 @pytest.fixture(scope="session")
 def client():
-    return WebClient(base_url='')
+    return WebClient(base_url="")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -17,77 +17,80 @@ def execute_before_any_test():
 
 
 def test_dashboard(client):
-    client.get('index')
+    client.get("index")
     print("got: %s" % client.text)
-    assert 'POMS' in client.text
-
+    assert "POMS" in client.text
 
 
 #
 # Top level calls
 #
 def test_dashboard_status(client):
-    client.get('index')
+    client.get("index/samdev/production")
     print("ieot: %s" % client.text)
     assert client.code == 200
 
 
 def test_show_campaigns(client):
-    client.get('show_campaigns')
+    client.get("show_campaigns/samdev/production")
     print("got: %s" % client.text)
     assert client.code == 200
-    assert 'Campaign Name' in client.text
-
+    assert "Campaign Name" in client.text
 
 
 def test_show_campaign_stages(client):
-    client.get('show_campaign_stages')
+    client.get("show_campaign_stages/samdev/production")
     print("got: %s" % client.text)
     assert client.code == 200
 
+
 def test_inactive_campaigns(client):
-    client.get('show_campaigns?view_inactive=view_inactive')
+    client.get("show_campaigns/samdev/production?view_inactive=view_inactive")
     print("got: %s" % client.text)
     assert client.code == 200
-    assert 'Campaign Name' in client.text
+    assert "Campaign Name" in client.text
 
 
 def test_campaign_stage_edit(client):
-    client.get('campaign_stage_edit')
+    client.get("campaign_stage_edit/samdev/production")
     print("got: %s" % client.text)
     assert client.code == 200
 
+
 def campaign_definition_edit(client):
-    client.get('campaign_definition_edit')
+    client.get("campaign_definition_edit/samdev/production")
     print("got: %s" % client.text)
     assert client.code == 200
-    assert 'Job Types' in client.text
+    assert "Job Types" in client.text
 
 
 def test_login_setup_edit(client):
-    client.get('login_setup_edit')
+    client.get("login_setup_edit/samdev/production")
     print("got: %s" % client.text)
     assert client.code == 200
-    assert 'Setup' in client.text
+    assert "Setup" in client.text
+
 
 def test_campaign_stage_submissions(client):
-    client.get('campaign_stage_submissions?campaign_name=fake_demo1&stage_name=*&campaign_id=1')
+    client.get("campaign_stage_submissions/samdev/production?campaign_name=fake demo v1.0  w/chars&stage_name=*&campaign_id=1")
     print("got: %s" % client.text)
     assert client.code == 200
+
 
 def test_campaign_deps_ini(client):
-    client.get('campaign_deps_ini?tag=fake_demo1')
+    client.get("campaign_deps_ini/samdev/production?name=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 
+
 def test_campaign_deps(client):
-    client.get('campaign_deps?tag=fake_demo1')
+    client.get("campaign_deps/samdev/production?campaign_name=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 
 
 def test_gui_edit(client):
-    client.get('gui_wf_edit?campaign=fake_demo1')
+    client.get("gui_wf_edit/samdev/production?campaign=fake demo v1.0  w/chars")
     print("got: %s" % client.text)
     assert client.code == 200
 
@@ -96,17 +99,14 @@ def test_gui_edit(client):
 # JSON method tests
 #
 
-def test_json_project_summary_for_task(client):
-    client.get('json_project_summary_for_task?submission_id=89')
-    print("got: %s" % client.text)
-    assert client.code == 200
-    assert '{' in client.text
 
 def test_campaign_list_json(client):
-    client.get('campaign_list_json')
+    client.get("campaign_list_json")
     print("got: %s" % client.text)
     assert client.code == 200
-    assert '[' in client.text
+    assert "[" in client.text
+
+
 #
 # Next layer calls
 #

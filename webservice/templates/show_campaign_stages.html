@@ -38,7 +38,8 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
     }
 
     /* Hide the first column with IDs */
-    #campaign_stages th:nth-child(1), table td:nth-child(1) {
+    #campaign_stages th:nth-child(1),
+    #campaign_stages td:nth-child(1) {
         display: none;
     }
 
@@ -46,7 +47,7 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
         display:none;
     }
 </style>
-<!--<form method="GET" action="{{pomspath}}/show_campaign_stages">-->
+<!--<form method="GET" action="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}">-->
 <form id="view_picker" method="POST">
   {% set has_active=True %}
   {%include "view_picker.html" %}
@@ -91,7 +92,7 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
                     <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}" {{ 'disabled' if data.authorized[loop.index-1]!=True }}></td>
                     <td>{{stage.campaign_obj.name}}</td>
                     <td style="width: 4em; text-align:right">{{stage.campaign_obj.campaign_id}}</td>
-                    <td><a href="{{pomspath}}/campaign_stage_info?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
+                    <td><a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{stage.campaign_stage_id}}">{{stage.name}}</a></td>
                     <td style="width: 4em; text-align:right">{{stage.campaign_stage_id}}</td>
                     <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>
@@ -135,7 +136,9 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
     <div class="header">
         Campaign Stages to Queue/Release:
     </div>
-    <form class="ui form" action="mark_campaign_hold" method="GET">
+    <form class="ui form" action="{{pomspath}}/mark_campaign_hold" method="GET">
+        <input type="hidden" name="experiment" value="{{session_experiment}}">
+        <input type="hidden" name="role" value="{{session_role}}">
         <div class="field">
             <textarea id="campaign_names_hold" readonly></textarea>
             <input type="hidden" id="campaign_ids2HR" name="ids2HR">

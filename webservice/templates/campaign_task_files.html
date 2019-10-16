@@ -1,8 +1,12 @@
 {%extends "layout.html"%}
 
+{%set name=cs.name|default("") %}
+{%set CampaignStage=cs %}
+
 {%block title%}
 POMS
 {%endblock%}
+
 
 {%block header%}
 <h1 class="ui header">

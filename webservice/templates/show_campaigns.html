@@ -16,7 +16,8 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
 
 <style scoped>
     /* Hide the first column with IDs */
-    #campaign_table th:nth-child(1), table td:nth-child(1) {
+    #campaign_table th:nth-child(1),
+    #campaign_table td:nth-child(1) {
         display: none;
     }
 
@@ -36,7 +37,8 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
  }
 </script>
 
-<form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns">
+<!-- <form name="view_picker_form" id="view_picker_form" method="GET" action="show_campaigns"> -->
+<form name="view_picker_form" id="view_picker_form" method="GET">
 {% set has_active=True %}
 {% set data = data|default({}) %}
 {%include "view_picker.html" %}
@@ -54,7 +56,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
 
 <!-- <span id="span-upload" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}> </span> -->
 
-<form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="ini_to_campaign">
+<form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="{{pomspath}}/ini_to_campaign/{{session_experiment}}/{{session_role}}">
     <label for="hidden-new-file" class="tiny ui teal button">
         Pick .ini file
         <input type="file" name="upload" id="hidden-new-file" style="display: none">
@@ -66,7 +68,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
     </label>
 </form>
 
-<div>
+<div id="double-scroll" class="ui _scrollable">
     <table id="campaign_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
         <thead>
             <tr>
@@ -78,14 +80,14 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <th>Active</th>
                 <th>Submis-<br>sions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submis-<br>sion<br>History</th>
+                <th data-sorter="false" data-filter="false">Files<br>Report</th>
                 <th data-sorter="false" data-filter="false">Launch</th>
                 <th data-sorter="false" data-filter="false">Depend-<br>encies</th>
                 <th data-sorter="false" data-filter="false">GUI Editor</th>
                 <th data-sorter="false" data-filter="false">Clone<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">.ini File</th>
-                <th>Tags</th>
-                <th data-sorter="false" data-filter="false">Rename<br>Campaign</th>
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
+                <th>Tags</th>
                 <th>Creator</th>
             </tr>
         </thead>
@@ -95,36 +97,55 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <!-- id is hidden by css look for #campaign_table above -->
                 <td id="c_id_{{loop.index}}">{{s.campaign_id}}</td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
-                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
+                <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
                 <td style="text-align:right">{{s.campaign_id}}</td>
                 <td align="center">{{ 'Yes' if s.active else 'No' }}</td>
 		        <!-- <td> <button onclick="call_show_campaign_stages( '{{s.name}}' )"> {{s.name}} </td> -->
                 <td id="running_{{s.campaign_id}}" style="text-align:right; padding-right: 1em">...</td>
                 <td>
-                    <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+                    <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign?campaign_id={{s.campaign_id}}')">
-                        <i class="chart rocket icon blue"></i>
-                    </button>
+                    <a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+                        <button type="button">
+                        <i class="clipboard outline icon"></i>
+                        </button>
+                    </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps?tag={{s.name|urlencode}}">
+                  {%if data.authorized[loop.index0] %}
+                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
+                        <i class="chart rocket icon blue"></i>
+                    </button>
+                  {%else%}
+                     <button type="button" class="disabled">
+                        <i class="chart rocket icon disabled"></i>
+                     </button>
+                  {%endif%}
+                </td>
+                <td>
+                    <a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">
                         <button type="button">
                             <i class="sitemap icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/gui_wf_edit?campaign={{s.name|urlencode}}">
-                        <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
-                            <i class="edit icon"></i>
+                    {%if data.authorized[loop.index0] %}
+                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}">
+                        <button class="button">
+                            <i class="edit icon blue"></i>
                         </button>
                     </a>
+                    {%else%}
+                        <button class="button disabled">
+                            <i class="edit icon disabled"></i>
+                        </button>
+                    {%endif%}
                 </td>
                 <td>
                     <button type="button" onclick="clone_template('{{s.name}}');">
@@ -132,26 +153,27 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     </button>
                 </td>
                 <td>
-                    <a href="{{pomspath}}/campaign_deps_ini?tag={{s.name|urlencode}}">
+                    <a href="{{pomspath}}/campaign_deps_ini/{{session_experiment}}/{{session_role}}?name={{s.name|urlencode}}">
                         <button type="button">
                             <i class="list icon"></i>
                         </button>
                     </a>
                 </td>
                 <td>
+                    {%if data.authorized[loop.index0] %}
+                    <button class="button" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');">
+                        <i class="trash blue icon"></i>
+                    </button>
+                    {%else%}
+                        <button class="button disabled">
+                            <i class="trash icon disabled"></i>
+                        </button>
+                    {%endif%}
+                </td>
+                <td>
                     {% for tag in s.tags %}
                         {{tag.tag_name}}
                     {% endfor %}
-                </td>
-                <td>
-                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
-                        <i class="exchange blue icon" onclick="rename_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
-                    </button>
-                </td>
-                <td>
-                    <button {{ 'class="ui disabled button"' if (data.authorized[loop.index] == false) }}>
-                        <i class="trash blue icon" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');"></i>
-                    </button>
                 </td>
                 <td>
                     {{s.experimenter_creator_obj.username}}
@@ -203,7 +225,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit?">
+    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?">
       <div class="two fields">
         <div class="field">
           <label>Existing Campaign Name</label>
@@ -238,7 +260,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 Deletions will <b>not</b> occur if the campaign has been submitted.
             </p>
         </div>
-        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns"> -->
+        <!-- <form id="delete_campaign_form" class="ui form" method="POST" action="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}"> -->
         <form id="delete_campaign_form" class="ui form" method="POST" action="" onsubmit="this.action=location.href">
             <div class="one field">
                 <div class="field">
@@ -281,7 +303,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     <div id="tag_container">
                         {% for tag in tags %}
                             <i class="trash outline icon link poms_tag" id="{{Campaign.campaign_id}}_{{tag.tag_id}}"></i>
-                            <a href="{{pomspath}}/search_tags?q={{tag.tag_name|urlencode}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
+                            <a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q={{tag.tag_name|urlencode}}" class="ui blue tag label" id="{{Campaign.campaign_id}}_{{tag.tag_id}}_">{{tag.tag_name}}</a>
                         {% endfor %}
                     </div>
                 </div>
@@ -310,26 +332,15 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
         </div>
     </div> <!-- Ends Modal -->
 
-    <div class="ui modal small" id="rename_campaign_modal" style="padding: 0px 20px;">
-        <i class="close icon"></i>
-        <div class="header">
-            <span style="font-size: 1.3em;">Rename a campaign.</span>
-        </div>
-        <form class="ui form" action="" method="GET">
-            <div class="field">
-                <lable>From:</lable>
-                <input type="text" id="original_campaign_name" name="original_campaign_name" readonly>
-                <lable>To:</lable>
-                <input type="text" id="new_campaign_name" name="new_campaign_name">
-            </div>
-            <div class="ui hidden divider"></div>
-        </form>
-        <div class="actions">
-            <div class="ui button deny red">Cancel</div>
-            <div class="ui button approve teal">Save</div>
-        </div>
-    </div> <!-- Ends Modal -->
+<script>
+   $(function() {
+       $('#global_datepicker_container').show();
+   });
 
+   $(document).ready(function() {
+     $('#double-scroll').doubleScroll();
+   });
+</script>
 <script>
 
 $(document).ready(function() {
@@ -368,7 +379,7 @@ $('#campaign_table')
 
 function get_running() {
   $.ajax({
-      url: "{{pomspath}}/running_submissions?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
+      url: "{{pomspath}}/running_submissions/{{session_experiment}}/{{session_role}}?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
       type: 'GET',
       dataType: 'json',
       success: update_running,
@@ -452,7 +463,7 @@ function pop_add_campaign_modal() {
       onApprove : function() {
         var formdata = {'campaign_name': $("#add_campaign_name").val()};
         $.ajax({
-            url: "{{pomspath}}/campaign_add_name",
+            url: "{{pomspath}}/campaign_add_name/{{session_experiment}}/{{session_role}}",
             type: 'GET',
             data: formdata,
             success: function(data){
@@ -469,36 +480,6 @@ function pop_add_campaign_modal() {
       })
     .modal('show');
   }
-
-function rename_campaign(name, campaign_id) {
-    $('#original_campaign_name').val(name);
-    $('#new_campaign_name').val("");
-    $('#rename_campaign_modal')
-        .modal({
-            closable : false,
-            onApprove : function() {
-                var formdata = {'campaign_id': campaign_id,
-                                'new_campaign_name': $('#new_campaign_name').val()
-                               };
-                $.ajax({
-                    url: "{{pomspath}}/campaign_rename_name",
-                    type: 'GET',
-                    data: formdata,
-                    success: function(data){
-                        data = JSON.parse(data);
-                        if (data.message != "ok") {
-                            mod_form= $("#display_message_modal").modal('show');
-                            $("#poms_message_data").text(data.message);
-                        } else {
-                            location.reload(true);
-                        }
-                    }
-                });
-            }
-        })
-    .modal('show');
-}
-
 
 function pop_tag_untag_modal() {
     var csv = [];
@@ -519,13 +500,13 @@ function pop_tag_untag_modal() {
     $("#tag_campaign_ids").val(csv.join(','))
 
     $('#tag_container').html('<i class="big spinner loading blue icon"></i>');
-    $.getJSON('search_all_tags?cl='+csv.join(','), function (data) {
+    $.getJSON('{{pomspath}}/search_all_tags/{{session_experiment}}/{{session_role}}?cl='+csv.join(','), function (data) {
         if (data.msg == "OK") {
             $('#tag_container').html('');
             for (const tag of data.result) {
                 const [tag_id, tag_name] = tag;
                 const cids = csv.join('c');
-                const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${encodeURIComponent(tag_name)}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
+                const new_tag = `<span><a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q=${encodeURIComponent(tag_name)}" class="ui blue tag label" id="${cids}_${tag_id}_">${tag_name}</a>`;
                 const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${cids}_${tag_id}" style="border-radius: 5px;"></i></span>`;
                 $('#tag_container').append(new_tag + new_trash_can);
                 add_click_handler();
@@ -559,9 +540,10 @@ function do_delete(item) {
     var t_id = item.id.split("_")[1];
     var clicked_id = "#" + item.id;
     var experiment = "{{session_experiment}}";
+    var role = "{{session_role}}";
     c_id = c_id.replace(/c/g, ',')
 
-    $.post('delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment, delete_unused_tag: true }, function (data) {
+    $.post('{{pomspath}}/delete_campaigns_tags', { campaign_id: c_id, tag_id: t_id, experiment: experiment, role: role, delete_unused_tag: true }, function (data) {
         if (data.msg == "OK") {
             $('#response').html(data.msg);
             $(clicked_id).remove();  //removes the trash can
@@ -584,17 +566,18 @@ $('#add_button').on('click', function (e) {
 
     tag = $('#tag_field').val()
     console.log("tag " + tag)
-    $.post('link_tags', {
+    $.post('{{pomspath}}/link_tags', {
                 tag_name: tag,
                 campaign_id: $("#tag_campaign_ids").val(),
-                experiment: "{{session_experiment}}"
+                experiment: "{{session_experiment}}",
+                role: "{{session_role}}"
             }, function (data) {
 
         if (data.msg == "OK") {
             const campaigns_tags_composite_key = data.campaign_id.toString().replace(/,/g, 'c') + "_" + data.tag_id.toString();
             $('#response').html(data.msg);
 
-            const new_tag = `<span><a href="{{pomspath}}/search_tags?q=${encodeURIComponent(data.tag_name)}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
+            const new_tag = `<span><a href="{{pomspath}}/search_tags/{{session_experiment}}/{{session_role}}?q=${encodeURIComponent(data.tag_name)}" class="ui blue tag label" id="${campaigns_tags_composite_key}_">${data.tag_name}</a>`;
             const new_trash_can = `<i class="trash outline bordered inverted blue icon link poms_tag" id="${campaigns_tags_composite_key}" style="border-radius: 5px;"></i></span>`;
             $('#tag_container').append(new_tag + new_trash_can);
             //$('#tag_container').append(new_tag);
@@ -624,10 +607,11 @@ $('#tag_field').keypress(function (event) {
     const querypath = `${protocol}//${hostname}/${appname}/auto_complete_tags_search`;
 
     const experiment = "{{session_experiment}}";
+    const role = "{{session_role}}";
     $('.ui.search')
         .search({
             apiSettings: {
-                url: querypath + "?q={query}&experiment=" + experiment
+                url: querypath + "?q={query}&experiment=" + experiment+"&role="+role
             },
             fields: {
                 title: 'name'
@@ -638,10 +622,10 @@ $('#tag_field').keypress(function (event) {
     $("#mark_inactive_modal").submit(function(event) {
         event.preventDefault();
         var formdata = {'is_active': $('input[name=is_active]:checked').val(),
-                        'cl': $("#campaign_ids").val()
+                        'camp_l': $("#campaign_ids").val()
                        };
         $.ajax({
-            url: "{{pomspath}}/mark_campaign_active",
+            url: "{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}",
             type: 'GET',
             data: formdata,
             success: function(data){

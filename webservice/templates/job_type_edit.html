@@ -30,8 +30,9 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 {%block content%}
 
 
-<form id="campaign_definition_form" class="ui form" action="job_type_edit" method="POST">
+<form id="campaign_definition_form" class="ui form" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
+  {% set has_active=True %}
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
 
@@ -55,35 +56,36 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
     {% for row in data.definitions %}
       <tr>
 	    <td class="collapsing">
-      {% if data.authorized[loop.index-1]==True %}
-	      <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
-	      <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
-	      <i class="large trash link blue icon" onclick="delete_definition('{{row.JobType.name}}','{{row.JobType.job_type_id}}');"></i>
-	    {% else %}
-	      <i class="disabled large edit link blue icon"></i>
-        <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
-	      <i class="disabled large trash link blue icon"></i>
-	    {% endif %}
+          {% if data.authorized[loop.index0]==True %}
+	        <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
+	        <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
+	        <i class="large trash link blue icon" onclick="delete_definition('{{row.JobType.name}}','{{row.JobType.job_type_id}}');"></i>
+	      {% else %}
+	        <i class="disabled large edit link blue icon"></i>
+            <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+	        <i class="disabled large trash link blue icon"></i>
+	      {% endif %}
 	    </td>
-      <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+        <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
 	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.JobType.job_type_id}}</td>
 	    <td id="cdf_name_{{loop.index}}">{{row.JobType.name}}</td>
 	    <td id="cdf_input_{{loop.index}}">{{row.JobType.input_files_per_job}}</td>
 	    <td id="cdf_output_{{loop.index}}">{{row.JobType.output_files_per_job}}</td>
 	    <td id="cdf_outputpat_{{loop.index}}">{{row.JobType.output_file_patterns|replace("None","%")}}</td>
 	    <td id="cdf_script_{{loop.index}}">{{row.JobType.launch_script|replace("None","")}}</td>
-      {% if row.JobType.definition_parameters is string %}
+        {% if row.JobType.definition_parameters is string %}
 	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|replace("None","")}}</td>
-      {% else %}
+        {% else %}
 	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|tojson}}</td>
-      {% endif %}
-	    <td id="cdf_recovery_{{loop.index}}">
+        {% endif %}
+	      <td id="cdf_recovery_{{loop.index}}">
 	    {% if data.recoveries[row.JobType.job_type_id] is defined %}
 	      {{data.recoveries[row.JobType.job_type_id]}}
 	    {% else %}
 	      []
 	    {% endif %}
       </td>
+      <td style="display:none;" id="cdf_active_{{loop.index}}">{{row.JobType.active}}</td>
       </tr>
     {% endfor %}
     </tbody>
@@ -136,28 +138,25 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="definition_add_edit_form" class="ui form" method="POST" action="job_type_edit">
-      <div class="two fields">
+    <form id="definition_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}">
+      <div class="three fields">
 		<div class="field">
 			<label>Name</label>
 			<input type="text" id="ae_definition_name" name="ae_definition_name" placeholder="Definition Name">
 		</div>
-       <!--
-		<div class="field">
-			  <label>Input Files Per Job</label>
-			  <input type="text" id="ae_input_files_per_job" name="ae_input_files_per_job">
-		</div>
-		<div class="field">
-			  <label>Output Files Per Job</label>
-			  <input type="text" id="ae_output_files_per_job" name="ae_output_files_per_job">
-		</div>
-      -->
         <input type="hidden" name="ae_output_files_per_job" value="0">
         <input type="hidden" name="ae_input_files_per_job" value="0">
 		<div class="field">
 			<label>Output File Patterns</label>
 			<input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
-		</div>
+        </div>
+        <div class="field">
+            <label>Active</label>
+            <div class="ui toggle checkbox">
+            <input type="checkbox" id="ae_active" name="ae_active" {{ 'checked' if (data.active is not defined or data.active == True) }}>
+            <label></label>
+        </div>
+        </div>
       </div>
       <div class="one field">
 	<div class="field">
@@ -183,9 +182,9 @@ JobTypes {{ show_hint('#Compose-a-job-type', 'Job Type') }}
 	<input type="submit" value="Save" id="ae_submit" class="ui button teal" />
 	<input type="submit" name="test_template" value="Test" id="ae_test"class="ui button orange" />
       </div>
-      <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}">
+      <!-- <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}"> -->
       <input type="hidden" name="action" id="ae_definition_action" value="add">
-      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{experimenter_id|default('unknown')}}">
       <input type="hidden" id="ae_campaign_definition_id" name="ae_campaign_definition_id" value="0">
       <input type="hidden" id="ae_definition_parameters" name="ae_definition_parameters" value="[]">
       <input type="hidden" id="ae_definition_recovery" name="ae_definition_recovery" value="[]">
@@ -626,6 +625,12 @@ function ep_down_button(current_row) {
     $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
     $("#ae_definition_recovery_text").val( $.trim( $("#cdf_recovery_"+index).text() ) );
     $("#ae_definition_recovery").val( $("#cdf_recovery_"+index).text() );
+    var isactive = $("#cdf_active_"+index).text();
+    if ( isactive == 'True') {
+        $('#ae_active').prop('checked', true);
+    } else {
+        $('#ae_active').prop('checked', false);
+    }
     $("#definition_add_edit_modal").modal('show');
     if ( typeof clone === 'undefined' )
     {
@@ -647,8 +652,8 @@ function ep_down_button(current_row) {
   function add_definition() {
     $("#definition_add_edit_modal").form('reset');
     $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
-    $("#definition_add_edit_modal").modal({
-    }).modal('show');
+    $('#ae_active').prop('checked', true);
+    $("#definition_add_edit_modal").modal({}).modal('show');
   }
 
 $(document).ready(function(){
@@ -661,6 +666,8 @@ $(document).ready(function(){
 $('#cdf_experiment')
   .dropdown()
 ;
+
+$('.ui.checkbox').checkbox();
 
 $(document).ready(function(){
   $('#double-scroll').doubleScroll();

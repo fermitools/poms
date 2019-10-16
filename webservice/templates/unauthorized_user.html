@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>401 Unauthorized User</title>
+    <title>401 Unauthorized</title>
     <style>
         .center-div
             {
@@ -11,8 +11,10 @@
   </head>
   <body bgcolor="white">
     <div class="center-div">
-        <h1>401 Unauthorized User</h1>
-        Your account is not authorized to use POMS.  To get access, do the following:
+        <h1>401 Unauthorized</h1>
+        %(message)s
+        <p>
+        If your account is not authorized to use POMS, to get access, do the following:
         <br>
         <ul>
           <li>Open the webpage to <a href="https://fermi.service-now.com/wp" target="_blank">SNOW</a> and login.</li>

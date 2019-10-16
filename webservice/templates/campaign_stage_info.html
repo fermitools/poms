@@ -1,7 +1,9 @@
 {%extends "layout.html"%}
 
 {%block title%}
-POMS:Campaign Stage {{CampaignStage.name}} Info
+<title>POMS:Campaign Stage {{CampaignStage.name}} Info</title>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
 {%endblock%}
 
 {% macro show_hint(anchor, hint) %}
@@ -36,9 +38,9 @@ all the time...
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
-<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
-<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
-<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
 
   <br/>
   <span class="info">statistics for last 30 days</span>
@@ -47,6 +49,15 @@ all the time...
         $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
     </script>
   </div>
+
+  <script>
+   function confirm_call(msg, url) {
+       var r = confirm(msg);
+       if ( r ) {
+           location.assign(url)
+       }
+   }
+  </script>
 
   <div class="ui horizontal segments">
     <div class="ui segment raised">
@@ -57,27 +68,17 @@ all the time...
                  <a href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
               </div>
               <div class=item>
-                 <i class="external icon"></i>
-                 <a href="https://fifemon.fnal.gov/monitor/d/otZRzhImk/poms-campaign?from=now-30d&to=now&var-Campaign={{CampaignStage.campaign_stage_id}}" target='_blank'>POMS Campaign Stage(landscape)</a>
-              </div>
-              <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/000000212/poms-campaign-stats?orgId=1&var-Campaign={{CampaignStage.campaign_stage_id}}" target='_blank'>
+               <a href="https://fifemon.fnal.gov/monitor/d/X49EUj3iz/poms-stage?orgId=1&from=now-30d&to=now&var-stage={{CampaignStage.campaign_stage_id}}&var-stage_name={{CampaignStage.name}}" target='_blank'>
                    <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>
               <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/000000213/poms-tasks?orgId=1&var-Experiment={{CampaignStage.experiment|replace('samdev','fermilab')}}&var-Campaign={{CampaignStage.campaign_stage_id}}&from=now-7d&to=now" target='_blank'>
-                   <i class="external bar chart icon" data-content="Submissions"></i>Submissions (Landscape)
-               </a>
-              </div>
-
-              <div class=item>
-              <a href="{{pomspath}}/campaign_stage_submissions?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="external submissions icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
+              <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
+                <i class="table icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
               </a>
               </div>
               <div class=item>
-                <a href="{{pomspath}}/campaign_task_files?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=7"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
+                <a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=7"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
               </div>
           </div> <!-- class=menu -->
     </div>
@@ -85,53 +86,45 @@ all the time...
          <h3>Actions</h3>
          <div class=menu>
               <div class=item>
-                <a href="{{pomspath}}/campaign_stage_edit?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}>
+                <a href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}>
                 <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>
 
               <div class=item>
-                <script>
-                 function confirm_call(msg, url) {
-                     var r = confirm(msg);
-                     if ( r ) {
-                         location.assign(url)
-                     }
-                 }
-                </script>
-                <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
-                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Jobs Now
                 </button>
                 &nbsp; &nbsp;
-                <a href="{{pomspath}}/launch_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
-                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <a href="{{pomspath}}/launch_jobs_commands/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                 (<i class="external text icon"></i>commands)
                </a>
               </div>
               <div class=item>
-                <button onclick="confirm_call('Are you sure you want to launch test jobs now?','{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
-                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <button onclick="confirm_call('Are you sure you want to launch test jobs now?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
                    </i>
                   Launch Campaign Stage Test Jobs Now
                 </button>
                 &nbsp; &nbsp;
-                <a href="{{pomspath}}/launch_jobs?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
-                   and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <a href="{{pomspath}}/launch_jobs_commands/{{session_experiment}}/{{session_role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                 (<i class="external text icon"></i>commands)
                </a>
               </div>
 
               <div class=item>
-                <a href="{{pomspath}}/kill_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=kill" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=kill" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external trash icon" data-content="Kill running/idle jobs in CampaignStage" data-variation="basic">
                    </i>Kill running/idle Jobs for Campaign Stage
@@ -139,8 +132,8 @@ all the time...
               </div>
 
               <div class=item>
-                <a href="{{pomspath}}/kill_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=hold" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=hold" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                 >
                    <i class="external pause icon" data-content="Hold running/idle jobs in CampaignStage" data-variation="basic">
                    </i>Hold running/idle Jobs for Campaign Stage
@@ -148,8 +141,8 @@ all the time...
               </div>
 
               <div class=item>
-                 <a href="{{pomspath}}/kill_jobs?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=release" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=release" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
                     <i class="external play icon" data-content="Release held jobs in CampaignStage" data-variation="basic">
                     </i>Release held  Jobs for Campaign Stage
@@ -157,8 +150,8 @@ all the time...
               </div>
 
               <div class=item>
-                 <a href="{{pomspath}}/schedule_launch?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 <a href="{{pomspath}}/schedule_launch/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
                     <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic">
                     </i>Schedule Future Job Launches
@@ -166,7 +159,7 @@ all the time...
              </div>
             {% if CampaignStage.hold_experimenter_id %}
             <div class=item>
-                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Release" 
+                 <a href="{{pomspath}}/mark_campaign_hold/{{session_experiment}}/{{session_role}}?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Release" 
                  >
                     <i class="sign out alternate icon" data-content="Release Queued Launches" data-variation="basic">
                     </i>Release queued launches
@@ -175,7 +168,7 @@ all the time...
              </div>
              {% else %}
              <div class=item>
-                 <a href="{{pomspath}}/mark_campaign_hold?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Hold" 
+                 <a href="{{pomspath}}/mark_campaign_hold/{{session_experiment}}/{{session_role}}?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Hold" 
                  >
                     <i class="sign in alternate icon" data-content="Queue Future Launches" data-variation="basic">
                     </i>Queue future job launches
@@ -185,15 +178,15 @@ all the time...
             <!--
              <div class=item>
               {# if CampaignStage.active %}
-                 <a href="{{pomspath}}/mark_campaign_active?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=False" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 <a href="{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=False" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                  >
                     <i class="external hide icon" data-content="Mark CampaignStage Inactive" data-variation="basic">
                    </i>Mark Campaign Stage Inactive
                  </a>
               {% else %}
-                  <a href="{{pomspath}}/mark_campaign_active?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=True" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=current_experimenter.experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                  <a href="{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=True" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
                   >
                     <i class="external unhide icon" data-content="Mark Campaign Stage Active" data-variation="basic">
                     </i>Mark Campaign Stage Active
@@ -235,7 +228,7 @@ all the time...
     {# currently unused
     <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br/>
     #}
-    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
+    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
     <!-- <b>Active</b>: {{CampaignStage.active}} <br/> -->
     <b>Created</b>: {{CampaignStage.created}}<br/>
     <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br/>
@@ -286,29 +279,33 @@ all the time...
    <ul>
    {%for f in launch_flist|sort(reverse=True)%}
       <li>
-      <a href="list_launch_file?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
+      <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
       {%if f|length > 22 %}
           {%set submission_id = f.split('_')[3]|default('0')|int %}
           {%if submission_id != 0 %}
-          <a href="{{pomspath}}/submission_details?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
+          <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
+          {%if recent_submissions[submission_id]|default(9999) == 2000 %}
+            <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
+           {%else%}
+             <button class="mini ui button"><i class="ui fire extinguisher icon grey"></i></button>&nbsp;
+          {%endif%}
           {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
-
     
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
-              <a href="/poms/kill_jobs?submission_id={{submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
-               <i class="ui forward icon  grey"></i>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><button class="mini ui button"> <i class="ui pause icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><button class="mini ui button"><i class="ui play icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><button class=mini ui button"><i class="ui trash icon"></i></button></a>
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
                     
           {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
-               <i class="ui pause icon grey"></i>&nbsp;
-               <i class="ui play icon grey"></i>&nbsp;
-               <i class="ui trash icon grey"></i>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission?submission_id={{submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+                    <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><button class="mini ui button"><i class="ui forward icon"></i></button></a>
           {%else%}
-               <i class="ui pause icon grey"></i>&nbsp;
-               <i class="ui play icon grey"></i>&nbsp;
-               <i class="ui trash icon grey"></i>&nbsp;
-               <i class="ui forward icon  grey"></i>&nbsp;
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
           {%endif%}
           {%endif%}
       {%endif%}

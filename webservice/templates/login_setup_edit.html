@@ -28,10 +28,11 @@
 {%block content%}
 
 
-<form id="login_setup_form" class="ui form" action="login_setup_edit" method="POST">
+<form id="login_setup_form" class="ui form" action="{{pomspath}}/login_setup_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
   {% if data.curr_experiment is defined %}
 
+  {% set has_active=True %}
   {% set data = data|default({}) %}
   {%include "view_picker.html" %}
 
@@ -51,7 +52,7 @@
       {% for row in data.templates %}
       <tr>
         <td class="collapsing">
-          {% if data.authorized[loop.index-1]==True %}
+          {% if data.authorized[loop.index0]==True %}
           <i class="large edit link blue icon"  onclick="edit_template({{loop.index}});"></i>
           <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
           <i class="large trash link blue icon" onclick="delete_template('{{row.LoginSetup.name}}'); "></i>
@@ -62,12 +63,13 @@
 
           {% endif %}
         </td>
-        <td id="ldf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index-1]}}</td>
+        <td id="ldf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
         <td id="ldf_launch_id_{{loop.index}}" style="display:none;">{{row.LoginSetup.login_setup_id}}</td>
         <td id="ldf_name_{{loop.index}}">{{row.LoginSetup.name}}</td>
         <td id="ldf_launch_host_{{loop.index}}">{{row.LoginSetup.launch_host}}</td>
         <td id="ldf_launch_account_{{loop.index}}">{{row.LoginSetup.launch_account}}</td>
         <td id="ldf_launch_setup_{{loop.index}}">{{row.LoginSetup.launch_setup|e}}</td>
+        <td style="display:none;" id="ldf_active_{{loop.index}}">{{row.LoginSetup.active}}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -120,8 +122,8 @@
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-  <form id="template_add_edit_form" class="ui form" method="POST" action="login_setup_edit">
-    <div class="three fields">
+  <form id="template_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/login_setup_edit/{{session_experiment}}/{{session_role}}">
+    <div class="four fields">
       <div class="field">
         <label>Name</label>
         <input type="text" id="ae_launch_name" name="ae_launch_name" placeholder="Template Name">
@@ -132,16 +134,28 @@
             {%if session_role=='analysis' %}
             value="{{hostname}}" readonly
             {%endif%}
-         >
+        >
       </div>
       <div class="field">
         <label>Account</label>
         <input type="text" id="ae_launch_account" name="ae_launch_account" placeholder="Launch Account"
-
             {%if session_role=='analysis'%}
             value="poms_launcher" readonly
             {%endif%}
         >
+      </div>
+      <div class="field">
+        <lable>Active</lable>
+        <br/>
+        <div class="ui toggle checkbox">
+            <input type="checkbox" id="ae_active" name="ae_active"
+            {{ 'checked' if (data.active is not defined or data.active == True) }}
+            {%if session_role=='analysis'%}
+              readonly
+            {%endif%}
+            >
+            <label></label>
+        </div>
       </div>
     </div>
     <div class="one field">
@@ -157,7 +171,7 @@
     </div>
     <input type="hidden" name="experiment" id="ae_experiment" value="{{data.curr_experiment}}">
     <input type="hidden" name="action" id="ae_launch_action" value="add">
-    <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{current_experimenter.experimenter_id|default('unknown')}}">
+    <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{experimenter_id|default('unknown')}}">
     <input type="hidden" id="ae_launch_id" name="ae_launch_id" value="0">
   </form>
   </div>
@@ -201,12 +215,13 @@ $("#experiment").change(function() {
   }
 
   function edit_template(index, clone) {
-    var hostname = "{{hostname}}"
-    login_setup_id = $("#ldf_launch_id_"+index).text()
-    name = $("#ldf_name_"+index).text()
-    launch_host = $("#ldf_launch_host_"+index).text()
-    launch_account = $("#ldf_launch_account_"+index).text()
-    launch_setup = $("#ldf_launch_setup_"+index).text()
+    var hostname = "{{hostname}}";
+    login_setup_id = $("#ldf_launch_id_"+index).text();
+    name = $("#ldf_name_"+index).text();
+    launch_host = $("#ldf_launch_host_"+index).text();
+    launch_account = $("#ldf_launch_account_"+index).text();
+    launch_setup = $("#ldf_launch_setup_"+index).text();
+    launch_active = $("#ldf_active_"+index).text();
     if (typeof clone === 'undefined') {
       $("#ae_launch_action").val("edit");
       $("#ae_launch_name").val(name)
@@ -219,14 +234,19 @@ $("#experiment").change(function() {
     $("#ae_launch_host").val(launch_host);
     $("#ae_launch_account").val(launch_account);
     $("#ae_launch_setup").val(launch_setup);
+    if ( launch_active == 'True') {
+        $('#ae_active').prop('checked', true);
+    } else {
+        $('#ae_active').prop('checked', false);
+    }
     $("#template_add_edit_modal").modal({}).modal('show');
     if ( typeof clone === 'undefined' )
     {
       $("#ae_submit").prop("value","Save");
       if ( ($("#c_authorized_"+index).text() == "False") ) {
-	$("#ae_submit").prop("disabled",true);
+	    $("#ae_submit").prop("disabled",true);
       } else {
-	$("#ae_submit").prop("disabled",false);
+	    $("#ae_submit").prop("disabled",false);
       }
     } else {
       $("#ae_submit").prop("value","Clone");
@@ -243,6 +263,7 @@ $("#experiment").change(function() {
     $("#template_add_edit_modal").form('reset');
     $("#template_header").text("Login/Setup Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
     $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
+    $('#ae_active').prop('checked', true);
     $("#template_add_edit_modal").modal({}).modal('show');
   }
 
