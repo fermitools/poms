@@ -383,7 +383,7 @@ class PomsService:
         t="campaign_stage_edit.html",
     )
     def campaign_stage_edit(self, ctx, **kwargs):
-        data = self.stagesPOMS.campaign_stage_edit(**kwargs)
+        data = self.stagesPOMS.campaign_stage_edit(ctx, **kwargs)
         if kwargs.get("pcl_call", "0") == "1" and data["message"]:
             raise cherrypy.HTTPError(400, data["message"])
 
@@ -740,11 +740,10 @@ class PomsService:
         redirect="%(poms_path)s/file_uploads/%(experiment)s/%(role)s/%(username)s",
         need_er=True,
     )
-    def upload_file(self, **kwargs):
+    def upload_file(self, ctx, **kwargs):
         return self.filesPOMS.upload_file(
             # see &l=webservice/FilesPOMS.py#upload_file&
-            kwargs["ctx"],
-            quota=kwargs["ctx"].config_get("base_uploads_quota"),
+            ctx,
             filename=kwargs["filename"],
         )
 

@@ -74,7 +74,7 @@ class Permissions:
                 .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)  #
                 .join(Experimenter, CampaignStage.creator == Experimenter.experimenter_id)  #
             )
-            if item_id and item_id.isigit():
+            if item_id and str(item_id).isdigit():
                 q = q.filter(Submission.submission_id == item_id)
             if name:
                 q = q.filter(Submission.jobsub_job_id == name)

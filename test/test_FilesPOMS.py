@@ -85,7 +85,7 @@ def test_uploads():
         os.makedirs(os.path.dirname(path))
     except:
         pass
-    res = mps.filesPOMS.upload_file(ctx, 1024, mcf)
+    res = mps.filesPOMS.upload_file(ctx, mcf)
     assert os.access(path, os.R_OK)
     with open(path, "rb") as f:
         assert f.read() == testdata
