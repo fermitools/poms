@@ -408,13 +408,22 @@ json_field_editor.save = function (fid) {
     }
     id = fid.replace('edit_form_', '');
     dest = document.getElementById(id);
+<<<<<<< HEAD
     dest.value = JSON.stringify(res).replace(/([,])/g, '$1 '); // To comply with Python json.dumps() format
+=======
+    dest.value = JSON.stringify(res).replace(/","/g,'", "');      // To comply with Python json.dumps() format
+>>>>>>> 9a74781b49deca6f5f708b429792733712d11ce0
     /* also update xxx_text if there is one */
     console.log(["updating", id, dest, res]);
     dest = document.getElementById(id + '_text');
     if (dest) {
+<<<<<<< HEAD
         dest.value = JSON.stringify(res).replace(/([,])/g, '$1 '); // To comply with Python json.dumps() format
         console.log(["also updating", id + '_text', dest, res]);
+=======
+        dest.value = JSON.stringify(res).replace(/","/g,'", "');  // To comply with Python json.dumps() format
+        console.log(["also updating", id+'_text', dest, res]);
+>>>>>>> 9a74781b49deca6f5f708b429792733712d11ce0
     }
     json_field_editor.cancel(fid);
 }
