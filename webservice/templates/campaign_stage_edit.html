@@ -32,7 +32,7 @@ Campaign Stages
 {%endblock%}
 
 {%block content%}
-<form id="campaign_form" class="ui form" action="campaign_stage_edit" method="POST">
+<form id="campaign_form" class="ui form" action="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}" method="POST">
 
   {% set has_active=True %}
   {%include "view_picker.html" %}
@@ -169,7 +169,7 @@ Campaign Stages
 </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="campaign_add_edit_form" class="ui form" method="POST" action="campaign_stage_edit">
+    <form id="campaign_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}">
 
       <div class="fields">
         <label>Campaign Name</label>
