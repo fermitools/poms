@@ -299,7 +299,7 @@ class SubmissionsPOMS:
     def get_task_id_for(
         self,
         ctx,
-        campaign,
+        campaign=None,
         command_executed="",
         input_dataset="",
         parent_submission_id=None,
@@ -307,9 +307,12 @@ class SubmissionsPOMS:
         launch_time=None,
         task_id=None,
         user=None,
+        campaign_stage_id=None
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
+        if campaign == None and campaign_stage_id != None:
+            campaign = campaign_stage_id
         logit.log(
             "get_task_id_for(ctx.username='%s',experiment='%s',command_executed='%s',input_dataset='%s',parent_submission_id='%s',submission_id='%s'"
             % (ctx.username, ctx.experiment, command_executed, input_dataset, parent_submission_id, submission_id)

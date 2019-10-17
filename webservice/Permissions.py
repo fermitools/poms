@@ -35,6 +35,8 @@ class Permissions:
         return self.sucache[ctx.username]
 
     def check_experiment_role(self, ctx):
+        if ctx.experiment == "fermilab":
+            ctx.experiment = "samdev"
         key = "%s:%s" % (ctx.username, ctx.experiment)
         if not key in self.excache:
             rows = (
@@ -245,12 +247,18 @@ class Permissions:
         if exp and exp != ctx.experiment:
             logit.log("can_do: resp: fail")
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
-        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
-            logit.log("can_do: resp: fail")
-            raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         if role and ctx.role == "analysis" and owner and owner != ctx.username:
             logit.log("can_do: resp: fail")
             raise PermissionError("Must be user %s to do this" % owner)
+
+        if ctx.role == "production" and role == "analysis":
+            # bandaid for get_task_id_for stuff...
+            logit.log("letting it slide...")
+            return
+
+        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
+            logit.log("can_do: resp: fail")
+            raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         logit.log("can_do: resp: ok")
