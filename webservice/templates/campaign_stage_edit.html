@@ -765,7 +765,7 @@ function add_campaign() {
 
 
 $(document).ready(function(){
-  {% if jump_to_campaign is not none %}
+  {% if jump_to_campaign %}
   var rows = $('#stagetable tr').length;
   var i;
   var stage_id;
