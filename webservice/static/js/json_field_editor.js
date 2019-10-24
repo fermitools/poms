@@ -398,7 +398,8 @@ json_field_editor.save = function (fid) {
         ws = document.getElementById(fid + '_ws_' + istr);
         wsr = document.getElementById(fid + '_wsr_' + istr);
         ve = document.getElementById(fid + '_v_' + istr);
-        if (ke != null && ve != null) {
+        if (ke != null && ve != null && ws != null && wsr != null) {
+
             var pair = [ke.value + (ws.checked ? " " : ""), (wsr.checked ? " " : "") + ve.value];
             res.push(pair);
             console.log(["adding", pair]);
