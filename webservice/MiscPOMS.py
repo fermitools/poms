@@ -702,7 +702,10 @@ class MiscPOMS:
                 logit.log("get_recoveries(%d) -- saw string param_overrides" % job_type_id)
                 if rec.param_overrides in ("", "{}", "[]"):
                     rec.param_overrides = []
-                rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
+                try:
+                    rec_vals = [rec.recovery_type.name, json.loads(rec.param_overrides)]
+                except:
+                    rec_vals = [rec.recovery_type.name, []]
             else:
                 rec_vals = [rec.recovery_type.name, rec.param_overrides]
 

@@ -442,7 +442,7 @@ class PomsService:
     @poms_method(
         rtype=json,
         p=[
-            {"p": "can_view", "t": "LaunchSetup", "item_id": "ae_launch_id"},
+            {"p": "can_view", "t": "LoginSetup", "item_id": "ae_launch_id"},
             {"p": "can_view", "t": "JobType", "item_id": "ae_campaign_definition_id"},
         ],
     )

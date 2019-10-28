@@ -18,7 +18,7 @@ parser.add_option('--verbose', action='store_true', help="be verbose", default =
 parser.add_option('--test',  help="use test server", default = None)
 parser.add_option('--dev', action='store_const', const='dev', dest='test', metavar='', help='use the dev/test instance of POMS', default = False)
 parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')
-parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='production')
+parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='')
 
 (options, args ) = parser.parse_args()
 
