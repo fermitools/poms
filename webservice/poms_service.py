@@ -699,7 +699,7 @@ class PomsService:
     # see &l=webservice/SubmissionsPOMS.py#running_submissions&
 
     # h4. update_submission
-    @poms_method(p=[{"p": "can_modify", "t": "Submission", "item_id": "submission_id"}])
+    @poms_method(p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}])
     def update_submission(self, **kwargs):
         res = self.submissionsPOMS.update_submission(**kwargs)
         if kwargs.get("redirect", None):

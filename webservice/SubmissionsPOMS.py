@@ -408,9 +408,11 @@ class SubmissionsPOMS:
             .first()
         )
 
-        status_id = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())[0]
+        slist = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())
 
-        if not status_id:
+        if slist:
+            status_id = slist[0]
+        else:
             # not a known status, just bail
             return
 
