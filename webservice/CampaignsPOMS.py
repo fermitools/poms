@@ -481,7 +481,7 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         for c_d in c_dl:
-            res.append("  {from: %d, to: %d}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+            res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
 
         res.append("]);")
         res.append('var container = document.getElementById("dependencies");')
