@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="POMS" id="Project_18870a65" template="Default" database="PostgreSQL" >
+	<schema name="public" schemaname="public" >
+		<table name="campaign_dependencies" >
+			<column name="campaign_dep_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="needs_campaign_stage_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" />
+			<column name="provides_campaign_stage_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" />
+			<column name="file_patterns" type="text" length="2147483647" decimal="0" jt="12" mandatory="y" />
+			<index name="pk_campaign_dependencies" unique="PRIMARY_KEY" >
+				<column name="campaign_dep_id" />
+			</index>
+			<fk name="fk_campaign_dependencies_down" to_schema="public" to_table="campaign_stages" >
+				<fk_column name="provides_campaign_stage_id" pk="campaign_stage_id" />
+			</fk>
+			<fk name="fk_campaign_dependencies_up" to_schema="public" to_table="campaign_stages" >
+				<fk_column name="needs_campaign_stage_id" pk="campaign_stage_id" />
+			</fk>
+		</table>
+		<table name="campaign_recoveries" >
+			<column name="job_type_id" type="integer" jt="4" mandatory="y" />
+			<column name="recovery_type_id" type="integer" jt="4" mandatory="y" />
+			<column name="recovery_order" type="integer" jt="4" mandatory="y" />
+			<column name="param_overrides" type="json" decimal="0" jt="2000" >
+				<defo>to_json(&#039;{}&#039;::text)</defo>
+			</column>
+			<index name="idx_campaign_recoveries" unique="NORMAL" >
+				<column name="recovery_type_id" />
+			</index>
+			<index name="pk_campaign_recoveries" unique="PRIMARY_KEY" >
+				<column name="job_type_id" />
+				<column name="recovery_type_id" />
+				<column name="recovery_order" />
+			</index>
+			<fk name="fk_campaign_recoveries" to_schema="public" to_table="recovery_types" >
+				<fk_column name="recovery_type_id" pk="recovery_type_id" />
+			</fk>
+			<fk name="fk_campaign_recoveries_0" to_schema="public" to_table="job_types" >
+				<fk_column name="job_type_id" pk="job_type_id" />
+			</fk>
+		</table>
+		<table name="campaign_stage_snapshots" >
+			<column name="campaign_stage_snapshot_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="campaign_stage_id" type="integer" jt="4" mandatory="y" />
+			<column name="experiment" type="text" jt="12" mandatory="y" />
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="job_type_id" type="integer" jt="4" mandatory="y" />
+			<column name="vo_role" type="text" jt="12" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="dataset" type="text" jt="12" mandatory="y" />
+			<column name="software_version" type="text" jt="12" mandatory="y" />
+			<column name="login_setup_id" type="integer" jt="4" mandatory="y" />
+			<column name="completion_type" type="text" jt="12" mandatory="y" >
+				<defo>&#039;located&#039;::text</defo>
+			</column>
+			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+				<defo>95</defo>
+			</column>
+			<column name="param_overrides" type="json" jt="2000" />
+			<column name="test_param_overrides" type="json" jt="2000" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="cs_last_split" type="integer" jt="4" />
+			<column name="cs_split_type" type="text" jt="12" />
+			<column name="cs_split_dimensions" type="text" jt="12" />
+			<index name="idx_campaign_snapshots" unique="PRIMARY_KEY" >
+				<column name="campaign_stage_snapshot_id" />
+			</index>
+			<index name="idx_campaign_snapshots_campaign_id" unique="NORMAL" >
+				<column name="campaign_stage_id" />
+			</index>
+			<fk name="fk_campaign_snapshots" to_schema="public" to_table="campaign_stages" >
+				<fk_column name="campaign_stage_id" pk="campaign_stage_id" />
+			</fk>
+		</table>
+		<table name="campaign_stages" >
+			<column name="campaign_stage_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="campaign_id" type="integer" jt="4" />
+			<column name="experiment" type="text" decimal="0" jt="12" mandatory="y" />
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="job_type_id" type="integer" jt="4" mandatory="y" />
+			<column name="vo_role" type="text" jt="12" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="creator_role" type="text" jt="12" mandatory="y" />
+			<column name="dataset" type="text" jt="12" mandatory="y" />
+			<column name="software_version" type="text" jt="12" mandatory="y" />
+			<column name="login_setup_id" type="integer" jt="4" mandatory="y" />
+			<column name="completion_type" type="text" jt="12" mandatory="y" >
+				<defo>&#039;located&#039;::text</defo>
+			</column>
+			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+				<defo>95</defo>
+			</column>
+			<column name="campaign_stage_type" type="text" jt="12" mandatory="y" />
+			<column name="param_overrides" type="json" jt="2000" />
+			<column name="test_param_overrides" type="json" jt="2000" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="cs_last_split" type="integer" jt="4" />
+			<column name="cs_split_type" type="text" jt="12" />
+			<column name="cs_split_dimensions" type="text" jt="12" />
+			<column name="hold_experimenter_id" type="integer" jt="4" />
+			<column name="role_held_with" type="text" jt="12" />
+			<column name="merge_overrides" type="bool" jt="-7" >
+				<defo>false</defo>
+			</column>
+			<column name="output_ancestor_depth" type="integer" jt="4" >
+				<defo>1</defo>
+			</column>
+			<index name="pk_campaigns" unique="PRIMARY_KEY" >
+				<column name="campaign_stage_id" />
+			</index>
+			<index name="idx_campaigns" unique="NORMAL" >
+				<column name="experiment" />
+			</index>
+			<index name="idx_campaigns_creator" unique="NORMAL" >
+				<column name="creator" />
+			</index>
+			<index name="idx_campaigns_campaign_definition_id" unique="NORMAL" >
+				<column name="job_type_id" />
+			</index>
+			<index name="idx_campaigns_updater" unique="NORMAL" >
+				<column name="updater" />
+			</index>
+			<index name="idx_campaigns_launch_id" unique="NORMAL" >
+				<column name="login_setup_id" />
+			</index>
+			<index name="idx_campaign_stages_campaign_id" unique="NORMAL" >
+				<column name="campaign_id" />
+			</index>
+			<index name="campaign_stages_campaign_id_name_idx" unique="UNIQUE" >
+				<column name="campaign_id" />
+				<column name="name" />
+			</index>
+			<constraint name="ch_completion_type" >
+				<string>(completion_type = &#039;located&#039;::text) OR (completion_type = &#039;complete&#039;::text)</string>
+			</constraint>
+			<constraint name="ck_completion_pct" >
+				<string>(completion_pct &gt; 0) AND (completion_pct &lt;= 100)</string>
+			</constraint>
+			<constraint name="ck_campaign_stage_type" >
+				<string>campaign_stage_type::text = ANY (ARRAY[&#039;test&#039;::character varying, &#039;generator&#039;::character varying, &#039;regular&#039;::character varying, &#039;datahandling&#039;::character varying]::text[]) </string>
+			</constraint>
+			<constraint name="ck_creator_role" >
+				<string>(creator_role = &#039;analysis&#039;::text) or (creator_role = &#039;production&#039;::text)</string>
+			</constraint>
+			<fk name="fk_campaigns" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+			<fk name="fk_campaigns_definitions" to_schema="public" to_table="job_types" >
+				<fk_column name="job_type_id" pk="job_type_id" />
+			</fk>
+			<fk name="fk_campaigns_updater" to_schema="public" to_table="experimenters" >
+				<fk_column name="updater" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_campaigns_creator" to_schema="public" to_table="experimenters" >
+				<fk_column name="creator" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_campaigns_launch_id" to_schema="public" to_table="login_setups" >
+				<fk_column name="login_setup_id" pk="login_setup_id" />
+			</fk>
+			<fk name="fk_campaign_stages_campaigns" to_schema="public" to_table="campaigns" >
+				<fk_column name="campaign_id" pk="campaign_id" />
+			</fk>
+		</table>
+		<table name="campaigns" >
+			<column name="campaign_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="experiment" type="varchar" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="name" type="text" jt="12" />
+			<column name="active" type="bool" jt="-7" mandatory="y" >
+				<defo>true</defo>
+			</column>
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="creator_role" type="text" jt="12" mandatory="y" />
+			<column name="defaults" type="json" jt="2000" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="campaign_type" type="text" jt="12" />
+			<column name="campaign_keywords" type="json" jt="2000" />
+			<index name="pk_campaigns_campaign_id" unique="PRIMARY_KEY" >
+				<column name="campaign_id" />
+			</index>
+			<index name="idx_campaigns_experiment" unique="NORMAL" >
+				<column name="experiment" />
+			</index>
+			<index name="campaigns_experiment_name_idx" unique="UNIQUE" >
+				<column name="experiment" />
+				<column name="name" />
+				<storage><![CDATA[WHERE name IS NOT NULL]]></storage>
+			</index>
+			<constraint name="ck_campaign_type" >
+				<string>campaign_type::text = ANY (ARRAY[&#039;test&#039;::character varying]::text[]) </string>
+			</constraint>
+			<fk name="fk_campaigns_experiments" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+		</table>
+		<table name="campaigns_tags" >
+			<column name="campaign_id" type="integer" jt="4" mandatory="y" />
+			<column name="tag_id" type="integer" jt="4" mandatory="y" />
+			<index name="pk_campaign_tags" unique="PRIMARY_KEY" >
+				<column name="campaign_id" />
+				<column name="tag_id" />
+			</index>
+			<index name="idx_campaigns_tags_tag_id" unique="NORMAL" >
+				<column name="tag_id" />
+			</index>
+			<index name="idx_campaigns_tags_campaign_id" unique="NORMAL" >
+				<column name="campaign_id" />
+			</index>
+			<fk name="fk_campaigns_tags" to_schema="public" to_table="tags" >
+				<fk_column name="tag_id" pk="tag_id" />
+			</fk>
+			<fk name="fk_campaigns_tags_campaigns" to_schema="public" to_table="campaigns" >
+				<fk_column name="campaign_id" pk="campaign_id" />
+			</fk>
+		</table>
+		<table name="experimenters" >
+			<column name="experimenter_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="first_name" type="text" jt="12" />
+			<column name="last_name" type="text" jt="12" mandatory="y" />
+			<column name="username" type="text" jt="12" mandatory="y" />
+			<column name="session_experiment" type="text" jt="12" mandatory="y" />
+			<column name="session_role" type="text" jt="12" mandatory="y" >
+				<defo>&#039;analysis&#039;::text</defo>
+			</column>
+			<column name="last_login" type="timestamptz" length="35" decimal="6" jt="93" >
+				<defo>now()</defo>
+			</column>
+			<column name="root" type="bool" jt="-7" >
+				<defo>false</defo>
+			</column>
+			<index name="pk_expermenter" unique="PRIMARY_KEY" >
+				<column name="experimenter_id" />
+			</index>
+			<index name="idx_experimenters_username" unique="UNIQUE" >
+				<column name="username" />
+			</index>
+		</table>
+		<table name="experiments" >
+			<column name="experiment" type="varchar" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="restricted" type="bool" jt="-7" >
+				<defo>false</defo>
+			</column>
+			<column name="logbook" type="text" jt="12" />
+			<column name="snow_url" type="text" decimal="0" jt="12" />
+			<column name="active" type="bool" jt="-7" >
+				<defo>true</defo>
+			</column>
+			<index name="pk_experiments" unique="PRIMARY_KEY" >
+				<column name="experiment" />
+			</index>
+			<index name="idx_experiments_name" unique="UNIQUE" >
+				<column name="name" />
+			</index>
+		</table>
+		<table name="experiments_experimenters" >
+			<column name="experiment" type="text" jt="12" mandatory="y" />
+			<column name="experimenter_id" type="integer" jt="4" mandatory="y" />
+			<column name="active" type="bool" jt="-7" mandatory="y" >
+				<defo>true</defo>
+			</column>
+			<column name="role" type="text" jt="12" mandatory="y" >
+				<defo>&#039;analysis&#039;::text</defo>
+			</column>
+			<index name="idx_experiment_expermenters" unique="NORMAL" >
+				<column name="experiment" />
+			</index>
+			<index name="pk_experiment_expermenters" unique="PRIMARY_KEY" >
+				<column name="experimenter_id" />
+				<column name="experiment" />
+			</index>
+			<fk name="fk_experiment_expermenters" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+			<fk name="fk_experiment_expermenters_0" to_schema="public" to_table="experimenters" >
+				<fk_column name="experimenter_id" pk="experimenter_id" />
+			</fk>
+		</table>
+		<table name="faulty_requests" >
+			<column name="url" type="text" decimal="0" jt="12" mandatory="y" />
+			<column name="last_seen" type="timestamptz" length="35" decimal="6" jt="93" mandatory="y" >
+				<defo>now()</defo>
+			</column>
+			<column name="status" type="integer" length="10" decimal="0" jt="4" />
+			<column name="message" type="text" decimal="0" jt="12" />
+			<column name="ntries" type="integer" length="10" decimal="0" jt="4" />
+			<index name="faulty_requests_pkey" unique="PRIMARY_KEY" >
+				<column name="url" />
+				<column name="last_seen" />
+			</index>
+		</table>
+		<table name="held_launches" >
+			<column name="campaign_stage_id" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="parent_submission_id" type="integer" jt="4" />
+			<column name="dataset" type="text" jt="12" />
+			<column name="param_overrides" type="json" decimal="0" jt="2000" >
+				<defo>to_json(&#039;{}&#039;::text)</defo>
+			</column>
+			<column name="launcher" type="integer" jt="4" />
+			<index name="pk_held_launches" unique="PRIMARY_KEY" >
+				<column name="campaign_stage_id" />
+				<column name="created" />
+			</index>
+			<index name="idx_held_launches_launcher" unique="NORMAL" >
+				<column name="launcher" />
+			</index>
+			<index name="idx_held_launches_campaign_id" unique="NORMAL" >
+				<column name="campaign_stage_id" />
+			</index>
+			<fk name="fk_held_launches_experimenters" to_schema="public" to_table="experimenters" >
+				<fk_column name="launcher" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_held_launches_campaigns" to_schema="public" to_table="campaign_stages" >
+				<fk_column name="campaign_stage_id" pk="campaign_stage_id" />
+			</fk>
+		</table>
+		<table name="job_type_snapshots" >
+			<column name="job_type_snapshot_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="job_type_id" type="integer" jt="4" mandatory="y" />
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="experiment" type="text" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="launch_script" type="text" jt="12" />
+			<column name="definition_parameters" type="json" jt="2000" />
+			<column name="input_files_per_job" type="integer" jt="4" />
+			<column name="output_files_per_job" type="integer" jt="4" />
+			<column name="output_file_patterns" type="text" jt="12" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<index name="pk_campaign_definition_snapshots" unique="PRIMARY_KEY" >
+				<column name="job_type_snapshot_id" />
+			</index>
+			<index name="idx_campaign_definition_snapshots_name" unique="NORMAL" >
+				<column name="job_type_id" />
+			</index>
+			<fk name="fk_campaign_definition_snapshots" to_schema="public" to_table="job_types" >
+				<fk_column name="job_type_id" pk="job_type_id" />
+			</fk>
+		</table>
+		<table name="job_types" >
+			<column name="job_type_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="experiment" type="text" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="launch_script" type="text" jt="12" />
+			<column name="definition_parameters" type="json" jt="2000" />
+			<column name="input_files_per_job" type="integer" jt="4" />
+			<column name="output_files_per_job" type="integer" jt="4" />
+			<column name="output_file_patterns" type="text" jt="12" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="creator_role" type="text" jt="12" mandatory="y" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="active" type="bool" jt="-7" >
+				<defo>true</defo>
+			</column>
+			<index name="pk_campaign_definitions" unique="PRIMARY_KEY" >
+				<column name="job_type_id" />
+			</index>
+			<index name="idx_campaign_definitions_name" unique="NORMAL" >
+				<column name="name" />
+			</index>
+			<index name="idx_campaign_definitions_creator" unique="NORMAL" >
+				<column name="creator" />
+			</index>
+			<index name="idx_campaign_definitions_updater" unique="NORMAL" >
+				<column name="updater" />
+			</index>
+			<index name="idx_campaign_definitions_experiment" unique="UNIQUE" >
+				<column name="experiment" />
+				<column name="name" />
+			</index>
+			<constraint name="ck_creator_role" >
+				<string>(creator_role = &#039;analysis&#039;::text) or (creator_role = &#039;production&#039;::text)</string>
+			</constraint>
+			<fk name="fk_campaign_definitions" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+			<fk name="fk_campaign_definitions_creator" to_schema="public" to_table="experimenters" >
+				<fk_column name="creator" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_campaign_definitions_updater" to_schema="public" to_table="experimenters" >
+				<fk_column name="updater" pk="experimenter_id" />
+			</fk>
+		</table>
+		<table name="login_setup_snapshots" >
+			<column name="login_setup_snapshot_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="login_setup_id" type="integer" jt="4" mandatory="y" />
+			<column name="experiment" type="varchar" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="launch_host" type="text" jt="12" mandatory="y" />
+			<column name="launch_account" type="text" jt="12" mandatory="y" />
+			<column name="launch_setup" type="text" jt="12" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="name" type="text" length="2147483647" decimal="0" jt="12" mandatory="y" />
+			<index name="idx_launch_template_snapshots_launch_id" unique="NORMAL" >
+				<column name="login_setup_id" />
+			</index>
+			<index name="pk_launch_template_snapshots" unique="PRIMARY_KEY" >
+				<column name="login_setup_snapshot_id" />
+			</index>
+			<fk name="fk_launch_template_snapshots" to_schema="public" to_table="login_setups" >
+				<fk_column name="login_setup_id" pk="login_setup_id" />
+			</fk>
+		</table>
+		<table name="login_setups" >
+			<column name="login_setup_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="experiment" type="varchar" length="10" jt="12" mandatory="y" >
+				<comment><![CDATA[Acroynm for the experiment]]></comment>
+			</column>
+			<column name="launch_host" type="text" jt="12" mandatory="y" />
+			<column name="launch_account" type="text" jt="12" mandatory="y" />
+			<column name="launch_setup" type="text" jt="12" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="creator_role" type="text" jt="12" mandatory="y" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="name" type="text" length="2147483647" decimal="0" jt="12" mandatory="y" />
+			<column name="active" type="bool" jt="-7" >
+				<defo>true</defo>
+			</column>
+			<index name="pk_launch_templates" unique="PRIMARY_KEY" >
+				<column name="login_setup_id" />
+			</index>
+			<index name="idx_launch_templates_creator" unique="NORMAL" >
+				<column name="creator" />
+			</index>
+			<index name="idx_launch_templates_updater" unique="NORMAL" >
+				<column name="updater" />
+			</index>
+			<index name="idx_launch_templates_experiment_name" unique="UNIQUE" >
+				<column name="experiment" />
+				<column name="name" />
+			</index>
+			<constraint name="ck_creator_role" >
+				<string>(creator_role = &#039;analysis&#039;::text) or (creator_role = &#039;production&#039;::text)</string>
+			</constraint>
+			<fk name="fk_launch_templates_experiment" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+			<fk name="fk_launch_templates_creator" to_schema="public" to_table="experimenters" >
+				<fk_column name="creator" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_launch_templates_updater" to_schema="public" to_table="experimenters" >
+				<fk_column name="updater" pk="experimenter_id" />
+			</fk>
+		</table>
+		<table name="recovery_types" >
+			<column name="recovery_type_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="name" type="text" length="100" jt="12" mandatory="y" />
+			<column name="description" type="text" jt="12" mandatory="y" />
+			<index name="pk_recovery_type" unique="PRIMARY_KEY" >
+				<column name="recovery_type_id" />
+			</index>
+		</table>
+		<table name="submission_histories" >
+			<column name="submission_id" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="status_id" type="integer" jt="4" mandatory="y" />
+			<index name="pk_task_histories" unique="PRIMARY_KEY" >
+				<column name="submission_id" />
+				<column name="created" />
+			</index>
+			<fk name="fk_task_histories" to_schema="public" to_table="submissions" >
+				<fk_column name="submission_id" pk="submission_id" />
+			</fk>
+			<fk name="fk_submission_histories_submission_statuses" to_schema="public" to_table="submission_statuses" >
+				<fk_column name="status_id" pk="status_id" />
+			</fk>
+		</table>
+		<table name="submission_statuses" >
+			<column name="status_id" type="integer" length="1" jt="4" mandatory="y" />
+			<column name="status" type="text" length="1" jt="12" mandatory="y" />
+			<index name="pk_submission_statuses_status_id" unique="PRIMARY_KEY" >
+				<column name="status_id" />
+			</index>
+		</table>
+		<table name="submissions" >
+			<column name="submission_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="campaign_stage_id" type="integer" jt="4" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" jt="93" mandatory="y" />
+			<column name="campaign_stage_snapshot_id" type="integer" jt="4" mandatory="y" />
+			<column name="job_type_snapshot_id" type="integer" jt="4" mandatory="y" />
+			<column name="submission_params" type="json" jt="2000" />
+			<column name="depends_on" type="integer" jt="4" />
+			<column name="depend_threshold" type="integer" jt="4" />
+			<column name="updater" type="integer" jt="4" />
+			<column name="updated" type="timestamptz" jt="93" />
+			<column name="command_executed" type="text" jt="12" >
+				<comment><![CDATA[The actual command executed to produce the jobs.]]></comment>
+			</column>
+			<column name="project" type="text" jt="12" />
+			<column name="recovery_position" type="integer" jt="4" />
+			<column name="recovery_tasks_parent" type="integer" jt="4" />
+			<column name="jobsub_job_id" type="text" jt="12" />
+			<column name="login_setup_snapshot_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" />
+			<index name="pk_tasks" unique="PRIMARY_KEY" >
+				<column name="submission_id" />
+			</index>
+			<index name="idx_tasks" unique="NORMAL" >
+				<column name="campaign_stage_id" />
+			</index>
+			<index name="idx_tasks_depends_on" unique="NORMAL" >
+				<column name="depends_on" />
+			</index>
+			<index name="idx_tasks_creator" unique="NORMAL" >
+				<column name="creator" />
+			</index>
+			<index name="idx_tasks_updater" unique="NORMAL" >
+				<column name="updater" />
+			</index>
+			<index name="idx_tasks_campaign_snapshot_id" unique="NORMAL" >
+				<column name="campaign_stage_snapshot_id" />
+			</index>
+			<index name="idx_tasks_campaign_definition_snap_id" unique="NORMAL" >
+				<column name="job_type_snapshot_id" />
+			</index>
+			<index name="idx_tasks_recovery_tasks_parent" unique="NORMAL" >
+				<column name="recovery_tasks_parent" />
+			</index>
+			<index name="idx_tasks_launch_snapshot_id" unique="NORMAL" >
+				<column name="login_setup_snapshot_id" />
+			</index>
+			<fk name="fk_tasks" to_schema="public" to_table="campaign_stages" >
+				<fk_column name="campaign_stage_id" pk="campaign_stage_id" />
+			</fk>
+			<fk name="fk_tasks_creator" to_schema="public" to_table="experimenters" >
+				<fk_column name="creator" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_tasks_updater" to_schema="public" to_table="experimenters" >
+				<fk_column name="updater" pk="experimenter_id" />
+			</fk>
+			<fk name="fk_tasks_launch_snapshot_id" to_schema="public" to_table="login_setup_snapshots" >
+				<fk_column name="login_setup_snapshot_id" pk="login_setup_snapshot_id" />
+			</fk>
+			<fk name="fk_tasks_campaign_snapshot_id" to_schema="public" to_table="campaign_stage_snapshots" >
+				<fk_column name="campaign_stage_snapshot_id" pk="campaign_stage_snapshot_id" />
+			</fk>
+			<fk name="fk_tasks_campaign_definition_snap_id" to_schema="public" to_table="job_type_snapshots" >
+				<fk_column name="job_type_snapshot_id" pk="job_type_snapshot_id" />
+			</fk>
+			<fk name="fk_tasks_recovery_tasks_parent" to_schema="public" to_table="submissions" >
+				<fk_column name="recovery_tasks_parent" pk="submission_id" />
+			</fk>
+		</table>
+		<table name="tags" >
+			<column name="tag_id" type="integer" length="10" decimal="0" jt="4" mandatory="y" autoincrement="y" />
+			<column name="experiment" type="varchar" length="10" jt="12" mandatory="y" />
+			<column name="tag_name" type="varchar" length="100" jt="12" mandatory="y" />
+			<column name="creator" type="integer" jt="4" mandatory="y" />
+			<column name="creator_role" type="text" jt="12" mandatory="y" />
+			<index name="pk_tags" unique="PRIMARY_KEY" >
+				<column name="tag_id" />
+			</index>
+			<index name="idx_tags" unique="NORMAL" >
+				<column name="experiment" />
+			</index>
+			<index name="idx_tags_experiment_tag_name" unique="UNIQUE" >
+				<column name="experiment" />
+				<column name="tag_name" />
+			</index>
+			<index name="idx_tags_created_by" unique="NORMAL" >
+				<column name="creator" />
+			</index>
+			<constraint name="ck_creator_role" >
+				<string>(creator_role = &#039;analysis&#039;::text) or (creator_role = &#039;production&#039;::text)</string>
+			</constraint>
+			<fk name="fk_tags_experiment" to_schema="public" to_table="experiments" >
+				<fk_column name="experiment" pk="experiment" />
+			</fk>
+			<fk name="fk_tags_experimenters" to_schema="public" to_table="experimenters" >
+				<fk_column name="creator" pk="experimenter_id" />
+			</fk>
+		</table>
+		<sequence name="campaign_dependencies_campaign_dep_id_seq" start="1" />
+		<sequence name="campaign_stage_snapshots_campaign_stage_snapshot_id_seq" start="1" />
+		<sequence name="campaign_stages_campaign_stage_id_seq" start="1" />
+		<sequence name="campaigns_campaign_id_seq" start="1" />
+		<sequence name="experimenters_experimenter_id_seq" start="1" />
+		<sequence name="job_type_snapshots_job_type_snapshot_id_seq" start="1" />
+		<sequence name="job_types_job_type_id_seq" start="1" />
+		<sequence name="login_setup_snapshots_login_setup_id_seq" start="1" />
+		<sequence name="login_setups_login_setup_id_seq" start="1" />
+		<sequence name="recovery_types_recovery_type_id_seq" start="1" />
+		<sequence name="submissions_submissions_id_seq" start="1" />
+		<sequence name="tags_tag_id_seq" start="1" />
+		<procedure name="experiments_lowercase_experiment" id="Procedure_ab389a" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.experiments_lowercase_experiment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+    BEGIN        
+        NEW.experiment = LOWER(NEW.experiment);
+        RETURN NEW;
+    END;
+$function$
+;]]></string>
+			<result_param name="returnValue" jt="1111" type="trigger" />
+			<result_param name="returnValue" jt="1111" type="trigger" />
+		</procedure>
+		<function name="experiments_lowercase_experiment" id="Function_2012e257" isSystem="false" params_known="n" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.experiments_lowercase_experiment()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+    BEGIN        
+        NEW.experiment = LOWER(NEW.experiment);
+        RETURN NEW;
+    END;
+$function$
+]]></string>
+		</function>
+		<function name="update_job_history" id="Function_3802b1b8" isSystem="false" params_known="n" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_job_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+   
+    IF TG_OP = 'INSERT' or  NEW.status != OLD.status THEN
+        INSERT INTO job_histories SELECT NEW.job_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$
+]]></string>
+		</function>
+		<function name="update_task_history" id="Function_e8ca82d" isSystem="false" params_known="n" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_task_history()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'INSERT' or NEW.status != OLD.status THEN
+       INSERT INTO task_histories SELECT NEW.task_id, now(), NEW.status;
+    END IF;
+    RETURN NULL;
+END;
+$function$
+]]></string>
+		</function>
+	</schema>
+	<connector name="pomsdev - pomsdbs" database="PostgreSQL" driver_class="org.postgresql.Driver" driver_jar="postgresql-42.2.5.jar" driver_desc="Standard" host="ifdbdev.fnal.gov" port="5447" instance="pomsdev" user="pomsdbs" passwd="bGVhcGluZ2Zyb2c=" />
+	<connector name="pomsprd - pomsdbs" database="PostgreSQL" host="ifdbprod.fnal.gov" port="5446" instance="pomsprd" user="pomsdbs" passwd="bjN1Zmx3dQ==" />
+	<layout name="Full Schema" id="Layout_8aeac8b" show_column_type="y" show_relation="columns" >
+		<entity schema="public" name="held_launches" color="C1D8EE" x="48" y="480" />
+		<entity schema="public" name="submissions" color="B2CDF7" x="304" y="672" />
+		<entity schema="public" name="faulty_requests" color="C1D8EE" x="1488" y="64" />
+		<entity schema="public" name="recovery_types" color="B2CDF7" x="1456" y="688" />
+		<entity schema="public" name="campaign_recoveries" color="B2CDF7" x="1184" y="688" />
+		<entity schema="public" name="campaign_dependencies" color="B2CDF7" x="304" y="480" />
+		<entity schema="public" name="tags" color="B2CDF7" x="1296" y="160" />
+		<entity schema="public" name="campaigns_tags" color="C1D8EE" x="1408" y="448" />
+		<entity schema="public" name="submission_histories" color="B2CDF7" x="80" y="720" />
+		<entity schema="public" name="submission_statuses" color="C1D8EE" x="80" y="880" />
+		<entity schema="public" name="experimenters" color="B2CDF7" x="224" y="256" />
+		<entity schema="public" name="experiments" color="B2CDF7" x="944" y="160" />
+		<entity schema="public" name="experiments_experimenters" color="B2CDF7" x="448" y="256" />
+		<entity schema="public" name="campaigns" color="C1D8EE" x="1152" y="432" />
+		<entity schema="public" name="campaign_stages" color="B2CDF7" x="640" y="432" />
+		<entity schema="public" name="job_types" color="B2CDF7" x="928" y="528" />
+		<entity schema="public" name="login_setups" color="B2CDF7" x="688" y="48" />
+		<callout x="96" y="80" pointer="SV" >
+			<comment><![CDATA[Aug 22, 2019]]></comment>
+		</callout>
+	</layout>
+	<layout name="Snapshots" id="Layout_14e12703" show_column_type="y" show_page_borders="y" show_relation="columns" >
+		<entity schema="public" name="login_setups" color="B2CDF7" x="80" y="128" />
+		<entity schema="public" name="job_types" color="B2CDF7" x="624" y="96" />
+		<entity schema="public" name="job_type_snapshots" color="B2CDF7" x="896" y="96" />
+		<entity schema="public" name="login_setup_snapshots" color="B2CDF7" x="48" y="480" />
+		<entity schema="public" name="submissions" color="B2CDF7" x="608" y="848" />
+		<entity schema="public" name="campaign_stages" color="B2CDF7" x="304" y="96" />
+		<entity schema="public" name="campaign_stage_snapshots" color="B2CDF7" x="640" y="384" />
+		<callout x="96" y="48" pointer="SV" >
+			<comment><![CDATA[June 13, 2018]]></comment>
+		</callout>
+	</layout>
+</project>
