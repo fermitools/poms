@@ -28,7 +28,7 @@ json_field_editor.recovery_start = function (id) {
         hang_onto = e.parentNode;
     }
     v = e.value || e.placeholder;
-    if ('' == v || '[]' == v) {
+    if ('' == v || '[]' == v || '"[]"' == v) {
         j = [];
     } else {
         j = JSON.parse(v);
@@ -122,7 +122,7 @@ json_field_editor.dictstart = function (id) {
         hang_onto = e.parentNode;
     }
     v = e.value || e.placeholder;
-    if ('' == v || '[]' == v || '{}' == v) {
+    if ('' == v || '[]' == v || '{}' == v || '"[]"' == v) {
         j = {}
     } else {
         j = JSON.parse(v);
@@ -181,7 +181,7 @@ json_field_editor.start = function (id) {
         hang_onto = e.parentNode;
     }
     v = e.value || e.placeholder;
-    if ('' == v || '[]' == v) {
+    if ('' == v || '[]' == v  || '"[]"' == v) {
         j = [
             ['', '']
         ];
@@ -399,7 +399,6 @@ json_field_editor.save = function (fid) {
         wsr = document.getElementById(fid + '_wsr_' + istr);
         ve = document.getElementById(fid + '_v_' + istr);
         if (ke != null && ve != null && ws != null && wsr != null) {
-
             var pair = [ke.value + (ws.checked ? " " : ""), (wsr.checked ? " " : "") + ve.value];
             res.push(pair);
             console.log(["adding", pair]);

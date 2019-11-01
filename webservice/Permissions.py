@@ -35,6 +35,8 @@ class Permissions:
         return self.sucache[ctx.username]
 
     def check_experiment_role(self, ctx):
+        if ctx.experiment == "fermilab":
+            ctx.experiment = "samdev"
         key = "%s:%s" % (ctx.username, ctx.experiment)
         if not key in self.excache:
             rows = (
@@ -156,6 +158,23 @@ class Permissions:
         if self.is_superuser(ctx):
             return
 
+        if item_id or name:
+            exp, owner, role = self.get_exp_owner_role(
+                ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
+            )
+        else:
+            exp, owner, role = None, None, None
+
+        # if no owner, role passed in from url, default to one in item
+        if ctx.experiment is None:
+            ctx.experiment = exp
+        if ctx.role is None:
+            ctx.role = role
+
+        logit.log(
+            "can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
+        )
+
         self.check_experiment_role(ctx)
 
         # special case for Experimenter checkss
@@ -167,12 +186,6 @@ class Permissions:
         if not item_id and not name:
             return
 
-        exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
-        )
-        logit.log(
-            "can_view: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
-        )
         if exp and exp != ctx.experiment:
             logit.log("can_view: resp: fail")
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
@@ -183,6 +196,22 @@ class Permissions:
         if self.is_superuser(ctx):
             return None
 
+        if item_id or name:
+            exp, owner, role = self.get_exp_owner_role(
+                ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
+            )
+        else:
+            exp, owner, role = None, None, None
+
+        # if no owner, role passed in from url, default to one in item
+        if ctx.experiment is None:
+            ctx.experiment = exp
+        if ctx.role is None:
+            ctx.role = role
+
+        logit.log(
+            "can_modify: %s cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
+        )
         self.check_experiment_role(ctx)
 
         if not item_id and not name:
@@ -196,19 +225,7 @@ class Permissions:
             logit.log("can_view: resp: ok")
             return
 
-        exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
-        )
 
-        # if no owner, role passed in from url, default to one in item
-        if ctx.experiment is None:
-            ctx.experiment = exp
-        if ctx.role is None:
-            ctx.role = role
-
-        logit.log(
-            "can_modify: %s cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
-        )
         if exp and exp != ctx.experiment:
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
@@ -226,6 +243,24 @@ class Permissions:
         if self.is_superuser(ctx):
             return
 
+        if item_id or name:
+            exp, owner, role = self.get_exp_owner_role(
+                ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
+            )
+        else:
+            exp, owner, role = None, None, None
+
+        # if there was no role, experiment in the url, get the one
+        # from the item
+
+        if ctx.role == None or ctx.role == 'None':
+            ctx.role = role
+
+        if ctx.experiment == None or ctx.experiment == 'None':
+            ctx.experiment = experiment
+
+        logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+
         self.check_experiment_role(ctx)
 
         if not item_id and not name:
@@ -237,20 +272,22 @@ class Permissions:
                 raise PermissionError("Only user %s can do this" % item_id)
             return
 
-        exp, owner, role = self.get_exp_owner_role(
-            ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
-        )
 
-        logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
         if exp and exp != ctx.experiment:
             logit.log("can_do: resp: fail")
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
-        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
-            logit.log("can_do: resp: fail")
-            raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         if role and ctx.role == "analysis" and owner and owner != ctx.username:
             logit.log("can_do: resp: fail")
             raise PermissionError("Must be user %s to do this" % owner)
+
+        if ctx.role == "production" and role == "analysis":
+            # bandaid for get_task_id_for stuff...
+            logit.log("letting it slide...")
+            return
+
+        if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
+            logit.log("can_do: resp: fail")
+            raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         logit.log("can_do: resp: ok")

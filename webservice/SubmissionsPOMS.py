@@ -300,7 +300,6 @@ class SubmissionsPOMS:
         self,
         ctx,
         campaign = None,
-        campaign_stage_id = None,
         command_executed="",
         input_dataset="",
         parent_submission_id=None,
@@ -308,6 +307,7 @@ class SubmissionsPOMS:
         launch_time=None,
         task_id=None,
         user=None,
+        campaign_stage_id = None,
         test=None,
     ):
         if submission_id == None and task_id != None:
@@ -409,9 +409,11 @@ class SubmissionsPOMS:
             .first()
         )
 
-        status_id = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())[0]
+        slist = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())
 
-        if not status_id:
+        if slist:
+            status_id = slist[0]
+        else:
             # not a known status, just bail
             return
 

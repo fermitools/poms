@@ -120,10 +120,8 @@ class JobsPOMS:
                 raise SyntaxError("called with unknown action %s" % act)
 
             if ctx.role == "analysis":
-                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(
-                    ctx.config_get("base_uploads_dir"), username, ctx.experiment
-                )
-                proxyfile = "$UPLOADS/x509up_voms_%s_Analysis_%s" % (ctx.experiment, username)
+                sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
+                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox,ctx.experiment, ctx.username)
             else:
                 sandbox = "$HOME"
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (ctx.experiment, ctx.experiment)

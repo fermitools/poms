@@ -486,7 +486,7 @@ class CampaignsPOMS:
         res.append("]);")
         res.append('var container = document.getElementById("dependencies");')
         res.append("var data = {nodes: nodes, edges: edges};")
-        res.append("var options = {manipulation: { enabled: false }};")
+        res.append("var options = {manipulation: { enabled: false }, interaction: { zoomView: false }};")
         res.append("var network = new vis.Network(container, data, options);")
         res.append("var dests={")
         for c_s in csl:
@@ -496,7 +496,7 @@ class CampaignsPOMS:
             )
         res.append("};")
         res.append(
-            "network.on('click', function(params) { if (!params || !params['nodes']){ return; } ; document.location = dests[params['nodes'][0]];})"
+            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
         )
         res.append("</script>")
         return "\n".join(res)
