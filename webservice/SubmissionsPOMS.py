@@ -690,7 +690,6 @@ class SubmissionsPOMS:
             status == "Running"
             and pct_complete
             and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct
-            and s.campaign_stage_snapshot_obj.completion_type == "complete"
         ):
             status = "Completed"
 
