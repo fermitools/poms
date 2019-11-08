@@ -19,9 +19,13 @@ from . import logit
 
 class Permissions:
     def __init__(self):
+        self.clear_cache()
+
+    def clear_cache(self);
         self.icache = {}
         self.sucache = {}
         self.excache = {}
+        
 
     def is_superuser(self, ctx):
         if not ctx.username in self.sucache:

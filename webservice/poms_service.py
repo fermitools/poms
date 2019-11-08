@@ -1073,3 +1073,7 @@ class PomsService:
     )
     def held_launches_remove(self, **kwargs):
         return self.miscPOMS.held_launches_remove(**kwargs)
+
+    @poms_method()
+    def clear_cache:
+         return self.permissions.clear_cache()
