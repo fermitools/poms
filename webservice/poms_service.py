@@ -306,7 +306,7 @@ class PomsService:
                 ctx, kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
             )
             raise cherrypy.HTTPRedirect(
-                "%s/%s/%s/campaign_stage_edit?jump_to_campaign=%d&extra_edit_flag=launch_test_job"
+                "%s/campaign_stage_edit/%s/%s?jump_to_campaign=%d&extra_edit_flag=launch_test_job"
                 % (self.path, ctx.experiment, ctx.role, test_campaign)
             )
         return res
@@ -389,7 +389,7 @@ class PomsService:
 
         if kwargs.get("launch_test_job", None) and kwargs.get("ae_campaign_id", None):
             raise cherrypy.HTTPRedirect(
-                "%s/%s/%s/launch_jobs?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("ae_campaign_id"))
+                "%s/launch_jobs/%s/%s?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("ae_campaign_id"))
             )
 
         return {"data": data, "jquery_ui": False}
