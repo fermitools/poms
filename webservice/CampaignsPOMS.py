@@ -463,17 +463,20 @@ class CampaignsPOMS:
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
         res = []
-        res.append('<div id="dependencies"></div>')
+        res.append('<div id="dependencies" style="font-size: larger"></div>')
         res.append('<script type="text/javascript">')
 
+        res.append('var container = document.getElementById("dependencies");')
+        res.append("var fss = window.getComputedStyle(container, null).getPropertyValue('font-size');")
+        res.append("var fs = parseFloat(fss);")
         res.append("var nodes = new vis.DataSet([")
 
         for c_s in csl:
             if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
-                res.append('  {id: %d, label: "%s", x: %d, y: %d},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
+                res.append('  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
             else:
-                res.append('  {id: %d, label: "%s"},' % (c_s.campaign_stage_id, c_s.name))
+                res.append('  {id: %d, label: "%s", font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name))
         res.append("]);")
 
         res.append("var edges = new vis.DataSet([")
@@ -484,9 +487,17 @@ class CampaignsPOMS:
             res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
 
         res.append("]);")
-        res.append('var container = document.getElementById("dependencies");')
         res.append("var data = {nodes: nodes, edges: edges};")
-        res.append("var options = {manipulation: { enabled: false }, interaction: { zoomView: false }};")
+        res.append("var options = {")
+        res.append("  manipulation: { enabled: false },")
+        res.append("  interaction: { zoomView: false },")
+        res.append("  layout: {")
+        res.append("      hierarchical: {")
+        res.append("         direction: 'LR',") 
+        res.append("         sortMethod: 'directed'")
+        res.append("      }")
+        res.append("   }")
+        res.append("};")
         res.append("var network = new vis.Network(container, data, options);")
         res.append("var dests={")
         for c_s in csl:
