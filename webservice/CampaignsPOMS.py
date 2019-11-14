@@ -463,7 +463,7 @@ class CampaignsPOMS:
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
         res = []
-        res.append('<div id="dependencies" style="font-size: larger"></div>')
+        res.append('<div id="dependencies" style="font-size: larger;"></div>')
         res.append('<script type="text/javascript">')
 
         res.append('var container = document.getElementById("dependencies");')
@@ -490,6 +490,7 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
+        res.append("  height: '350px',")
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
