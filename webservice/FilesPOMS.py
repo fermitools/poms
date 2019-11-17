@@ -74,9 +74,9 @@ class FilesStatus:
             cs = tl[0].campaign_stage_snapshot_obj.campaign_stage
             # cs = tl[0].campaign_stage_snapshot_obj
         else:
-            if campaign_id:
-                cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_stage_id).first()
-            elif campaign_stage_id:
+            if campaign_id not in ["", None, "None"]:
+                cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).first()
+            elif campaign_stage_id not in ["", None, "None"]:
                 cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             else:
                 raise KeyError("need campaign_stage_id or campaign_id")
