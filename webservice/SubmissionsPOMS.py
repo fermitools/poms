@@ -210,6 +210,9 @@ class SubmissionsPOMS:
         finish_up_submissions = deque()
         mark_located = deque()
 
+        ctx.db.execute("SET SESSION lock_timeout = '450s';") 
+        ctx.db.execute("SET SESSION statement_timeout = '500s';")
+
         # get completed jobs, lock them, double check
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
         ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(

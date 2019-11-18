@@ -101,8 +101,8 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = self.samweb_lite
         try:
             # Disabiling pylint false positives
-            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
             # restart database connection
@@ -111,8 +111,8 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-            self.session.execute("SET SESSION lock_timeout = '360s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '240s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
+            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):
@@ -191,8 +191,8 @@ def augment_params():
         session_role = pathv[3]
     else:
         # pick saved experiment/role
-        session_experiment = None
-        session_role = None
+        session_experiment = e.session_experiment
+        session_role = e.session_role
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
