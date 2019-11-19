@@ -210,9 +210,9 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
             }
         }
         if (csv_checked.length == 0) {
-            location.href = "./show_campaign_stages?cl=" + csv.join(',');
+            location.href = "{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?cl=" + csv.join(',');
         } else {
-            location.href = "./show_campaign_stages?cl=" + csv_checked.join(',');
+            location.href = "{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?cl=?cl=" + csv_checked.join(',');
         }
     }
   </script>
