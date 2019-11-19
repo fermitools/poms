@@ -232,6 +232,7 @@ json_field_editor.start = function (id) {
 json_field_editor.addrow = function (res, fid, i, k, v, blanks) {
     var istr = i.toString(),
         ws, wsr;
+    var blanks_symbol;
     if (blanks) {
         if (k[k.length - 1] == ' ') {
             while (k[k.length - 1] == ' ') {
@@ -252,47 +253,48 @@ json_field_editor.addrow = function (res, fid, i, k, v, blanks) {
     }
     res.push('<td><input id="' + fid + '_k_' + istr + '" value="' + k + '"></td>');
     if (blanks) {
-        bs = 'true';
+        blanks_symbol = 'true';
         res.push('<td style="min-width: 5em;"><input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_ws_' + istr + '" ' + ws + ' value=" ">');
         res.push('<input style="padding: auto; width: 2em;" type="checkbox" id="' + fid + '_wsr_' + istr + '" ' + wsr + ' value=" "></td>');
     } else {
-        bs = 'null';
+        blanks_symbol = 'false';
     }
 
     res.push('<td><input id="' + fid + '_v_' + istr + '" value="' + v + '"></td>');
     res.push('<td style="min-width: 7em;">');
-    res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + bs + ')" class="blue icon dlink plus square"></i>');
-    res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink minus square"></i>');
-    res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink arrow square up"></i>');
-    res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink arrow square down"></i>');
+    res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink plus square"></i>');
+    res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink minus square"></i>');
+    res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square up"></i>');
+    res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square down"></i>');
 }
 
 json_field_editor.renumber = function (fid, c, blanks) {
     var i;
     var res;
+    var blanks_symbol;
     var tb = document.getElementById(fid + '_tbody');
     for (i = 0; i < c; i++) {
         istr = i.toString();
         tr = tb.children[i];
         tr.children[0].children[0].id = fid + "_k_" + istr;
         if (blanks) {
-            bs = 'true';
+            blanks_symbol = 'true';
             tr.children[1].children[0].id = fid + "_ws_" + istr;
             tr.children[1].children[1].id = fid + "_wsr_" + istr;
             tr.children[2].children[0].id = fid + "_v_" + istr;
         } else {
-            bs = 'null';
+            blanks_symbol = 'false';
             tr.children[1].children[0].id = fid + "_v_" + istr;
         }
         res = [];
-        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + bs + ')" class="blue icon dlink plus square"></i>');
-        res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink minus square"></i>');
-        res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink arrow square up"></i>');
-        res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ', + bs + ')" class="blue icon dlink arrow square down"></i>');
+        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink plus square"></i>');
+        res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink minus square"></i>');
+        res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square up"></i>');
+        res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square down"></i>');
         if (blanks) {
-            tr.children[4].innerHTML = res.join("\n");
-        } else {
             tr.children[3].innerHTML = res.join("\n");
+        } else {
+            tr.children[2].innerHTML = res.join("\n");
         }
     }
 }
@@ -325,20 +327,26 @@ json_field_editor.minus = function (fid, i, blanks) {
 
 json_field_editor.up = function (fid, i, blanks) {
     var tb = document.getElementById(fid + '_tbody');
-    var tr = tb.children[i];
     var c = parseInt(document.getElementById(fid + '_count').value);
+    if (i == 0) {
+        return
+    }
+    var tr = tb.children[i];
     tb.removeChild(tr);
     tb.insertBefore(tr, tb.children[i - 1])
     json_field_editor.renumber(fid, c, blanks);
 }
 
-json_field_editor.down = function (fid, i) {
+json_field_editor.down = function (fid, i, blanks) {
     var tb = document.getElementById(fid + '_tbody');
-    var tr = tb.children[i];
     var c = parseInt(document.getElementById(fid + '_count').value);
+    if (i == c-1) {
+       return;
+    }
+    var tr = tb.children[i+1];
     tb.removeChild(tr);
-    tb.insertBefore(tr, tb.children[i + 1]);
-    json_field_editor.renumber(fid, c);
+    tb.insertBefore(tr, tb.children[i]);
+    json_field_editor.renumber(fid, c, blanks);
 }
 
 json_field_editor.dictsave = function (fid) {
