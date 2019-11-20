@@ -45,6 +45,7 @@ class Ctx:
             experiment if experiment else pathv[2] if len(pathv) >= 4 else cherrypy.request.params.get("experiment", None)
         )
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
+
         self.username = username if username else get_user()
         self.HTTPError = cherrypy.HTTPError
         self.HTTPRedirect = cherrypy.HTTPRedirect
@@ -52,6 +53,12 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
+
+        if self.experiment == None or self.role == None:
+             e = self.get_experimenter()
+             self.experiment = e.session_experiment
+             self.role = e.session_role
+
 
     def get_experimenter(self):
         if not self.experimenter_cache:

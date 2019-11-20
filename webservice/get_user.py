@@ -1,6 +1,5 @@
 import cherrypy
 
-
 def get_user():
     if cherrypy.request.headers.get("X-Shib-Userid", None):
         username = cherrypy.request.headers["X-Shib-Userid"]

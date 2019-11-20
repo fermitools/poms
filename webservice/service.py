@@ -161,54 +161,15 @@ def augment_params():
         )
 
     roles = ["analysis", "production", "superuser"]
-    exps = {}
-    e2e = None
-    if e.root is True:
-        e2e = cherrypy.request.db.query(Experiment)
-        for row in e2e:
-            exps[row.experiment] = roles
-    else:
-        e2e = (
-            cherrypy.request.db.query(ExperimentsExperimenters)
-            .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
-            .filter(ExperimentsExperimenters.active.is_(True))
-        )
-        for row in e2e:
-            position = 0
-            if e.root is True:
-                position = 3
-            elif row.role == "superuser":
-                position = 3
-            elif row.role == "production":
-                position = 2
-            else:  # analysis
-                position = 1
-            exps[row.experiment] = roles[:position]
-
-    pathv = cherrypy.request.path_info.split("/")
-    if len(pathv) >= 4:
-        session_experiment = pathv[2]
-        session_role = pathv[3]
-    else:
-        # pick saved experiment/role
-        session_experiment = e.session_experiment
-        session_role = e.session_role
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
         dict(
-            session_role=session_role,
-            session_experiment=session_experiment,
-            user_authorization=exps.keys(),
-            allowed_roles=exps,
-            is_root=e.root,
-            experimenter_id=e.experimenter_id,
-            last_name=e.last_name,
-            first_name=e.first_name,
-            username=e.username,
             version=root.version,
             pomspath=root.path,
             hostname=socket.gethostname(),
+            all_roles=roles,
+            ExperimentsExperimenters=ExperimentsExperimenters,
         )
     )
 

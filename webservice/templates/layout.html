@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+<!-- sets instead of old jinja globals
+{%set session_experiment=ctx.experiment %}
+{%set session_role=ctx.role %}
+{%set experimenter=ctx.get_experimenter() %}
+{%set first_name=experimenter.first_name %}
+{%set last_name=experimenter.last_name %}
+{%set user_authorization_1=ctx.db.query( ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.active.is_(True)).all() %}
+{%set user_authorization=user_authorization_1|map('first') %}
+{%set maxrole=ctx.db.query(ExperimentsExperimenters.role).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.experiment == session_experiment).scalar()|default('analysis',true) %}
+{%if experimenter.is_root %}
+{%set rolenum=4 %}
+{%else%}
+{%set rolenum=(all_roles.index(maxrole)+1) %}
+{%endif%}
+{%set allowed_roles=all_roles[:rolenum] %}
+-->
     <!-- Standard Meta -->
     {%if do_refresh %}
     <meta http-equiv="refresh" content="{{do_refresh}}" />
@@ -129,7 +145,7 @@
 	      </select>
 	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
                       {% if allowed_roles is defined %}
-		      {% for role in allowed_roles[session_experiment] %}
+		      {% for role in allowed_roles %}
 		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option> 
 		      {% endfor %}
                       {% endif %}
@@ -154,6 +170,36 @@
 	{% include 'datepicker_block.html' %}
     {%endif%}
 	<div class="no example" style="margin: 0px 10px 0px 10px;">
+      {% if session_role == session_experiment or session_role not in ('production','analysis','superuser') %}
+         <div style="border: solid red 2px; width:50%; margin: 4em auto; padding: 4em;" > 
+             
+            URL error: 
+            {% if ctx.headers_get('Referer') != None %}
+                The page you came from:<br>
+                  <b>{{ctx.headers_get('Referer')}}</b><br>
+                has a bad link, leading to a bad /experiment/role in the url. 
+                <p>
+                Please report the above page to the POMS team
+                <a href="https://fermi.service-now.com/nav_to.do?uri=%2Fcom.glideapp.servicecatalog_cat_item_view.do%3Fsysparm_id%3D993f4a8fa994e0808638daab111d5447%26amp;sysparm_service%3D2deaa5b56f70520032544d1fde3ee40c%26amp;sysparm_affiliation%3D" target="_blank">here</a>,
+                along with what you clicked on in the page to get here, 
+                so we can get rid of these annoying red boxes.
+            {% else %}
+                The bookmark or typed in link you followed to get here
+                has a bad link, leading to a bad /experiment/role in the url. 
+                <p>
+                Please update it at your earliest convenience.
+            {% endif %}
+            <p>
+            You can continue your work by manually fixing the experiment 
+            and role in the URL bar of your browser, so it is of the form
+
+            <b><tt>https://pomsgpvm01.fnal.gov/poms/</tt><i>some_page/experiment/role</i></b>....
+
+            <br>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   Thank you.<br>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; POMS Developers 
+        </div>
+      {% endif %}
 	  {%block content%} {%endblock%}
 	</div>
   {%block final%} {%endblock%}
