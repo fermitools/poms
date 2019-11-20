@@ -10,7 +10,10 @@
 {%set user_authorization_1=ctx.db.query( ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.active.is_(True)).all() %}
 {%set user_authorization=user_authorization_1|map('first') %}
 {%set maxrole=ctx.db.query(ExperimentsExperimenters.role).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.experiment == session_experiment).scalar()|default('analysis',true) %}
-{%if experimenter.is_root %}
+{%set is_root=experimenter.root %}
+{%set experimenter_id=experimenter.id %}
+{%set username=experimenter.username %}
+{%if is_root %}
 {%set rolenum=4 %}
 {%else%}
 {%set rolenum=(all_roles.index(maxrole)+1) %}
