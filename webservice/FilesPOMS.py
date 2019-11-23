@@ -281,14 +281,18 @@ class FilesStatus:
         """
             get launch output file and return the lines as a list
         """
-        q = (
-            ctx.db.query(CampaignStage, Campaign)
-            .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
-            .filter(CampaignStage.campaign_id == Campaign.campaign_id)
-            .first()
-        )
-        campaign_name = q.Campaign.name
-        stage_name = q.CampaignStage.name
+        if campaign_stage_id and campaign_stage_id != 'None':
+            q = (
+                ctx.db.query(CampaignStage, Campaign)
+                .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
+                .filter(CampaignStage.campaign_id == Campaign.campaign_id)
+                .first()
+            )
+            campaign_name = q.Campaign.name
+            stage_name = q.CampaignStage.name
+        else:
+            campaign_name = "-"
+            stage_name = "-"
         if login_setup_id:
             dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
         else:

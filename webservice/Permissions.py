@@ -256,10 +256,10 @@ class Permissions:
         # if there was no role, experiment in the url, get the one
         # from the item
 
-        if ctx.role == None or ctx.role == 'None':
+        if ctx.role == None or ctx.role == 'None' or ctx.role == '':
             ctx.role = role
 
-        if ctx.experiment == None or ctx.experiment == 'None':
+        if ctx.experiment == None or ctx.experiment == 'None' or ctx.experiment == '':
             ctx.experiment = experiment
 
         logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))

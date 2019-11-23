@@ -153,8 +153,9 @@ class sam_specifics:
             # time window -- this makes our dependency definition basically
             # frozen after we run, so it doesn't collect later similar projects
             # output.
-            if ndate != cdate:
-                basedims = "%s and create_date <= '%s'" % (basedims, ndate)
+            # ... but that exculdes recovery launch output...
+            # if ndate != cdate:
+            #     basedims = "%s and create_date <= '%s'" % (basedims, ndate)
 
         dims = "%s and %s" % (basedims, dim_bits)
 
