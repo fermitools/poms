@@ -2151,7 +2151,7 @@ gui_editor.prototype.save_state = function () {
                 const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
                 /* this leads sideways when the experiment or poms_role is goofy */
                 const experiment = this.state['campaign']['experiment'];
-                const role = this.state['campign']['poms_role'];
+                const role = this.state['campaign']['poms_role'];
                 location.href = `${base}gui_wf_edit/${experiment}/${role}?campaign=${campaign}`;
             }, 1500);
         });

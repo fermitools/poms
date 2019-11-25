@@ -490,7 +490,7 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'" %  100 + 50 * len(c_ids),
+        res.append("  height: '%dpx'" %  200 + 50 * len(c_ids),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
