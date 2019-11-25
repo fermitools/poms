@@ -59,7 +59,6 @@ class Ctx:
              self.experiment = e.session_experiment
              self.role = e.session_role
 
-
     def get_experimenter(self):
         if not self.experimenter_cache:
             self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
