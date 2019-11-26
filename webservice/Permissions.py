@@ -25,7 +25,7 @@ class Permissions:
         self.icache = {}
         self.sucache = {}
         self.excache = {}
-        
+
     def is_superuser(self, ctx):
         if not ctx.username in self.sucache:
             # Is this a username or user_id?
@@ -228,7 +228,6 @@ class Permissions:
             logit.log("can_view: resp: ok")
             return
 
-
         if exp and exp != ctx.experiment:
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
@@ -256,10 +255,10 @@ class Permissions:
         # if there was no role, experiment in the url, get the one
         # from the item
 
-        if ctx.role == None or ctx.role == 'None' or ctx.role == '':
+        if ctx.role == None or ctx.role == "None" or ctx.role == "":
             ctx.role = role
 
-        if ctx.experiment == None or ctx.experiment == 'None' or ctx.experiment == '':
+        if ctx.experiment == None or ctx.experiment == "None" or ctx.experiment == "":
             ctx.experiment = experiment
 
         logit.log("can_do: %s cur:  %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
@@ -274,7 +273,6 @@ class Permissions:
             if item_id != ctx.username:
                 raise PermissionError("Only user %s can do this" % item_id)
             return
-
 
         if exp and exp != ctx.experiment:
             logit.log("can_do: resp: fail")

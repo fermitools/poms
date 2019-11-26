@@ -210,7 +210,7 @@ class SubmissionsPOMS:
         finish_up_submissions = deque()
         mark_located = deque()
 
-        ctx.db.execute("SET SESSION lock_timeout = '450s';") 
+        ctx.db.execute("SET SESSION lock_timeout = '450s';")
         ctx.db.execute("SET SESSION statement_timeout = '500s';")
 
         # get completed jobs, lock them, double check
@@ -302,7 +302,7 @@ class SubmissionsPOMS:
     def get_task_id_for(
         self,
         ctx,
-        campaign = None,
+        campaign=None,
         command_executed="",
         input_dataset="",
         parent_submission_id=None,
@@ -310,7 +310,7 @@ class SubmissionsPOMS:
         launch_time=None,
         task_id=None,
         user=None,
-        campaign_stage_id = None,
+        campaign_stage_id=None,
         test=None,
     ):
         if submission_id == None and task_id != None:
@@ -412,7 +412,7 @@ class SubmissionsPOMS:
             .first()
         )
 
-        slist = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())
+        slist = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first()
 
         if slist:
             status_id = slist[0]
@@ -691,11 +691,7 @@ class SubmissionsPOMS:
             ctx.db.add(s)
 
         # amend status for completion percent
-        if (
-            status == "Running"
-            and pct_complete
-            and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct
-        ):
+        if status == "Running" and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct:
             status = "Completed"
 
         if status is not None:
@@ -1003,7 +999,7 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
-        **kwargs
+        **kwargs,
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
@@ -1217,7 +1213,9 @@ class SubmissionsPOMS:
             self.update_submission_status(ctx, sid, "Awaiting Approval")
             ctx.db.commit()
 
-            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup)
+            outdir, outfile, outfullpath = self.get_output_dir_file(
+                ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup
+            )
             lcmd = "await_approval"
             logit.log("trying to record launch in %s" % outfullpath)
             if not os.path.isdir(outdir):
@@ -1353,12 +1351,7 @@ class SubmissionsPOMS:
             return cmd
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx,
-            launch_time,
-            ctx.username,
-            campaign_stage_id=csid,
-            submission_id=sid,
-            test_login_setup=test_login_setup,
+            ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
         )
 
         logit.log("trying to record launch in %s" % outfullpath)

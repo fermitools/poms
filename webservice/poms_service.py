@@ -260,8 +260,7 @@ class PomsService:
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
                 "%s/launch_login_setup/%s/%s?campaign_stage_id=None&test_login_setup=%s"
-
-                % (self.path, ctx.experiment, ctx.role, res["data"]["login_setup_id"]) 
+                % (self.path, ctx.experiment, ctx.role, res["data"]["login_setup_id"])
             )
         return res
 
@@ -1077,4 +1076,4 @@ class PomsService:
 
     @poms_method()
     def clear_cache(*args, **kwargs):
-         return self.permissions.clear_cache()
+        return self.permissions.clear_cache()

@@ -474,7 +474,10 @@ class CampaignsPOMS:
         for c_s in csl:
             if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
-                res.append('  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"]))
+                res.append(
+                    '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
+                    % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"])
+                )
             else:
                 res.append('  {id: %d, label: "%s", font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name))
         res.append("]);")
@@ -490,11 +493,11 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'" %  200 + 50 * len(c_ids),
+        res.append("  height: '%dpx'" % 200 + 50 * len(c_ids)),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
-        res.append("         direction: 'LR',") 
+        res.append("         direction: 'LR',")
         res.append("         sortMethod: 'directed'")
         res.append("      }")
         res.append("   }")

@@ -281,7 +281,7 @@ class FilesStatus:
         """
             get launch output file and return the lines as a list
         """
-        if campaign_stage_id and campaign_stage_id != 'None':
+        if campaign_stage_id and campaign_stage_id != "None":
             q = (
                 ctx.db.query(CampaignStage, Campaign)
                 .filter(CampaignStage.campaign_stage_id == campaign_stage_id)
