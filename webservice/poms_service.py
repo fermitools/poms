@@ -259,8 +259,8 @@ class PomsService:
         res = {"data": self.miscPOMS.login_setup_edit(ctx, **kwargs)}
         if kwargs.get("test_template"):
             raise cherrypy.HTTPRedirect(
-                "%s/launch_jobs/%s/%s?campaign_stage_id=None&test_login_setup=%s"
-                % (self.path, ctx.experiment, ctx.role, data["login_setup_id"])  # FIXME: data is undefined!
+                "%s/launch_login_setup/%s/%s?campaign_stage_id=None&test_login_setup=%s"
+                % (self.path, ctx.experiment, ctx.role, res["data"]["login_setup_id"])
             )
         return res
 
@@ -837,7 +837,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "LoginSetup", "item_id": "test_login_setup"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?login_setup_id=%(test_login_setup)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?login_setup_id=%(test_login_setup)s&campaign_stage_id=None&fname=%(outfile)s",
     )
     def launch_login_setup(self, **kwargs):
         return self.submissionsPOMS.launch_jobs(**kwargs)
@@ -1076,4 +1076,4 @@ class PomsService:
 
     @poms_method()
     def clear_cache(*args, **kwargs):
-         return self.permissions.clear_cache()
+        return self.permissions.clear_cache()

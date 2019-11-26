@@ -210,7 +210,7 @@ class SubmissionsPOMS:
         finish_up_submissions = deque()
         mark_located = deque()
 
-        ctx.db.execute("SET SESSION lock_timeout = '450s';") 
+        ctx.db.execute("SET SESSION lock_timeout = '450s';")
         ctx.db.execute("SET SESSION statement_timeout = '500s';")
 
         # get completed jobs, lock them, double check
@@ -302,7 +302,7 @@ class SubmissionsPOMS:
     def get_task_id_for(
         self,
         ctx,
-        campaign = None,
+        campaign=None,
         command_executed="",
         input_dataset="",
         parent_submission_id=None,
@@ -310,7 +310,7 @@ class SubmissionsPOMS:
         launch_time=None,
         task_id=None,
         user=None,
-        campaign_stage_id = None,
+        campaign_stage_id=None,
         test=None,
     ):
         if submission_id == None and task_id != None:
@@ -412,7 +412,7 @@ class SubmissionsPOMS:
             .first()
         )
 
-        slist = (ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first())
+        slist = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first()
 
         if slist:
             status_id = slist[0]
@@ -691,11 +691,7 @@ class SubmissionsPOMS:
             ctx.db.add(s)
 
         # amend status for completion percent
-        if (
-            status == "Running"
-            and pct_complete
-            and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct
-        ):
+        if status == "Running" and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct:
             status = "Completed"
 
         if status is not None:
@@ -936,7 +932,7 @@ class SubmissionsPOMS:
         ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
 
         if test_login_setup:
-            subdir = "template_tests_%d" % test_login_setup
+            subdir = "template_tests_%d" % int(test_login_setup)
         else:
             subdir = "campaign_%s" % campaign_stage_id
             assert submission_id
@@ -1003,7 +999,7 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
-        **kwargs
+        **kwargs,
     ):
 
         logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
@@ -1032,9 +1028,12 @@ class SubmissionsPOMS:
             ccname = "-"
             cname = "-"
             csname = "-"
+            cstype = "-"
+            cid = "-"
             sid = "-"
             cs = None
             c_param_overrides = []
+            test_launch_flag = False
             vers = "v0_0"
             dataset = "-"
             definition_parameters = []
@@ -1141,7 +1140,7 @@ class SubmissionsPOMS:
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
 
         allheld = self.get_job_launches(ctx) == "hold"
-        csheld = bool(cs.hold_experimenter_id)
+        csheld = bool(cs and cs.hold_experimenter_id)
         proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile)
         if allheld or csheld or proxyheld:
 
@@ -1193,27 +1192,30 @@ class SubmissionsPOMS:
             poms_test = "1"
 
         # allocate task to set ownership
-        sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
+        if not test_login_setup:
+            sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
 
-        #
-        # keep some bookkeeping flags
-        #
-        pdict = {}
-        if dataset and dataset != "None":
-            pdict["dataset"] = dataset
-        if test_launch:
-            pdict["test"] = 1
-        if parent:
-            pdict["parent"] = parent
+            #
+            # keep some bookkeeping flags
+            #
+            pdict = {}
+            if dataset and dataset != "None":
+                pdict["dataset"] = dataset
+            if test_launch:
+                pdict["test"] = 1
+            if parent:
+                pdict["parent"] = parent
 
-        ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
+            ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
 
-        if cs.campaign_stage_type == "approval":
+        if cs and cs.campaign_stage_type == "approval":
             # special case for approval -- don't need to really launch...
             self.update_submission_status(ctx, sid, "Awaiting Approval")
             ctx.db.commit()
 
-            outdir, outfile, outfullpath = self.get_output_dir_file(ctx, launch_time, ctx.username, campaign_stage_id, sid)
+            outdir, outfile, outfullpath = self.get_output_dir_file(
+                ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup
+            )
             lcmd = "await_approval"
             logit.log("trying to record launch in %s" % outfullpath)
             if not os.path.isdir(outdir):
@@ -1317,7 +1319,7 @@ class SubmissionsPOMS:
                 params.update(param_overrides)
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
-        formatdict = cs.campaign_obj.campaign_keywords if cs.campaign_obj.campaign_keywords else {}
+        formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
         formatdict.update(
             {
                 "dataset": dataset,
@@ -1349,12 +1351,7 @@ class SubmissionsPOMS:
             return cmd
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx,
-            launch_time,
-            ctx.username,
-            campaign_stage_id=cs.campaign_stage_id,
-            submission_id=sid,
-            test_login_setup=test_login_setup,
+            ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
         )
 
         logit.log("trying to record launch in %s" % outfullpath)

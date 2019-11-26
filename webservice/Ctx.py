@@ -55,10 +55,9 @@ class Ctx:
         self.experimenter_cache = None
 
         if self.experiment == None or self.role == None:
-             e = self.get_experimenter()
-             self.experiment = e.session_experiment
-             self.role = e.session_role
-
+            e = self.get_experimenter()
+            self.experiment = e.session_experiment
+            self.role = e.session_role
 
     def get_experimenter(self):
         if not self.experimenter_cache:

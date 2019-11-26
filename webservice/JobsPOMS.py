@@ -121,7 +121,7 @@ class JobsPOMS:
 
             if ctx.role == "analysis":
                 sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
-                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox,ctx.experiment, ctx.username)
+                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, ctx.experiment, ctx.username)
             else:
                 sandbox = "$HOME"
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (ctx.experiment, ctx.experiment)

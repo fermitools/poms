@@ -279,6 +279,11 @@ class Agent:
                     jobid = m.group(1)
                     ignore.add(jobid)
 
+        #
+        # order by pomsTaskID so we don't have lock races in the db...
+        #
+        ddict["data"]["submissions"].sort(key=(lambda x: x.get("pomsTaskID", "")))
+
         for entry in ddict["data"]["submissions"]:
 
             if entry.get("id") in ignore:
