@@ -47,7 +47,10 @@ class Ctx:
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
 
         self.username = username if username else get_user()
-        self.dbtransaction = ctx.db.execute("select txid_current();")
+        rows = self.db.execute("select txid_current();")
+        for r in rows:
+            self.dbtransaction = r[0]
+        rows.close()
         self.HTTPError = cherrypy.HTTPError
         self.HTTPRedirect = cherrypy.HTTPRedirect
         self.tmin = tmin
@@ -71,6 +74,6 @@ class Ctx:
             if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect"):
                 res.append("'%s': '...'," % k)
             else:
-                res.append("'%s': '%s'" % (k, self.__dict__[k]))
+                res.append("'%s': '%s'," % (k, self.__dict__[k]))
         res.append(">")
         return " ".join(res)
