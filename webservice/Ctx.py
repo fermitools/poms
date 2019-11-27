@@ -47,6 +47,7 @@ class Ctx:
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
 
         self.username = username if username else get_user()
+        self.dbtransaction = ctx.db.execute("select txid_current();")
         self.HTTPError = cherrypy.HTTPError
         self.HTTPRedirect = cherrypy.HTTPRedirect
         self.tmin = tmin
