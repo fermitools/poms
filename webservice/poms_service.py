@@ -791,7 +791,7 @@ class PomsService:
 
     # h4. launch_queued_job
 
-    @poms_method(p=[{"p", "is_superuser"}])
+    @poms_method(p=[{"p": "is_superuser"}])
     def launch_queued_job(self, ctx, **kwargs):
         return self.submissionsPOMS.launch_queued_job(ctx)
 

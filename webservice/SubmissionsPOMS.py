@@ -909,9 +909,8 @@ class SubmissionsPOMS:
 
             self.launch_jobs(
                 ctx,
-                launcher,
                 campaign_stage_id,
-                launch_user.experimenter_id,
+                launcher=launcher,
                 dataset_override=dataset,
                 parent_submission_id=parent_submission_id,
                 param_overrides=param_overrides,
