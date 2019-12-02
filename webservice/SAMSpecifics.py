@@ -25,7 +25,7 @@ class sam_specifics:
 
     def create_recovery_dataset(self, s, rtype, rlist):
 
-        isparentof = "isparentof: " * s.campaign_stage_obj.output_ancestor_depth
+        isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
         param_overrides = rlist[s.recovery_position].param_overrides
@@ -302,7 +302,7 @@ class sam_project_checker:
 
         self.n_project = self.n_project + 1
 
-        isparentof = "isparentof:(" * submission.campaign_stage_obj.output_ancestor_depth
+        isparentof = "isparentof:( " * submission.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * submission.campaign_stage_obj.output_ancestor_depth
 
         basedims = "snapshot_for_project_name %s " % submission.project
