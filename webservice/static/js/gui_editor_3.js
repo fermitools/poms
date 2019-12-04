@@ -2047,6 +2047,7 @@ gui_editor.prototype.new_stage = function (name, label) {
     k = 'campaign_stage ' + k;
     this.state[k] = {
         'name': label,
+        'campaign_keywords': null,
         'vo_role': null,
         // 'state': null,
         'software_version': null,
@@ -2056,10 +2057,11 @@ gui_editor.prototype.new_stage = function (name, label) {
         'completion_pct': null,
         'param_overrides': null,
         'test_param_overrides': null,
+        'merge_overrides': null,
         'login_setup': null,
         'job_type': null,
-        'merge_overrides': null,
-        'stage_type': null
+        'stage_type': null,
+        'output_ancestor_depth': null,
     };
     x = 500;
     y = 150;
@@ -2149,7 +2151,6 @@ gui_editor.prototype.save_state = function () {
                 const base = mwm_utils.getBaseURL();
                 console.log(["args:", args, "base:", base]);
                 const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
-                /* this leads sideways when the experiment or poms_role is goofy */
                 const experiment = this.state['campaign']['experiment'];
                 const role = this.state['campaign']['poms_role'];
                 location.href = `${base}gui_wf_edit/${experiment}/${role}?campaign=${campaign}`;
