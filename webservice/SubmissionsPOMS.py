@@ -1159,6 +1159,7 @@ class SubmissionsPOMS:
                 )
                 cs.hold_experimenter_id = cs.creator
                 cs.role_held_with = ctx.role
+                ctx.db.add(cs)
 
             logit.log("launch_jobs -- holding launch")
             hl = HeldLaunch()
