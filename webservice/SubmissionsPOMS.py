@@ -880,7 +880,7 @@ class SubmissionsPOMS:
         if self.get_job_launches(ctx) == "hold":
             return "Held."
 
-        hl = ctx.db.query(HeldLaunch).with_for_update(read=True).order_by(HeldLaunch.created).first()
+        hl = ctx.db.query(HeldLaunch).join(CampaignStage, HeldLaunch.campaign_stage_id==CampaignStage.campaign_stage_id).filter(CampaignStage.hold_experimenter_id == None).with_for_update(read=True).order_by(HeldLaunch.created).first()
         if hl:
             launcher = hl.launcher
             campaign_stage_id = hl.campaign_stage_id
