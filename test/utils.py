@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import poms
+import requests
 
 from poms.webservice.logit import setlevel, log, DEBUG, INFO, CRITICAL
 import logging.config
@@ -111,17 +112,17 @@ def get_base_url():
     base_url = "http://localhost:" + port + pomspath + "/"
     return base_url
 
-
 def setUpPoms():
-    print("************* SETTING UP POMS *************")
+    global USE_COVERAGE
     try:
         f = open("webservice.out", "w")
+        print("************* SETTING UP POMS *************", file=f)
         proc = subprocess.Popen(
-            ["python", "../webservice/service.py", "--no-wsgi", "-cs", "../webservice/poms.ini"], stdout=f, stderr=f
+            ["coverage", "run", "--rcfile=.web_coveragerc", "../webservice/service.py", "--no-wsgi", "-cs", "../webservice/poms.ini"], stdout=f, stderr=f
         )
-        print("PID =", proc.pid)
+        print("PID =", proc.pid, file=f)
     except OSError as e:
-        print("Execution failed:", e)
+        print("Execution failed:", e, file=f)
     time.sleep(5)
     return proc
 
@@ -129,6 +130,13 @@ def setUpPoms():
 def tearDownPoms(proc):
     print("************* TEARING DOWN POMS *************")
     print("PID =", proc.pid)
+
+    # try to shut it down cleanly so we get coverage data
+    try:
+        requests.get(get_base_url() + "shutdown")
+    except:
+        pass
+
     for i in range(5):
         try:
             proc.kill()

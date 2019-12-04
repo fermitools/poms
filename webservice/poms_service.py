@@ -31,6 +31,7 @@ import datetime
 import time
 import json
 import logging
+import sys
 from configparser import ConfigParser
 
 import cherrypy
@@ -1077,3 +1078,14 @@ class PomsService:
     @poms_method()
     def clear_cache(*args, **kwargs):
         return self.permissions.clear_cache()
+
+    # h4. shutdown
+    #
+    # this is only so the coverage test stuff can exit properly
+    #
+
+    @poms_method(p=[{"p": "is_superuser"}], rtype="text")
+    def shutdown(self, **kwargs):
+        logging.info("Shutting down...")
+        return sys.exit(0)
+
