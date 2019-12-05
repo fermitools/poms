@@ -1,7 +1,7 @@
 class nfiles:
     """
        This type, when filled out as nfiles(n) or nfiles_n for some integer
-       n, will slice the dataset into n parts using the stride/offset
+       n, will slice the dataset into parts of n files using the stride/offset
        expressions.  This does not work so well for dynamic datasets whose
        contents are changing, for them try "drainingn"
     """
