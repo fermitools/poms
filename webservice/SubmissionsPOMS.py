@@ -256,7 +256,11 @@ class SubmissionsPOMS:
             else:
                 self.checker.add_non_project_submission(s)
 
+        finish_up_submissions.sort()
+
         finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
+
+        finish_up_submissions.sort()
 
         for s in finish_up_submissions:
             res.append("marking submission %s located " % s)
@@ -280,7 +284,7 @@ class SubmissionsPOMS:
         if len(finish_up_submissions) == 0:
             futl = []
         else:
-            futl = ctx.db.query(Submission).filter(Submission.submission_id.in_(finish_up_submissions)).all()
+            futl = ctx.db.query(Submission).filter(Submission.submission_id.in_(finish_up_submissions)).order_by(Submission.submission_id).all()
 
         res.append(" got list... ")
 
