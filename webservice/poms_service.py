@@ -180,7 +180,7 @@ class PomsService:
     # h4. quick_search
     @poms_method()
     def quick_search(self, **kwargs):
-        return self.utilsPOMS.quick_search(cherrypy.HTTPRedirect, **kwargs)
+        return self.utilsPOMS.quick_search(**kwargs)
 
     # see &l=webservice/UtilsPOMS.py#quick_search&
 
