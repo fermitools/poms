@@ -207,8 +207,8 @@ class SubmissionsPOMS:
 
         self.checker = sam_project_checker(ctx)
 
-        finish_up_submissions = deque()
-        mark_located = deque()
+        finish_up_submissions = []
+        mark_located = []
 
         ctx.db.execute("SET SESSION lock_timeout = '450s';")
         ctx.db.execute("SET SESSION statement_timeout = '500s';")
@@ -737,7 +737,7 @@ class SubmissionsPOMS:
                 self.launch_jobs(
                     ctx,
                     cd.provides_campaign_stage_id,
-                    launch_ctx.username.experimenter_id,
+                    launch_user.experimenter_id,
                     test_launch=s.submission_params.get("test", False),
                 )
             else:
