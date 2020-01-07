@@ -119,11 +119,11 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
     prod_users = query_ferry(cert, ferry_url, exp, 'Production')
 
     for anal in anal_users:
-        users[anal.get('username')] = {'commonname': anal.get('commonname'), 'role': 'analysis'}
+        users[anal.get('username')] = {'commonname': anal.get('fullname'), 'role': 'analysis'}
     for prod in prod_users:
-        users[prod.get('username')] = {'commonname': prod.get('commonname'), 'role': 'production'}
+        users[prod.get('username')] = {'commonname': prod.get('fullname'), 'role': 'production'}
     for su in su_users:
-        users[su.get('username')] = {'commonname': su.get('commonname'), 'role': 'superuser'}
+        users[su.get('username')] = {'commonname': su.get('fullname'), 'role': 'superuser'}
 
     #logging.debug("ferry data: %s", str(users))
     return users
