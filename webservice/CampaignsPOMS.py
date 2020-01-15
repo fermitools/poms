@@ -323,7 +323,7 @@ class CampaignsPOMS:
             positions = None
             defaults = the_campaign.defaults or {}
             if defaults:
-                if "defaults" in defaults:
+                if "defaults" in defaults and "positions" in defaults:
                     positions = defaults["positions"]
                     defaults = defaults["defaults"]
 
