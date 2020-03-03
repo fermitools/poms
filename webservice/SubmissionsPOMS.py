@@ -294,9 +294,12 @@ class SubmissionsPOMS:
             logit.log(msg)
             res.append(msg)
 
-            # take care of any recovery or dependency launches
-            if not self.launch_recovery_if_needed(ctx, submission, None):
-                self.launch_dependents_if_needed(ctx, submission)
+            try:
+                # take care of any recovery or dependency launches
+                if not self.launch_recovery_if_needed(ctx, submission, None):
+                    self.launch_dependents_if_needed(ctx, submission)
+            except Exception as e:
+                logit.log("exception %s during finish_up_submissions %s" % (e,submission))
 
         return res
 
