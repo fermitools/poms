@@ -49,7 +49,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
     <table class="ui sortable celled table">
         <thead>
             <tr>
-                <th>Stage Name</th>
+                <th style="width:20%">Stage Name</th>
                 <th>Submission Id</th>
                 <th>Jobsub Id</th>
                 <th>Availble Output</th>
@@ -62,7 +62,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            <td>{{"&nbsp;"*(2*data.depth[rec.submission_id])}}{{rec.campaign_stage_name}}</td>
+            <td>{{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.darrow[rec.submission_id]|safe}}{{rec.campaign_stage_name}}</td>
             <td>{{rec.submission_id}}</td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>

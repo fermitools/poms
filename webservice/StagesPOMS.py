@@ -866,12 +866,13 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(SubmissionHistory.submission_id.desc())
+            .order_by(SubmissionHistory.submission_id)
         ).all()
 
         # figure dependency depth
         depends = {}
         depth = {}
+        darrow = {}
         sids = []
         slist = []
         for tup in tuples:
@@ -879,19 +880,21 @@ class StagesPOMS:
             pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
             slist.append(tup.Submission)
-            m = re.match(r"poms_depends_(.*)_[0-9]", pd)
+            m = re.match(r"poms_(depends|recover)_(.*)_[0-9]", pd)
             if m:
-                depends[sid] = int(m.group(1))
+                depends[sid] = int(m.group(2))
+                darrow[sid] = ("&#x21b3;" if m.group(1) == "depends" else "&#x21ba;")
             else:
                 depends[sid] = None
+                darrow[sid] = ""
             depth[sid] = 0
-        sids.reverse()
         sids.sort()
         for sid in sids:
             if depends[sid] and depends[sid] in depth:
                 depth[sid] = depth[depends[sid]] + 1
         data["depends"] = depends
         data["depth"] = depth
+        data["darrow"] = darrow
 
         (
             summary_list,
