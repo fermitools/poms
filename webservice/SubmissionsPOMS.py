@@ -16,7 +16,7 @@ import time
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
-from sqlalchemy import func, and_
+from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.orm import joinedload
 from .mail import Mail
 
@@ -558,6 +558,14 @@ class SubmissionsPOMS:
             .all()
         )
 
+        qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'";
+
+        dq = text(qt%("depends",submission_id)).columns(submission_id=Integer)
+        depend_ids =  [x[0] for x in ctx.db.execute(dq).fetchall()]
+
+        rq = text(qt%("recovery",submission_id)).columns(submission_id=Integer)
+        recovery_ids = [x[0] for x in ctx.db.execute(rq).fetchall()]
+
         rtypes = ctx.db.query(RecoveryType).all()
         sstatuses = ctx.db.query(SubmissionStatus).all()
         rmap = {}
@@ -616,7 +624,7 @@ class SubmissionsPOMS:
             ds = ds2
             submission_log_format = 1
 
-        return submission, history, dataset, rmap, smap, ds, submission_log_format
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids
 
     # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):

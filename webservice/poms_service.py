@@ -516,7 +516,7 @@ class PomsService:
     # h4. submission_details
     @poms_method(
         p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}],
-        u=["submission", "history", "dataset", "recoverymap", "statusmap", "ds", "submission_log_format"],
+        u=["submission", "history", "dataset", "recoverymap", "statusmap", "ds", "submission_log_format", "recovery_ids", "depend_ids"],
         t="submission_details.html",
         help_page="SubmissionDetailsHelp",
     )
