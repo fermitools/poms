@@ -563,7 +563,7 @@ class SubmissionsPOMS:
         dq = text(qt%("depends",submission_id)).columns(submission_id=Integer)
         depend_ids =  [x[0] for x in ctx.db.execute(dq).fetchall()]
 
-        rq = text(qt%("recovery",submission_id)).columns(submission_id=Integer)
+        rq = text(qt%("recover",submission_id)).columns(submission_id=Integer)
         recovery_ids = [x[0] for x in ctx.db.execute(rq).fetchall()]
 
         rtypes = ctx.db.query(RecoveryType).all()
