@@ -678,6 +678,10 @@ class SubmissionsPOMS:
         cs = s.campaign_stage_obj
         if s.submission_params:
             s.submission_params["force_located"] = True
+            # the above doesn't reliably get the ORM to update
+            # the database, so trying the apparently do-nothing
+            # line below...
+            s.submission_params = s.submission_params;
         else:
             s.submission_params = {"force_located": True}
         ctx.db.add(s)
