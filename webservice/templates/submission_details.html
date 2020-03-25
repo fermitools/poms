@@ -169,7 +169,7 @@ Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are y
 '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
 {%else%}
 '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
-{%endif}
+{%endif%}
 )">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
