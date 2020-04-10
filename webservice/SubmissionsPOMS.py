@@ -18,6 +18,8 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.attributes import flag_modified
+
 from .mail import Mail
 
 from . import logit
@@ -678,10 +680,10 @@ class SubmissionsPOMS:
         cs = s.campaign_stage_obj
         if s.submission_params:
             s.submission_params["force_located"] = True
-            # the above doesn't reliably get the ORM to update
-            # the database, so trying the apparently do-nothing
-            # line below...
-            s.submission_params = s.submission_params;
+            #
+            # https://stackoverflow.com/questions/42559434/updates-to-json-field-dont-persist-to-db
+            #
+            flag_modified(s,"submission_params")
         else:
             s.submission_params = {"force_located": True}
         ctx.db.add(s)
