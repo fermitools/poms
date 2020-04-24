@@ -301,7 +301,7 @@ class SubmissionsPOMS:
                 if not self.launch_recovery_if_needed(ctx, submission, None):
                     self.launch_dependents_if_needed(ctx, submission)
             except Exception as e:
-                logit.log("exception %s during finish_up_submissions %s" % (e,submission))
+                logit.logger.exception("exception %s during finish_up_submissions %s" % (e,submission)))
 
         return res
 
@@ -776,7 +776,6 @@ class SubmissionsPOMS:
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not ctx.config_get("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
-            # XXX should queue for later?!?
             return 1
 
         # if this is itself a recovery job, we go back to our parent
@@ -821,7 +820,6 @@ class SubmissionsPOMS:
                 ctx.role = s.campaign_stage_obj.creator_role
                 ctx.experiment = s.campaign_stage_obj.experiment
 
-                # XXX launch_ctx.username.username -- should be id...
                 res = self.launch_jobs(
                     ctx,
                     s.campaign_stage_snapshot_obj.campaign_stage_id,

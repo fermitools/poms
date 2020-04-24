@@ -154,7 +154,7 @@ class samweb_lite:
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
         # default to basic consumed status
-        info = "project_name %s minus consumed_status consumed" % projid
+        info = "project_name %s minus consumed_status co%%" % projid
         if res:
             info = res.text
 
@@ -214,7 +214,7 @@ class samweb_lite:
     def do_totals(self, info):
         if not info.get("processes", None):
             info["tot_jobs"] = info.get("process_counts", {}).get("completed", 0)
-            info["tot_consumed"] = info.get("file_counts", {}).get("consumed", 0)
+            info["tot_consumed"] = info.get("file_counts", {}).get("consumed", 0) + info.get("file_counts", {}).get("completed", 0)
             info["tot_failed"] = info.get("file_counts", {}).get("failed", 0)
             info["tot_delivered"] = info.get("file_counts", {}).get("delivered", 0)
             info["tot_unknown"] = info.get("file_counts", {}).get("unknown", 0)
