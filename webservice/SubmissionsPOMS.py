@@ -301,7 +301,7 @@ class SubmissionsPOMS:
                 if not self.launch_recovery_if_needed(ctx, submission, None):
                     self.launch_dependents_if_needed(ctx, submission)
             except Exception as e:
-                logit.logger.exception("exception %s during finish_up_submissions %s" % (e,submission)))
+                logit.logger.exception("exception %s during finish_up_submissions %s" % (e,submission))
 
         return res
 

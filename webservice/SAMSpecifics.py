@@ -38,6 +38,8 @@ class sam_specifics:
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
+            # work around consumed/completed status chagnes
+            recovery_dims = recovery_dims.replace("consumed_status consumed","consumed status 'co%'")
 
             # recovery dimensions can return an empty string if there is nothing to do.
             if not recovery_dims:
