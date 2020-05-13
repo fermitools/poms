@@ -512,19 +512,6 @@ class SubmissionsPOMS:
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
                     logit.log("found job log for %s!" % submission_id)
-                    if job_data.get("idle", None) and job_data["idle"].get(jobsub_job_id, None):
-                        self.update_submission_status(
-                            ctx, submission_id, status="Idle", when=job_data["idle"][submission.jobsub_job_id]
-                        )
-                        res.append("submission %s Idle at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
-                        logit.log("submission %s Idle at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
-
-                    if job_data.get("running", None) and job_data["running"].get(submission.jobsub_job_id, None):
-                        self.update_submission_status(
-                            ctx, submission_id, status="Running", when=job_data["running"][submission.jobsub_job_id]
-                        )
-                        res.append("submission %s Running at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
-                        logit.log("submission %s Running at" % (submission_id, job_data["idle"][submission.jobsub_job_id]))
 
                     if len(job_data["completed"]) == len(job_data["idle"]):
                         self.update_submission_status(ctx.db, submission_id, status="Completed")
