@@ -33,7 +33,7 @@ class sam_specifics:
             # not using ctx.sam.recovery_dimensions here becuase it
             # doesn't do what I want on ended incomplete projects, etc.
             # so not a good choice for our default option.
-            recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
+            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
         elif rtype.name == "proj_status":
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
@@ -83,7 +83,7 @@ class sam_specifics:
             recovery_dims += ")"
         else:
             # default to consumed status(?)
-            recovery_dims = "project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
+            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status consumed)" % (s.project, s.project)
 
         try:
             logit.log("counting files dims %s" % recovery_dims)

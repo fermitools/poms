@@ -72,6 +72,22 @@ a regular launch
 
 <br>
 
+{% if recovery_ids %}
+Recoveries launched: 
+{%for id in recovery_ids %}
+   <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
+{% endfor %}
+<br>
+{% endif %}
+
+{% if depend_ids %}
+Dependencies launched: 
+{%for id in depend_ids %}
+   <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
+{% endfor %}
+<br>
+{% endif %}
+
 {% if submission.jobsub_job_id %}
 {%set cluster=submission.jobsub_job_id[:submission.jobsub_job_id.find("@")] %}
 {%set schedd=submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:] %}
@@ -148,7 +164,13 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}')">Relaunch</button><br>
+Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+{%if submission.recovery_tasks_parent %}
+'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
+{%else%}
+'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
+{%endif%}
+)">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission
