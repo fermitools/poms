@@ -31,6 +31,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
         submission_id = submission.submission_id
         username = submission.experimenter_creator_obj.username
 
+    jobsub_job_id = jobsub_job_id.replace('@','.0@')
     files = fetcher.index(jobsub_job_id, experiment, role, True, user=username)
 
     if files is None:
@@ -38,14 +39,19 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
 
     log("DEBUG", "files: %s" % repr(files))
 
+    filename = None
     for row in files:
         if row[5].endswith(".log") and not row[5].endswith(".dagman.log"):
-            # first non dagman.log .log we see is either the xyz.log
-            # that goes with xyz.cmd, or the dag.nodes.log, which has
-            # the individual job.logs in it.
-            log("DEBUG", "checking file %s " % row[5])
-            lines = fetcher.contents(row[5], jobsub_job_id, experiment, role, user=username)
-            res = parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@") + 1 :], submission_id)
+            # pick the log we want, either the first non-dagman log
+            # or the nodes.log
+            if not filename:
+                filename = row[5]
+            if row[5].endswith("nodes.log"):
+                filename = row[5]
+                break
+    log("DEBUG", "checking file %s " % filename)
+    lines = fetcher.contents(filename, jobsub_job_id, experiment, role, user=username)
+    res = parse_condor_log(dbhandle, lines, jobsub_job_id[jobsub_job_id.find("@") + 1 :], submission_id)
 
     del fetcher
 
@@ -94,7 +100,7 @@ def parse_date(date_time_str):
 
 def parse_condor_log(dbhandle, lines, batchhost, submission_id):
     """ read a condor log looking for start/end info """
-    log("DEBUG", "entering parse_condor_log")
+    log("DEBUG", "entering parse_condor_log %d lines" % len(lines))
     in_termination = 0
     itimes = {}
     stimes = {}

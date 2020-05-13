@@ -11,9 +11,12 @@ config = get_config()
 cert = eval(config.get("elasticsearch_cert"))
 key = eval(config.get("elasticsearch_key"))
 
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+
 
 def test_condor_log_parser():
-    jobsub_job_id = "20901904@jobsub02.fnal.gov"
+    jobsub_job_id = "6583029@jobsub03.fnal.gov"
     experiment = "samdev"
     role = "Analysis"
     print("cert: %s, key %s" % (cert, key))
@@ -22,6 +25,6 @@ def test_condor_log_parser():
     if isinstance(res, dict):
         print(
             "n_idle %d, n_running %d, n_completed %d"
-            % (len(resget("idle", [])), len(res.get("running", [])), len(res.get("completed", [])))
+            % (len(res.get("idle", [])), len(res.get("running", [])), len(res.get("completed", [])))
         )
     # assert(False)
