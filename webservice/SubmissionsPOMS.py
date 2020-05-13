@@ -41,7 +41,7 @@ from .poms_model import (
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
-
+from .condor_log_parser import get_joblogs
 
 # from exceptions import KeyError
 
@@ -487,6 +487,9 @@ class SubmissionsPOMS:
         self.init_statuses(ctx)
         now = datetime.now(utc)
 
+        cert = ctx.config_get("elasticsearch_cert")
+        key = ctx.config_get("elasticsearch_key")
+
         newtups = (
             ctx.db.query(
                 SubmissionHistory.submission_id,
@@ -513,13 +516,15 @@ class SubmissionsPOMS:
             # out what happened
             if submission.jobsub_job_id:
                 logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(ctx.db, jobsub_data[0], cert, key, experiment, role)
+                job_data = get_joblogs(ctx.db, submission.jobsub_job_id, cert, key, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.cre
+ator_role)
+
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
                     logit.log("found job log for %s!" % submission_id)
 
                     if len(job_data["completed"]) == len(job_data["idle"]):
-                        self.update_submission_status(ctx.db, submission_id, status="Completed")
+                        self.update_submission_status(ctx, submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
 
