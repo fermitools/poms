@@ -516,8 +516,7 @@ class SubmissionsPOMS:
             # out what happened
             if submission.jobsub_job_id:
                 logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(ctx.db, submission.jobsub_job_id, cert, key, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.cre
-ator_role)
+                job_data = get_joblogs(ctx.db, submission.jobsub_job_id, cert, key, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.creator_role)
 
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
