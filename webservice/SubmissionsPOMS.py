@@ -283,14 +283,8 @@ class SubmissionsPOMS:
 
         res.append("finish_up_submissions: %s " % repr(finish_up_submissions))
 
-        if len(finish_up_submissions) == 0:
-            futl = []
-        else:
-            futl = ctx.db.query(Submission).filter(Submission.submission_id.in_(finish_up_submissions)).order_by(Submission.submission_id).all()
-
-        res.append(" got list... ")
-
-        for submission in futl:
+        for submission_id in finish_up_submissions:
+            submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
             # get logs for job for final cpu values, etc.
             msg = "Starting finish_up_submissions items for submission %s" % submission.submission_id
             logit.log(msg)
@@ -300,8 +294,11 @@ class SubmissionsPOMS:
                 # take care of any recovery or dependency launches
                 if not self.launch_recovery_if_needed(ctx, submission, None):
                     self.launch_dependents_if_needed(ctx, submission)
+                # finish up any pending changes before the next try
+                ctx.db.commit()
             except Exception as e:
                 logit.logger.exception("exception %s during finish_up_submissions %s" % (e,submission))
+                ctx.db.rollback()
 
         return res
 
@@ -364,7 +361,7 @@ class SubmissionsPOMS:
 
         if submission_id:
 
-            s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
+            s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
 
             if command_executed and command_executed != s.command_executed:
                 s.command_executed = command_executed
@@ -510,7 +507,7 @@ class SubmissionsPOMS:
         failed_sids = [x[0] for x in newtups]
 
         res = []
-        for submission in ctx.db.query(Submission).filter(Submission.submission_id.in_(failed_sids)).all():
+        for submission in ctx.db.query(Submission).filter(Submission.submission_id.in_(failed_sids)).order_by(Submission.submission_id).with_for_update(read=True).all():
             # sometimes jobs complete quickly, and we do not see them go by..
             # so if we got a jobsub_job_id, check for a job log to find
             # out what happened
@@ -668,7 +665,7 @@ ator_role)
         # for datasets, and setting it back here will make that goofy
 
         e = ctx.get_experimenter()
-        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
         cs = s.campaign_stage_obj
         if s.submission_params:
             s.submission_params["force_located"] = True
@@ -688,7 +685,6 @@ ator_role)
         s = (
             ctx.db.query(Submission)
             .filter(Submission.submission_id == submission_id)
-            .order_by(Submission.submission_id)
             .with_for_update(read=True)
             .first()
         )
@@ -764,6 +760,7 @@ ator_role)
         return 1
 
     # h3. launch_recovery_if_needed
+    #  Note: assumes submission is already locked
     def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         if not ctx.config_get("poms.launch_recovery_jobs", False):
