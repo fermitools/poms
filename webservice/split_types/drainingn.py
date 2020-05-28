@@ -1,4 +1,5 @@
 import poms.webservice.logit as logit
+import time
 
 
 class drainingn:
@@ -39,7 +40,7 @@ class drainingn:
 
     def next(self):
         res = self.peek()
-        newfullname = res.replace("slice", "full")
+        newfullname = res.replace("slice", "full") + "_%s"%int(time.time())
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
         if self.cs.cs_last_split:
             self.cs.cs_last_split

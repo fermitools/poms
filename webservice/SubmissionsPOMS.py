@@ -524,7 +524,7 @@ class SubmissionsPOMS:
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
 
-                    continue
+                continue
             res.append("failing launch for %s" % submission.submission_id)
             logit.log("failing launch for %s" % submission.submission_id)
             self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
