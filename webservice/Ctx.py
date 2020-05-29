@@ -1,6 +1,7 @@
 import cherrypy
 from .get_user import get_user
 from .poms_model import Experimenter
+from sqlalchemy import text
 
 
 # h2. Ctx "Context" class
@@ -38,6 +39,8 @@ class Ctx:
         pathv = cherrypy.request.path_info.split("/")
 
         self.db = db if db else cherrypy.request.db
+        for pid in self.db.execute(text("select pg_backend_pid();")):
+            self.backend_pid = pid
         self.config_get = config_get if config_get else cherrypy.config.get
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
