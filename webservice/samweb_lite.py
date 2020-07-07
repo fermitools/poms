@@ -17,6 +17,8 @@ from poms.webservice.utc import utc
 from poms.webservice.poms_model import FaultyRequest
 import poms.webservice.logit as logit
 
+# shut up annoying InsecureRequestWarnings
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning) 
 
 def safe_get(sess, url, *args, **kwargs):
     # TODO: Need more refactoring to optimize
@@ -25,9 +27,9 @@ def safe_get(sess, url, *args, **kwargs):
 
     if dbh is None:
         try:
-            sess.mount("http://", HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
+            sess.mount("https://", HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
             # Timeout may need adjustment!
-            reply = sess.get(url, timeout=5.0, *args, **kwargs)
+            reply = sess.get(url, timeout=5.0, verify=False, *args, **kwargs)
             if reply.status_code != 200:
                 logit.log("ERROR", "Error: got status %d for url %s" % (reply.status_code, url))
                 return None  # No need to return the response
@@ -53,9 +55,9 @@ def safe_get(sess, url, *args, **kwargs):
             return None
         # It happened more than 10 minutes ago, let's try it again...
     try:
-        sess.mount("http://", HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
+        sess.mount("https://", HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         # Timeout may need adjustment!
-        reply = sess.get(url, timeout=5.0, *args, **kwargs)
+        reply = sess.get(url, timeout=5.0, verify=False, *args, **kwargs)
         if reply.status_code != 200 and reply.status_code != 404:
             logit.log("ERROR", "Error: got status %d for url %s" % (reply.status_code, url))
             # Process error, store faulty query in DB
@@ -291,7 +293,7 @@ class samweb_lite:
     def get_metadata(self, experiment, filename):
         base = "https://samweb.fnal.gov:8483"
         url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (base, experiment, filename)
-        res = requests.get(url)
+        res = requests.get(url, verify=False)
         try:
             return res.json()
         except BaseException:
@@ -302,7 +304,7 @@ class samweb_lite:
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
         dims = self.cleanup_dims(dims)
-        res = requests.get(url, params={"dims": dims, "format": "json"})
+        res = requests.get(url, params={"dims": dims, "format": "json"}, verify=False)
         # print( "status code: %d url: %s" % (res.status_code, res.url))
         # print( "got output: %s" % res.text)
         if res.status_code >= 200 and res.status_code < 300:
@@ -352,11 +354,11 @@ class samweb_lite:
     def count_files_list(self, experiment, dims_list):
         def getit(req, url):
             retries = 2
-            r = req.get(url)
+            r = req.get(url, verify=False)
             while r and r.status_code >= 500 and retries > 0:
                 time.sleep(5)
                 retries = retries - 1
-                r = req.get(url)
+                r = req.get(url, verify=False)
             if r:
                 r.close()
             return r
@@ -383,7 +385,8 @@ class samweb_lite:
             else:
                 try:
                     infos.append(int(r.text))
-                except BaseException:
+                except BaseException as b:
+                    logit.log("Exception %s converting count_files response to int: %s" % (b,r.text))
                     infos.append(-1)
         return infos
 

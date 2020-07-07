@@ -138,7 +138,7 @@ class FilesStatus:
                     ],
                     [
                         s.project,
-                        "http://samweb.fnal.gov:8480/station_monitor/%s/stations/%s/projects/%s"
+                        "https://samweb.fnal.gov:8483/station_monitor/%s/stations/%s/projects/%s"
                         % (cs.experiment, cs.experiment, s.project),
                     ],
                     [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
