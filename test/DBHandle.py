@@ -18,7 +18,7 @@ class DBHandle:
     def __init__(self):
         """
         ###HEAD
-            cf = ConfigParser.SafeConfigParser()
+            cf = ConfigParser.ConfigParser()
             cf.read("%s/webservice/poms.ini" % os.environ['POMS_DIR'])
             db =cf.get("Databases","db").strip('"')
             dbuser = cf.get("Databases","dbuser").strip('"')
@@ -26,7 +26,7 @@ class DBHandle:
             dbport = cf.get("Databases","dbport").strip('"')
         =======
         """
-        cf = configparser.SafeConfigParser()
+        cf = configparser.ConfigParser()
         cf.read("%s/webservice/poms.ini" % os.environ["POMS_DIR"])
         db = cf.get("Databases", "db").strip('"')
         dbuser = cf.get("Databases", "dbuser").strip('"')

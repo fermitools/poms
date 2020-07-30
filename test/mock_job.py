@@ -1,6 +1,6 @@
 import mock_poms_service
 import DBHandle
-from webservice.samweb_lite import samweb_lite
+from poms.webservice.samweb_lite import samweb_lite
 import time
 import os
 import os.path

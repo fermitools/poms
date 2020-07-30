@@ -26,7 +26,7 @@ def beverbose():
 
 class fakeconfig:
     def __init__(self, *args, **kwargs):
-        self.cf = configparser.SafeConfigParser(*args, **kwargs)
+        self.cf = configparser.ConfigParser(*args, **kwargs)
 
     def read_file(self, file):
         return self.cf.read_file(file)

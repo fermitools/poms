@@ -21,7 +21,7 @@ import utils
 from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import logging
-from webservice.jobsub_fetcher import jobsub_fetcher
+from poms.webservice.jobsub_fetcher import jobsub_fetcher
 
 logger = logging.getLogger("cherrypy.error")
 # when I get one...

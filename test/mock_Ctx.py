@@ -2,7 +2,7 @@
    mocked up version of Ctx class from webservice
    used in testing
 """
-from webservice.poms_model import Experimenter
+from poms.webservice.poms_model import Experimenter
 import DBHandle
 import utils
 
