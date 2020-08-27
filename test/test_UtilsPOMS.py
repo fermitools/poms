@@ -62,8 +62,8 @@ def test_handle_dates_3(utils_poms):
 
     assert tmax - tmin == datetime.timedelta(days=7)
     assert now - tmax < datetime.timedelta(seconds=1)
-    # print "tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange)
-    # print "now-tmax='{}'".format(now - tmax)
+    # print("tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange))
+    # print("now-tmax='{}'".format(now - tmax))
 
 
 def test_handle_dates_4(utils_poms):
@@ -74,8 +74,8 @@ def test_handle_dates_4(utils_poms):
     (tmin, tmax, tmin_s, tmax_s, nextlink, prevlink, trange, tdays) = utils_poms.handle_dates(ctx, baseurl="foo/")
     assert tmax - tmin == datetime.timedelta(days=7)
     assert str(now - tmax).startswith("3 days")
-    # print "tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange)
-    # print "now-tmax='{}'".format(now - tmax)
+    # print("tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange))
+    # print("now-tmax='{}'".format(now - tmax))
     # assert 0
 
 
@@ -89,8 +89,8 @@ def test_handle_dates_5(utils_poms):
     assert trange.find("4.0 days") >= 0
     assert tmax - tmin == datetime.timedelta(days=4)
     assert str(now - tmax).startswith("6 days")
-    # print "tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange)
-    # print "now-tmax='{}'".format(now - tmax)
+    # print("tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange))
+    # print("now-tmax='{}'".format(now - tmax))
     # assert 0
 
 
@@ -108,6 +108,6 @@ def test_handle_dates_picker(utils_poms):
     print(prevlink)
     assert trange.find("2.0 days") >= 0
     assert tmax - tmin == datetime.timedelta(days=2)
-    # print "tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange)
-    # print "now-tmax='{}'".format(now - tmax)
+    # print("tmin='{}', tmax='{}', tmin_s='{}', tmax_s='{}', trange='{}'".format(tmin, tmax, tmin_s, tmax_s, trange))
+    # print("now-tmax='{}'".format(now - tmax))
     # assert 0

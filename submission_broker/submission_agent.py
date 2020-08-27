@@ -311,13 +311,16 @@ class Agent:
 
             self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry["id"]
 
-            ntot = int(entry["running"]) + int(entry["idle"]) + int(entry["held"])
+            ntot = (int(entry["running"]) + int(entry["idle"]) + 
+                    int(entry["held"]) + int(entry["completed"]) + 
+                    int(entry["failed"])
+
             if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
                 self.known["maxjobs"][entry["pomsTaskID"]] = ntot
             else:
                 ntot = self.known["maxjobs"][entry["pomsTaskID"]]
 
-            ncomp = ntot - (entry["running"] + entry["held"] + entry["idle"])
+            ncomp = int(entry["completed"]) + int(entry["failed"])
 
             if ntot > 0:
                 report_pct_complete = ncomp * 100.0 / ntot

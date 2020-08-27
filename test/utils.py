@@ -148,7 +148,7 @@ def tearDownPoms(proc):
     # try:
     #     proc = subprocess.Popen("kill " + pid, shell=True)
     # except OSError as e:
-    #     print >>sys.stderr, "Excecution failed:", e
+    #     print( "Excecution failed:", e, file=sys.stderr)
 
 
 def setup_ifdhc():

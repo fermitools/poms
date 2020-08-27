@@ -1131,7 +1131,7 @@ class SubmissionsPOMS:
             raise AssertionError(output)
 
         if ctx.role == "analysis" and not (
-            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud045.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov")
+            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud096.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov")
         ):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
