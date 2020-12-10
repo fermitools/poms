@@ -496,14 +496,15 @@ def job_type_edit(output_file_patterns, launch_script, def_parameter=None, pc_us
                              action=None, name=None, experiment=None, recoveries=None, test_client=False, role=None, configfile=None):
     # You can not modify the recovery_type from the poms_client (future feature)
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
-    method = "campaign_definition_edit"
+    #method = "campaign_definition_edit"  -- should have renamed this, but didnt?
+    method = "job_type_edit"
     ae_definition_name = name
     ae_definition_recovery = recoveries
     ae_output_file_patterns = output_file_patterns
     ae_launch_script = launch_script
     if launch_script is not None:
         ae_launch_script = ""
-        for arg_setup in launch_script:
+        for arg_setup in launch_script.split():
             ae_launch_script = ae_launch_script + str(arg_setup) + " "
         logging.info("The ae_launch_setup is: " + str(ae_launch_script))
     else:
