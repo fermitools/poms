@@ -390,6 +390,27 @@ def login_setup_rm(experiment, name, test=False, role=None, configfile=None):
         configfile=configfile)
     return data, status
 
+def login_setup_edit(launch_host, launch_account, launch_setup, pc_username=None,
+                             action=None, name=None, experiment=None, test_client=False, role=None, configfile=None):
+    logging.debug("in get launch_jobs test_client = " + repr(test_client))
+    method = "login_setup_edit"
+    ae_launch_host = launch_host
+    ae_launch_account = launch_account
+    ae_launch_setup = launch_setup
+    ae_launch_name = name
+    data, status_code = make_poms_call(pcl_call=1,
+                                       method=method,
+                                       pc_username=pc_username,
+                                       action=action,
+                                       ae_launch_name=ae_launch_name,
+                                       experiment=experiment,
+                                       role=role,
+                                       ae_launch_host=ae_launch_host,
+                                       ae_launch_account=ae_launch_account,
+                                       ae_launch_setup=ae_launch_setup,
+                                       test_client=test_client,
+                                       configfile=configfile)
+    return "status_code", status_code
 
 def launch_template_edit(action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None, experiment=None, pc_username=None, test_client=False, role=None, configfile=None):
     logging.debug("in get launch_jobs test_client = " + repr(test_client))
