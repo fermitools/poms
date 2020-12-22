@@ -724,7 +724,7 @@ class SubmissionsPOMS:
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
 
-        lasthist = self.get_last_history(ctx, s.submission_id):
+        lasthist = self.get_last_history(ctx, s.submission_id)
         if lasthist.status != self.status_Located:
             logit.log("Not launching dependencies because submission is not marked Located")
             return
@@ -781,8 +781,8 @@ class SubmissionsPOMS:
             logit.log("recovery launches disabled")
             return 1
 
-        lasthist = self.get_last_history(ctx, s.submission_id):
-        if lasthist.status != self.status_Located && not recovery_typeoverride:
+        lasthist = self.get_last_history(ctx, s.submission_id)
+        if lasthist.status != self.status_Located and not recovery_typeoverride:
             logit.log("Not launching recovery because submission is not marked Located")
             return
 
