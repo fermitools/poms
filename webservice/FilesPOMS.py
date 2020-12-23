@@ -48,6 +48,7 @@ class FilesStatus:
 
         # inhale all the campaign related task info for the time window
         # in one fell swoop
+        clear_campaign_column = False
 
         q = (
             ctx.db.query(Submission)  #
@@ -58,6 +59,7 @@ class FilesStatus:
         if campaign_stage_id not in ["", None, "None"]:
             q = q.filter(Submission.campaign_stage_id == campaign_stage_id)
 
+            clear_campaign_column = True
         elif campaign_id not in ["", None, "None"]:
             q = q.join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id).filter(
                 CampaignStage.campaign_id == campaign_id
@@ -112,6 +114,9 @@ class FilesStatus:
             "pending",
         ]
 
+        if clear_campaign_column:
+           columns = columns[1:]
+
         listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
         datarows = deque()
         i = -1
@@ -126,8 +131,7 @@ class FilesStatus:
             task_jobsub_job_id = s.jobsub_job_id
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "s%s" % s.submission_id
-            datarows.append(
-                [
+            row = [
                     [
                         s.campaign_stage_obj.name,
                         "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
@@ -164,7 +168,11 @@ class FilesStatus:
                     [some_kids_list[i], listfiles % some_kids_needed[i]],
                     [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
                 ]
-            )
+            
+            if clear_campaign_column:
+               row = row[1:]
+            datarows.append( row )
+
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     # h3. show_dimension_files
