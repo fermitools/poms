@@ -1212,7 +1212,7 @@ class SubmissionsPOMS:
         if dataset_override:
             dataset = dataset_override
         else:
-            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs)
+            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch)
 
         group = exp
         if group == "samdev":
