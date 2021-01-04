@@ -1770,7 +1770,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     res.push('</h3>');
     for (const k of klist) {
         // k = klist[i];
-        const ro = (k.includes("param") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
+        const ro = (k.includes("param") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || k == "test_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
         if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
             continue;
         if (vdict[k] == null) {
@@ -1806,7 +1806,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if (k == 'dataset_or_split_data') {
             res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
-        if (k == 'cs_split_type') {
+        if (k == 'cs_split_type' or k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'recoveries') {
@@ -1832,6 +1832,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     const hval = mwm_utils.hashCode(JSON.stringify(mwm_utils.formFields(this.popup_parent)));
     $(`form[id='fields_${name}']`).attr('data-hash', hval);
     split_type_picker.fix_custom_edit(this.get_input_tag('cs_split_type'))
+    split_type_picker.fix_custom_edit(this.get_input_tag('test_split_type'))
 }
 
 /*

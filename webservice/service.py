@@ -57,7 +57,14 @@ class SAEnginePlugin(plugins.SimplePlugin):
         dbhost = section["dbhost"]
         dbport = section["dbport"]
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
-        self.sa_engine = create_engine(db_path, echo=False, echo_pool=False, pool_size=40)
+        self.sa_engine = create_engine(
+            db_path,
+            echo=False,
+            echo_pool=False,
+            pool_size=40,       # 40 connections total in pool
+            pool_recycle=600,   # recycle after 10 minutes
+            pool_pre_ping=True  # check connections before using
+            )
         atexit.register(self.destroy)
 
     def stop(self):

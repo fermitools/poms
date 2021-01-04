@@ -161,11 +161,18 @@ class SubmissionsPOMS:
     # h3. get_submissions_with_status
     def get_submissions_with_status(self, ctx, status_id, recheck_sids=None):
         self.init_statuses(ctx)
+        sq = (
+            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            .filter(SubmissionHistory.submission_id == submission_id)
+            .subquery()
+        )
+
         query = (
-            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.status_id).label("maxstat"))
+            ctx.db.query(SubmissionHistory.submission_id,SubmissionHistory.status_id)
+            .filter(SubmissionHistory.created == sq.c.latest)
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
-            .having(func.max(SubmissionHistory.status_id) == status_id)
+            .having(SubmissionHistory.status_id == status_id)
         )
         if recheck_sids:
             query = query.filter(SubmissionHistory.submission_id.in_(recheck_sids))
@@ -400,6 +407,27 @@ class SubmissionsPOMS:
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         ctx.db.commit()
         return s.submission_id
+    
+    # h3. get_last_history 
+    #
+    #   query to find curent status of a submission; factored out
+    #   because its easy to get wrong...
+    #
+
+    def get_last_history(self, ctx, submission_id):
+        # get our latest history...
+        sq = (
+            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            .filter(SubmissionHistory.submission_id == submission_id)
+            .subquery()
+        )
+
+        lasthist = (
+            ctx.db.query(SubmissionHistory)
+            .filter(SubmissionHistory.created == sq.c.latest)
+            .filter(SubmissionHistory.submission_id == submission_id)
+            .first()
+        )
 
     # h3. update_submission_status
     def update_submission_status(self, ctx, submission_id, status, when=None):
@@ -426,19 +454,7 @@ class SubmissionsPOMS:
             # not a known status, just bail
             return
 
-        # get our latest history...
-        sq = (
-            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
-            .filter(SubmissionHistory.submission_id == submission_id)
-            .subquery()
-        )
-
-        lasthist = (
-            ctx.db.query(SubmissionHistory)
-            .filter(SubmissionHistory.created == sq.c.latest)
-            .filter(SubmissionHistory.submission_id == submission_id)
-            .first()
-        )
+        lasthist = self.get_last_history(ctx,submission_id)
 
         logit.log(
             "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
@@ -714,6 +730,12 @@ class SubmissionsPOMS:
 
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
+
+        lasthist = self.get_last_history(ctx, s.submission_id)
+        if lasthist.status != self.status_Located:
+            logit.log("Not launching dependencies because submission is not marked Located")
+            return
+
         if s.parent_obj:
             s = s.parent_obj
 
@@ -765,6 +787,11 @@ class SubmissionsPOMS:
         if not ctx.config_get("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
             return 1
+
+        lasthist = self.get_last_history(ctx, s.submission_id)
+        if lasthist.status != self.status_Located and not recovery_typeoverride:
+            logit.log("Not launching recovery because submission is not marked Located")
+            return
 
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
@@ -1185,7 +1212,7 @@ class SubmissionsPOMS:
         if dataset_override:
             dataset = dataset_override
         else:
-            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs)
+            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch)
 
         group = exp
         if group == "samdev":

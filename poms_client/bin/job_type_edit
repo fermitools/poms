@@ -38,7 +38,7 @@ logging.debug( 'def_parameter='+ str(args.def_parameter))
 logging.debug( 'test_client='+ str(args.test_client))
 
 try:
-    update_session_role(args.poms_role, test_client = options.test)
+    update_session_role(args.poms_role, test_client=args.test_client)
     #Calling the poms_client.campaign_definition_edit'
     if args.action in ['add','delete','edit']:
         res = campaign_definition_edit(pc_username=args.user,

@@ -77,6 +77,7 @@ class CampaignStage(Base):
     login_setup_id = Column(ForeignKey("login_setups.login_setup_id"), nullable=False)
     param_overrides = Column(JSON)
     test_param_overrides = Column(JSON)
+    test_split_type = Column(Text, nullable=False, sever_default=text(""))
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     completion_pct = Column(Integer, nullable=False, server_default="95")
     hold_experimenter_id = Column(ForeignKey("experimenters.experimenter_id"), nullable=True)

@@ -131,7 +131,7 @@ class MiscPOMS:
                 if action == "edit":
                     ae_launch_id = (
                         ctx.db.query(LoginSetup)
-                        .filter(LoginSetup.experiment == experiment)
+                        .filter(LoginSetup.experiment == ctx.experiment)
                         .filter(LoginSetup.name == name)
                         .first()
                     ).login_setup_id

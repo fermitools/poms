@@ -941,35 +941,39 @@ class StagesPOMS:
         return data
 
     # h3. get_dataset_for
-    def get_dataset_for(self, ctx, camp):
+    def get_dataset_for(self, ctx, camp, test_launch):
         """
             use the split_type modules to get the next dataset for
             launch for a given campaign
         """
+        if test_launch and camp.test_split_type:
+           split_type = camp.test_split_type
+        else:
+           split_type = camp.cs_split_type 
 
-        if not camp.cs_split_type or camp.cs_split_type == "None" or camp.cs_split_type == "none":
+        if not split_type or split_type == "None" or split_type == "none":
             return camp.dataset
 
         # clean up split_type -- de-white-space it
-        camp.cs_split_type = camp.cs_split_type.replace(" ", "")
-        camp.cs_split_type = camp.cs_split_type.replace("\n", "")
+        split_type = split_type.replace(" ", "")
+        split_type = split_type.replace("\n", "")
 
         #
         # the module name is the first part of the string, i.e.
         # fred_by_whatever(xxx) -> 'fred'
         # new_localtime -> 'new'
         #
-        p1 = camp.cs_split_type.find("(")
-        p2 = camp.cs_split_type.find("_")
+        p1 = split_type.find("(")
+        p2 = split_type.find("_")
         if p1 < p2 and p1 > 0:
             pass
         elif p2 < p1 and p2 > 0:
             p1 = p2
 
         if p1 < 0:
-            p1 = len(camp.cs_split_type)
+            p1 = len(split_type)
 
-        modname = camp.cs_split_type[0:p1]
+        modname = split_type[0:p1]
 
         mod = importlib.import_module("poms.webservice.split_types." + modname)
         split_class = getattr(mod, modname)
