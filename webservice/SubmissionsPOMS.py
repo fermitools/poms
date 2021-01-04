@@ -279,6 +279,10 @@ class SubmissionsPOMS:
         # now commit having marked things located, to release database
         # locks.
         #
+        if ctx.experiment == 'borked':
+            # testing hook 
+            logit.log("faking database error")
+            ctx.db.rollback()
         ctx.db.commit()
 
         #
