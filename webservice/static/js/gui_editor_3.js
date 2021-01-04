@@ -1806,7 +1806,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if (k == 'dataset_or_split_data') {
             res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
-        if (k == 'cs_split_type' or k == 'test_split_type' ) {
+        if (k == 'cs_split_type' || k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'recoveries') {
