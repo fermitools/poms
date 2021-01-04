@@ -313,7 +313,7 @@ class Agent:
 
             ntot = (int(entry["running"]) + int(entry["idle"]) + 
                     int(entry["held"]) + int(entry["completed"]) + 
-                    int(entry["failed"])
+                    int(entry["failed"]))
 
             if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
                 self.known["maxjobs"][entry["pomsTaskID"]] = ntot
