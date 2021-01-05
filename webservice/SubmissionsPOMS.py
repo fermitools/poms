@@ -163,7 +163,6 @@ class SubmissionsPOMS:
         self.init_statuses(ctx)
         sq = (
             ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
-            .filter(SubmissionHistory.submission_id == submission_id)
             .subquery()
         )
 
@@ -171,7 +170,7 @@ class SubmissionsPOMS:
             ctx.db.query(SubmissionHistory.submission_id,SubmissionHistory.status_id)
             .filter(SubmissionHistory.created == sq.c.latest)
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
-            .group_by(SubmissionHistory.submission_id)
+            .group_by(SubmissionHistory.submission_id, SubmissionHistory.status_id)
             .having(SubmissionHistory.status_id == status_id)
         )
         if recheck_sids:
@@ -282,6 +281,7 @@ class SubmissionsPOMS:
         if ctx.experiment == 'borked':
             # testing hook 
             logit.log("faking database error")
+            res.append("faking database error")
             ctx.db.rollback()
         ctx.db.commit()
 
@@ -462,7 +462,10 @@ class SubmissionsPOMS:
 
         logit.log(
             "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
-            % (submission_id, status_id, lasthist.status_id, lasthist.created)
+            % (submission_id, status_id, 
+               lasthist.status_id if lasthist else "", 
+               lasthist.created if lasthist else ""
+              )
         )
 
         # don't roll back Located, Failed, or Removed (final states)
