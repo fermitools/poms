@@ -43,6 +43,7 @@ from .poms_model import (
     SubmissionStatus,
 )
 from .utc import utc
+from .SAMSpecifics import sam_specifics
 
 
 class CampaignsPOMS:
@@ -144,6 +145,108 @@ class CampaignsPOMS:
         data = ctx.db.query(CampaignStage.campaign_stage_id, CampaignStage.name, CampaignStage.experiment).all()
         return [r._asdict() for r in data]
 
+    def get_leading_stages(self, ctx, campaign_id):
+        # subquery to count dependencies
+        q = (
+            text(
+                "select campaign_stage_id from campaign_stages "
+                " where campaign_id = :campaign_id "
+                "   and 0 = (select count(campaign_dep_id) "
+                "  from campaign_dependencies "
+                " where provides_campaign_stage_id = campaign_stage_id)"
+            )
+            .bindparams(campaign_id=campaign_id)
+            .columns(campaign_stage_id=Integer)
+        )
+
+        stages = ctx.db.execute(q).fetchall()
+
+        return stages
+
+    def campaign_overview(self, ctx, campaign_id):
+
+        stages = self.get_leading_stages(ctx, campaign_id)
+        datasets = ctx.db.query( CampaignStage.dataset ).filter(CampaignStage.campaign_stage_id._in(stages)).all()
+        exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
+        delivered = sam_specifics(ctx).count_files_in_datasets(datasets)
+
+        
+        #
+        # from this point on its just dependencies, needs info about files etc. added
+        #
+
+        campaign = (
+            ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
+        )
+
+        if not campaign:
+            raise KeyError("Cannot find Campaign with name %s" % campaign_name)
+
+        csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
+
+        csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
+
+        c_ids = deque()
+        for c_s in csl:
+            c_ids.append(c_s.campaign_stage_id)
+
+        logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
+
+        res = []
+        res.append('<div id="dependencies" style="font-size: larger;"></div>')
+        res.append('<script type="text/javascript">')
+
+        res.append('var container = document.getElementById("dependencies");')
+        res.append("var fss = window.getComputedStyle(container, null).getPropertyValue('font-size');")
+        res.append("var fs = parseFloat(fss);")
+        res.append("var nodes = new vis.DataSet([")
+
+        for c_s in csl:
+            if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
+                pos = campaign.defaults["positions"][c_s.name]
+                res.append(
+                    '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
+                    % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"])
+                )
+            else:
+                res.append('  {id: %d, label: "%s", font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name))
+        res.append("]);")
+
+        res.append("var edges = new vis.DataSet([")
+
+        c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+
+        for c_d in c_dl:
+            res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
+        res.append("]);")
+        res.append("var data = {nodes: nodes, edges: edges};")
+        res.append("var options = {")
+        res.append("  manipulation: { enabled: false },")
+        res.append("  height: '%dpx'" % (200 + 50 * len(c_ids))),
+        res.append("  interaction: { zoomView: false },")
+        res.append("  layout: {")
+        res.append("      hierarchical: {")
+        res.append("         direction: 'LR',")
+        res.append("         sortMethod: 'directed'")
+        res.append("      }")
+        res.append("   }")
+        res.append("};")
+        res.append("var network = new vis.Network(container, data, options);")
+        res.append("var dests={")
+        for c_s in csl:
+            res.append(
+                "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
+                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+            )
+        res.append("};")
+        res.append(
+            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
+        )
+        res.append("</script>")
+        return "\n".join(res)
+
+
     # h3. launch_campaign
     def launch_campaign(
         self,
@@ -162,20 +265,7 @@ class CampaignsPOMS:
             launch_jobs(campaign_stage_id=...)
         """
 
-        # subquery to count dependencies
-        q = (
-            text(
-                "select campaign_stage_id from campaign_stages "
-                " where campaign_id = :campaign_id "
-                "   and 0 = (select count(campaign_dep_id) "
-                "  from campaign_dependencies "
-                " where provides_campaign_stage_id = campaign_stage_id)"
-            )
-            .bindparams(campaign_id=campaign_id)
-            .columns(campaign_stage_id=Integer)
-        )
-
-        stages = ctx.db.execute(q).fetchall()
+        stages = self.get_leading_stages(ctx, campaign_id)
 
         logit.log("launch_campaign: got stages %s" % repr(stages))
 

@@ -268,6 +268,12 @@ class sam_specifics:
             all_kids_decl_list,
         )
 
+    def count_files_in_datasets(self, exp,  datasets):
+        cdl = []
+        for d in datasets:
+            cdl.append("defname:%s" % d)
+        return self.ctx.sam.count_files(exp, " or ".join(cdl),  dbhandle=self.ctx.db)
+        
 
 class sam_project_checker:
     def __init__(self, ctx):
