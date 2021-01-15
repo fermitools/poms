@@ -15,7 +15,7 @@ import os
 import subprocess
 import time
 import traceback
-from collections import OrderedDict, deque
+from collections import OrderedDict, deque, defaultdict
 from datetime import datetime, timedelta
 import re
 
@@ -168,11 +168,27 @@ class CampaignsPOMS:
         stages = self.get_leading_stages(ctx, campaign_id)
         datasets = ctx.db.query( CampaignStage.dataset ).filter(CampaignStage.campaign_stage_id._in(stages)).all()
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
-        delivered = sam_specifics(ctx).count_files_in_datasets(datasets)
+        total = sam_specifics(ctx).count_files_in_datasets(datasets)
 
-        
+        sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
+        spm = defaultdict(list)
+        for id,proj in sp_list:
+            spm[id].append(proj)
+        #---------------
+        # -- factor into SAMSpecifics...
+        ql = []
+        idl = []
+        for id in spm:
+            idl.append(id)
+            ql.append( "project_name in '%s'" % "','".join(spm[id]))
+        cl = ctx.sam.count_files_list(exp, ql)
+        cm = {}
+        for i in range(length(cl)):
+            cm[idl[i]] = ql[i]
+
+        #---------------
+ 
         #
-        # from this point on its just dependencies, needs info about files etc. added
         #
 
         campaign = (
@@ -201,6 +217,15 @@ class CampaignsPOMS:
         res.append("var fs = parseFloat(fss);")
         res.append("var nodes = new vis.DataSet([")
 
+        # put a dataset object (id==0) left of the lead campaign stage
+
+        pos = campaign.defaults["positions"][stages[0]]
+
+        res.append(
+            '  {id: %d, label: "%s\n%s", x: %d, y: %d, font: {size: fs}},'
+            % (0, dataset , total , pos["x"] - 100, pos["y"] )
+        )
+
         for c_s in csl:
             if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
@@ -216,8 +241,12 @@ class CampaignsPOMS:
 
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
+        # first an edge from the dataset to the first stage
+        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (0, stages[0], cm[stages[0]]))
+
+        # then all the actual dependencies
         for c_d in c_dl:
-            res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, cm[c_d.provides_campaign_stage_id]))
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
@@ -234,6 +263,7 @@ class CampaignsPOMS:
         res.append("};")
         res.append("var network = new vis.Network(container, data, options);")
         res.append("var dests={")
+        res.append("%s: '', " % 0)
         for c_s in csl:
             res.append(
                 "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
