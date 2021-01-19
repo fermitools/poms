@@ -284,6 +284,15 @@ class PomsService:
     def campaign_deps(self, **kwargs):
         return {"svgdata": self.campaignsPOMS.campaign_deps_svg(**kwargs)}
 
+    # h4. campaign_overview_
+
+    @poms_method(
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_deps.html", help_page="CampaignDepsHelp"
+    )
+
+    def campaign_overview(self, **kwargs):
+        return {"svgdata": self.campaignsPOMS.campaign_overview(**kwargs)}
+
     # h4. job_type_rm
     @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
