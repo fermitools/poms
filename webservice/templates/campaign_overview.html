@@ -22,6 +22,38 @@
 {%endblock%}
 
 {%block content %}
+	   <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
+	    <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+		<button type="button">
+		<i class="chart line icon"></i>
+		</button>
+	    </a>
+	    <a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+		<button type="button">
+		<i class="clipboard outline icon"></i>
+		</button>
+	    </a>
+	    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
+		<i class="chart rocket icon blue"></i>
+	    </button>
+	    <a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">
+		<button type="button">
+		    <i class="sitemap icon"></i>
+		</button>
+	    </a>
+	    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}">
+		<button class="button">
+		    <i class="edit icon blue"></i>
+		</button>
+	    </a>
+	    <button class="button" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');">
+		<i class="trash blue icon"></i>
+	    </button>
+	Tags:
+	    {% for tag in s.tags %}
+		{{tag.tag_name}}
+	    {% endfor %}
+      <hrule>
 
       {{svgdata|safe}}
 

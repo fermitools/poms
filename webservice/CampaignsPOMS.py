@@ -160,15 +160,20 @@ class CampaignsPOMS:
         )
 
         stages = ctx.db.execute(q).fetchall()
-
+        stages = [x[0] for x in stages]
         return stages
 
     def campaign_overview(self, ctx, campaign_id):
 
         stages = self.get_leading_stages(ctx, campaign_id)
-        datasets = ctx.db.query( CampaignStage.dataset ).filter(CampaignStage.campaign_stage_id._in(stages)).all()
+        
+        logit.log(logit.INFO, "leading stages: %s" % repr(stages))
+
+        datasets = ctx.db.query( CampaignStage.dataset ).filter(CampaignStage.campaign_stage_id.in_(stages)).all()
+        datasets = [x[0] for x in datasets]
+
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
-        total = sam_specifics(ctx).count_files_in_datasets(datasets)
+        total = sam_specifics(ctx).count_files_in_datasets(exp, datasets)
 
         sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
         spm = defaultdict(list)
@@ -179,11 +184,15 @@ class CampaignsPOMS:
         ql = []
         idl = []
         for id in spm:
+              
             idl.append(id)
-            ql.append( "project_name in '%s'" % "','".join(spm[id]))
+            if spm[id][0] == None:
+                ql.append("None")
+            else:
+                ql.append( "project_name in '%s'" % "','".join(spm[id]))
         cl = ctx.sam.count_files_list(exp, ql)
         cm = {}
-        for i in range(length(cl)):
+        for i in range(len(cl)):
             cm[idl[i]] = ql[i]
 
         #---------------
@@ -192,13 +201,11 @@ class CampaignsPOMS:
         #
 
         campaign = (
-            ctx.db.query(Campaign).filter(Campaign.name == campaign_name, Campaign.experiment == ctx.experiment).first()
+            ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).first()
         )
 
         if not campaign:
-            raise KeyError("Cannot find Campaign with name %s" % campaign_name)
-
-        csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
+            raise KeyError("Cannot find Campaign with id %s" % campaign_id)
 
         csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
 
@@ -219,11 +226,14 @@ class CampaignsPOMS:
 
         # put a dataset object (id==0) left of the lead campaign stage
 
-        pos = campaign.defaults["positions"][stages[0]]
+        try:
+            pos = campaign.defaults["positions"][stages[0]]
+        except:
+            pos = {"x": 100, "y": 100}
 
         res.append(
-            '  {id: %d, label: "%s\n%s", x: %d, y: %d, font: {size: fs}},'
-            % (0, dataset , total , pos["x"] - 100, pos["y"] )
+            '  {id: %d, label: "%s\\n%s", x: %d, y: %d, font: {size: fs}},'
+            % (0, datasets[0], total , pos["x"] - 100, pos["y"] )
         )
 
         for c_s in csl:
@@ -242,17 +252,17 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (0, stages[0], 100.0*cm[stages[0]]/total))
+        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (0, stages[0], 100.0*cm.get(stages[0],0)/total))
 
         # then all the actual dependencies
         for c_d in c_dl:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, 100%cm[c_d.provides_campaign_stage_id]/total))
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, 100*cm.get(c_d.provides_campaign_stage_id,0)/total))
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'" % (200 + 50 * len(c_ids))),
+        res.append("  height: '%dpx'," % (200 + 50 * len(c_ids))),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
@@ -274,7 +284,8 @@ class CampaignsPOMS:
             "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
         )
         res.append("</script>")
-        return "\n".join(res)
+
+        return campaign, "\n".join(res)
 
 
     # h3. launch_campaign
@@ -296,13 +307,12 @@ class CampaignsPOMS:
         """
 
         stages = self.get_leading_stages(ctx, campaign_id)
-
         logit.log("launch_campaign: got stages %s" % repr(stages))
 
         if len(stages) == 1:
             return self.poms_service.submissionsPOMS.launch_jobs(
                 ctx,
-                stages[0][0],
+                stages[0],
                 launcher,
                 dataset_override,
                 parent_submission_id,
@@ -613,7 +623,7 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'" % (200 + 50 * len(c_ids))),
+        res.append("  height: '%dpx'," % (200 + 50 * len(c_ids))),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
