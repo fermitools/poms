@@ -272,7 +272,9 @@ class sam_specifics:
         cdl = []
         for d in datasets:
             cdl.append("defname:%s" % d)
-        return self.ctx.sam.count_files(exp, " or ".join(cdl),  dbhandle=self.ctx.db)
+        dims =" or ".join([c for c in cdl if c != None])
+        logit.log("count_files_in_datasets: Counting dimension %s" % dims)
+        return self.ctx.sam.count_files(exp, dims,  dbhandle=self.ctx.db)
         
 
 class sam_project_checker:

@@ -176,21 +176,28 @@ class CampaignsPOMS:
         total = sam_specifics(ctx).count_files_in_datasets(exp, datasets)
 
         sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
+
         spm = defaultdict(list)
         for id,proj in sp_list:
-            spm[id].append(proj)
+            if proj != None:
+                if len(spm[id]) < 100:
+                    spm[id].append(proj)
+
+        logit.log("campaign_overview: spm: %s" % repr(spm) )
+
         #---------------
         # -- factor into SAMSpecifics...
         ql = []
         idl = []
         for id in spm:
-              
             idl.append(id)
-            if spm[id][0] == None:
-                ql.append("None")
-            else:
-                ql.append( "project_name in '%s'" % "','".join(spm[id]))
+            ql.append( "project_name in '%s'" % "','".join(spm[id]))
+
+        logit.log("campaign_overview: ql: %s" % repr(ql) )
+
         cl = ctx.sam.count_files_list(exp, ql)
+
+        logit.log("campaign_overview: cl: %s" % repr(cl))
         cm = {}
         for i in range(len(cl)):
             cm[idl[i]] = ql[i]
@@ -233,7 +240,7 @@ class CampaignsPOMS:
 
         res.append(
             '  {id: %d, label: "%s\\n%s", x: %d, y: %d, font: {size: fs}},'
-            % (0, datasets[0], total , pos["x"] - 100, pos["y"] )
+            % (0, datasets[0], total , pos["x"] - 300, pos["y"] )
         )
 
         for c_s in csl:

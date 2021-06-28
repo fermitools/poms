@@ -287,7 +287,7 @@ class PomsService:
     # h4. campaign_overview_
 
     @poms_method(
-        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_deps.html", help_page="CampaignDepsHelp"
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="CampaignDepsHelp"
     )
 
     def campaign_overview(self, **kwargs):

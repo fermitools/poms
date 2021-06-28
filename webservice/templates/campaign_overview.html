@@ -22,6 +22,7 @@
 {%endblock%}
 
 {%block content %}
+           
 	   <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
 	    <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
 		<button type="button">
@@ -53,6 +54,7 @@
 	    {% for tag in s.tags %}
 		{{tag.tag_name}}
 	    {% endfor %}
+
       <hrule>
 
       {{svgdata|safe}}
