@@ -209,6 +209,8 @@ class Submission(Base):
     updated = Column(DateTime(True))
     command_executed = Column(Text)
     project = Column(Text)
+    files_consumed = Column(Integer, nullable=True)
+    files_generated = Column(Integer, nullable=True)
     login_setup_snapshot_id = Column(ForeignKey("login_setup_snapshots.login_setup_snapshot_id"), nullable=True, index=True)
     campaign_stage_snapshot_id = Column(
         ForeignKey("campaign_stage_snapshots.campaign_stage_snapshot_id"), nullable=True, index=True
