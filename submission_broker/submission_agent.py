@@ -80,6 +80,7 @@ class Agent:
         self.last_seen = {}
         self.timeouts = (300, 300)
         self.strikes = {}
+        self.poll_interval = 120
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
         self.elist = htr.json()
@@ -216,6 +217,71 @@ class Agent:
         LOGIT.info("found project for %s: %s", entry["pomsTaskID"], res)
         return res
 
+    def maybe_report(self, entry):
+
+        if entry["done"] == self.known["status"].get(entry["pomsTaskID"], None):
+            report_status_flag = False
+        else:
+            report_status_flag = True
+
+        report_status = get_status(entry)
+
+        self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry["id"]
+
+        ntot = (int(entry["running"]) + int(entry["idle"]) + 
+                int(entry["held"]) + int(entry["completed"]) + 
+                int(entry["failed"]))
+
+        if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
+            self.known["maxjobs"][entry["pomsTaskID"]] = ntot
+        else:
+            ntot = self.known["maxjobs"][entry["pomsTaskID"]]
+
+        ncomp = int(entry["completed"]) + int(entry["failed"])
+
+        if ntot > 0:
+            report_pct_complete = ncomp * 100.0 / ntot
+        else:
+            report_pct_complete = None
+
+        if report_pct_complete == self.known["pct"].get(entry["pomsTaskID"], None):
+            report_pct_complete_flag = False
+        else:
+            report_pct_complete_flag = True
+
+        if self.get_project(entry) == self.known["project"].get(entry["pomsTaskID"], None):
+            report_project_flag = False
+        else:
+            report_project_flag = True
+
+        report_project = self.get_project(entry)
+
+        #
+        # actually report it if there's anything changed...
+        #
+        if report_status_flag or report_project_flag or report_pct_complete_flag:
+            self.update_submission(
+                entry["pomsTaskID"],
+                jobsub_job_id=entry["id"],
+                pct_complete=report_pct_complete,
+                project=report_project,
+                status=report_status,
+            )
+
+        #
+        # now update our known status if available
+        #
+        self.known["poms_task_id"][entry["pomsTaskID"]] = entry["id"]
+        if entry["pomsTaskID"] not in self.known["status"] or report_status:
+            self.known["status"][entry["pomsTaskID"]] = entry["done"]
+
+        if entry["pomsTaskID"] not in self.known["project"] or report_project:
+            self.known["project"][entry["pomsTaskID"]] = report_project
+
+        if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
+            self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
+
+
     def check_submissions(self, group, since=""):
         """
             get submission info from Landscape for a given group
@@ -233,7 +299,7 @@ class Agent:
             LOGIT.info("check_submissions: since %s", since)
             since = ', from: \\"%s\\", to:\\"now\\"' % since
         elif self.lastconn.get(group, None):
-            since = ', from: \\"%s\\", to:\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 120))
+            since = ', from: \\"%s\\", to:\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 2*self.poll_interval))
 
         if group == "samdev":
             group = "fermilab"
@@ -302,67 +368,7 @@ class Agent:
             # if we see it, reset our strikes count
             self.strikes[entry.get("pomsTaskID")] = 0
 
-            if entry["done"] == self.known["status"].get(entry["pomsTaskID"], None):
-                report_status_flag = False
-            else:
-                report_status_flag = True
-
-            report_status = get_status(entry)
-
-            self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry["id"]
-
-            ntot = (int(entry["running"]) + int(entry["idle"]) + 
-                    int(entry["held"]) + int(entry["completed"]) + 
-                    int(entry["failed"]))
-
-            if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
-                self.known["maxjobs"][entry["pomsTaskID"]] = ntot
-            else:
-                ntot = self.known["maxjobs"][entry["pomsTaskID"]]
-
-            ncomp = int(entry["completed"]) + int(entry["failed"])
-
-            if ntot > 0:
-                report_pct_complete = ncomp * 100.0 / ntot
-            else:
-                report_pct_complete = None
-
-            if report_pct_complete == self.known["pct"].get(entry["pomsTaskID"], None):
-                report_pct_complete_flag = False
-            else:
-                report_pct_complete_flag = True
-
-            if self.get_project(entry) == self.known["project"].get(entry["pomsTaskID"], None):
-                report_project_flag = False
-            else:
-                report_project_flag = True
-
-            report_project = self.get_project(entry)
-
-            #
-            # actually report it if there's anything changed...
-            #
-            if report_status_flag or report_project_flag or report_pct_complete_flag:
-                self.update_submission(
-                    entry["pomsTaskID"],
-                    jobsub_job_id=entry["id"],
-                    pct_complete=report_pct_complete,
-                    project=report_project,
-                    status=report_status,
-                )
-
-            #
-            # now update our known status if available
-            #
-            self.known["poms_task_id"][entry["pomsTaskID"]] = entry["id"]
-            if entry["pomsTaskID"] not in self.known["status"] or report_status:
-                self.known["status"][entry["pomsTaskID"]] = entry["done"]
-
-            if entry["pomsTaskID"] not in self.known["project"] or report_project:
-                self.known["project"][entry["pomsTaskID"]] = report_project
-
-            if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
-                self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
+            self.maybe_report(entry)
 
         LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group, None))))
 
@@ -371,6 +377,11 @@ class Agent:
             # submissions we used to see, but don't anymore...
             for id in missing:
 
+                # if our last status was Completed, this is expected,
+                # just go on
+                if self.known["status"][id] == "Completed":
+                    continue
+
                 #
                 # see if we can look up the individual submission
                 # if so, it isn't really gone, it just hasn't had an
@@ -378,10 +389,13 @@ class Agent:
                 #
                 if self.known["jobsub_job_id"].get(id):
                     entry = self.get_individual_submission(self.known["jobsub_job_id"][id])
+                    self.maybe_report(entry)
+
                     if entry and not entry["done"]:
                         thispass.add(id)
                         self.strikes[id] = 0
                         continue
+
 
                 if self.strikes.get(id, 0) < 3:
                     # must have 3 strikes in a row
@@ -390,10 +404,6 @@ class Agent:
                     thispass.add(id)
                     continue
 
-                # if our last status was Completed, this is expected,
-                # just go on
-                if self.known["status"][id] == "Completed":
-                    continue
 
                 LOGIT.info("reporting no longer seen submission id %s completed." % id)
                 self.update_submission(id, jobsub_job_id=self.known["jobsub_job_id"][id], status="Completed")
@@ -411,7 +421,7 @@ class Agent:
                     self.check_submissions(exp, since=since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(120)
+            time.sleep(self.poll_interval)
             since = ""
 
 
