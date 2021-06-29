@@ -167,7 +167,7 @@ def augment_params():
             401, "POMS account does not exist for %s.  To be added you must registered in FERRY." % get_user()
         )
 
-    roles = ["analysis", "production", "superuser"]
+    roles = ["analysis", "production-shifter", "production",  "superuser"]
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(

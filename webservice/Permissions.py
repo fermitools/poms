@@ -54,7 +54,7 @@ class Permissions:
         logit.log("experiment_role(%s,%s,%s) returning: %s" % (ctx.username, ctx.experiment, ctx.role, self.excache[key]))
         if not self.excache[key]:
             raise PermissionError("username %s is not in experiment %s" % (ctx.username, ctx.experiment))
-        if not ctx.role in ("analysis", "production", "superuser"):
+        if not ctx.role in ("analysis", "production-shifter", "production", "superuser"):
             raise PermissionError("invalid role %s" % ctx.role)
         if self.excache[key] == "analysis" and ctx.role != self.excache[key]:
             raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
@@ -286,6 +286,13 @@ class Permissions:
             # bandaid for get_task_id_for stuff...
             logit.log("letting it slide...")
             return
+
+        # make production-shifter work -- you can *do* things production
+        # users can do, so if the user is a production-shifter (ctx.role) 
+        # the action requires production, rewrite it to production-shifter
+        # so it matches below
+        if role == 'production' and ctx.role == 'production-shifter':
+            role = 'prodution-shifter'
 
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             logit.log("can_do: resp: fail")
