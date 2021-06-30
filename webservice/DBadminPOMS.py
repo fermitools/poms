@@ -33,3 +33,18 @@ class DBadminPOMS:
         ).all()
         data = {"members": members}
         return data
+
+    def update_experiment_shifters(self, ctx, **kwargs):
+        members = self.experiment_membership(ctx)["members"]
+        for m in members:
+            u = m.Experimenter.username  
+            r = m.ExperimentsExperimenters.role
+            if u in kwargs:
+                if kwargs[i] == "production-shifter" and r == "analysis":
+                   m.ExperimentsExperimenters.role = "production-shifter"
+                   ctx.db.add(m.ExperimentsExperimenters)
+
+                if kwargs[i] == "" and r == "prouduction-shifter":
+                   m.EperimentsExperimenters.role = "analysis"
+                   ctx.db.add(m.ExperimentsExperimenters)
+        ctx.db.commit()

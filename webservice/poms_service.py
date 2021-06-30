@@ -236,6 +236,25 @@ class PomsService:
     def experiment_membership(self, **kwargs):
         return {"data": self.dbadminPOMS.experiment_membership(**kwargs)}
 
+    # h4. experiment_shifters
+
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        help_page="MembershipHelp",
+        t="experiment_shifters.html",
+    )
+    def experiment_shifters(self, **kwargs):
+        return {"data": self.dbadminPOMS.experiment_membership(**kwargs)}
+
+    # h4. update_experiment_shifters
+
+    @poms_method(
+        p=[{"p": "is_superuser"}],
+        redirect="%(poms_path)s/experiment_shifters/%(experiment)s/%(role)s",
+    )
+    def update_experiment_shifters(self, **kwargs):
+        return {"data": self.dbadminPOMS.update_experiment_shifters(**kwargs)}
+
     # -----------------------------------------
     #################################
     # CampaignsPOMS
