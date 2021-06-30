@@ -45,15 +45,15 @@ class DBadminPOMS:
                    m.ExperimentsExperimenters.role = "production-shifter"
                    logit.log("update_experiment_shifters: adding shifter to %s" % u)
                    ctx.db.add(m.ExperimentsExperimenters)
-                if kwargs[u] == "production-shifter" and r == "production-shifter":
-                   logit.log("update_experiment_shifters: user %s already a shifter" % u)
+                #if kwargs[u] == "production-shifter" and r == "production-shifter":
+                #   logit.log("update_experiment_shifters: user %s already a shifter" % u)
             else:
                 if r == "production-shifter":
                    logit.log("update_experiment_shifters: dropping shifter from %s" % u)
                    m.ExperimentsExperimenters.role = "analysis"
                    ctx.db.add(m.ExperimentsExperimenters)
-                if r == "analysis":
-                   logit.log("update_experiment_shifters: user %s already not a shifter" % u)
+                #if r == "analysis":
+                #   logit.log("update_experiment_shifters: user %s already not a shifter" % u)
 
         ctx.db.commit()
         return "Ok"
