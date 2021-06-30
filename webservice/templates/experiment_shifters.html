@@ -10,7 +10,9 @@ POMS Experiment Members - Shifters
 
 {%block content%}
 <div>
-  <form action="{{pomspath}}/update_shifters/{{experiment}}/{{role}}">
+  <form method=POST action="{{pomspath}}/update_experiment_shifters">
+  <input type="hidden" name="experiment" value="{{ctx.experiment}}">
+  <input type="hidden" name="role" value="{{ctx.role}}">
   <input type="Submit" name="submit" value="Update shifters"> <br>
   <table id="membership_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
       <thead>
@@ -28,14 +30,13 @@ POMS Experiment Members - Shifters
               <td>{{m.Experimenter.first_name}}</td>
               <td>{{m.Experimenter.username}}</td>
               <td>
-                 {%if m.ExperimentsExperimenters.role == 'production-shfiter'%}
+                 {%if m.ExperimentsExperimenters.role == 'production-shifter'%}
                  <input type="checkbox" name="{{m.Experimenter.username}}" value="production-shifter" checked=true> 
                  {%elif m.ExperimentsExperimenters.role == 'analysis'%}
                  <input type="checkbox" name="{{m.Experimenter.username}}" value="production-shifter" > 
                  {% else %}
-                 {{m.ExperimentesExperimenters.role}}
+                 {{m.ExperimentsExperimenters.role}}
                  {%endif%}
-                 >
              </td>
           </tr>
       {% endfor %}

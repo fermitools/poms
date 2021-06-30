@@ -9,7 +9,7 @@ Date: September 30, 2016.
 """
 
 
-# from . import logit
+from . import logit
 from .poms_model import Experiment, Experimenter, ExperimentsExperimenters
 
 
@@ -35,16 +35,19 @@ class DBadminPOMS:
         return data
 
     def update_experiment_shifters(self, ctx, **kwargs):
+        logit.log("update_experiment_shifters: %s" % repr(kwargs))
         members = self.experiment_membership(ctx)["members"]
         for m in members:
             u = m.Experimenter.username  
             r = m.ExperimentsExperimenters.role
             if u in kwargs:
-                if kwargs[i] == "production-shifter" and r == "analysis":
+                if kwargs[u] == "production-shifter" and r == "analysis":
                    m.ExperimentsExperimenters.role = "production-shifter"
                    ctx.db.add(m.ExperimentsExperimenters)
-
-                if kwargs[i] == "" and r == "prouduction-shifter":
+            else:
+                if r == "prouduction-shifter":
                    m.EperimentsExperimenters.role = "analysis"
                    ctx.db.add(m.ExperimentsExperimenters)
+
         ctx.db.commit()
+        return "Ok"

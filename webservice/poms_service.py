@@ -251,6 +251,7 @@ class PomsService:
     @poms_method(
         p=[{"p": "is_superuser"}],
         redirect="%(poms_path)s/experiment_shifters/%(experiment)s/%(role)s",
+        rtype="redirect",
     )
     def update_experiment_shifters(self, **kwargs):
         return {"data": self.dbadminPOMS.update_experiment_shifters(**kwargs)}
