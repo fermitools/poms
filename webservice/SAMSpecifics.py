@@ -392,7 +392,7 @@ class sam_project_checker:
             thresholds.append(threshold)
             val = float(count_list[i])
             res.append("submission %s val %f threshold %f " % (submission.submission_id, val, threshold))
-            if val >= threshold and threshold > 0:
+            if val >= threshold and (threshold > 0 or submission.recovery_tasks):
                 res.append("adding submission %s " % submission)
                 finish_up_submissions.append(submission.submission_id)
 
