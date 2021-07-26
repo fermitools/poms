@@ -373,7 +373,11 @@ class sam_project_checker:
             if submission.output_files == None:
                 submission.output_files = count_list[i]
 
-            if submission.project:
+            if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
+                # above zero, but should always pass...
+                threshold = 0.00001
+
+            elif submission.project:
                 threshold = summary_list[i].get("tot_consumed", 0) * cfrac
             else:
                 # no project, so guess based on number of jobs in submit
@@ -393,3 +397,4 @@ class sam_project_checker:
                 finish_up_submissions.append(submission.submission_id)
 
         return finish_up_submissions, res
+

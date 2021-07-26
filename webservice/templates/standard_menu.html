@@ -46,6 +46,13 @@
         Membership (POMS)
       </a>
     </div>
+    {% if ctx.role in ("production" , "superuser") %}
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/experiment_shifters/{{session_experiment}}/{{session_role}}">
+        Shifters
+      </a>
+    </div>
+    {% endif %}
   </div>
 
   <div class="item">

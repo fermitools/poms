@@ -215,6 +215,7 @@ class SubmissionsPOMS:
 
         self.checker = sam_project_checker(ctx)
 
+        completed_projects = []
         finish_up_submissions = []
         mark_located = []
 
@@ -241,7 +242,6 @@ class SubmissionsPOMS:
             .all()
         ):
             res.append("completion type completed: %s" % s.submission_id)
-            finish_up_submissions.append(s.submission_id)
 
         # now get the ones with completion_type "located":
         # and decide if they go on the finish_up_submissions list...
@@ -251,7 +251,7 @@ class SubmissionsPOMS:
             .join(
                 CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
             )
-            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == "located")
+            .filter(Submission.submission_id.in_(completed_sids))
             .all()
         ):
 
@@ -263,8 +263,6 @@ class SubmissionsPOMS:
                 self.checker.add_project_submission(s)
             else:
                 self.checker.add_non_project_submission(s)
-
-        finish_up_submissions.sort()
 
         finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
 
