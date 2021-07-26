@@ -741,6 +741,10 @@ class StagesPOMS:
         counts_keys = {}
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
         launch_flist = glob.glob("{}/*".format(dirname))
+
+        if( len(launch_flist) > 500 ):
+            launch_flist = launch_flist[:500]
+        
         launch_flist = list(map(os.path.basename, launch_flist))
 
         recent_submission_list = (
