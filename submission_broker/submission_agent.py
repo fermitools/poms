@@ -389,6 +389,9 @@ class Agent:
                 #
                 if self.known["jobsub_job_id"].get(id):
                     entry = self.get_individual_submission(self.known["jobsub_job_id"][id])
+                    if entry and 'data' in entry:
+                         entry = entry['data'] 
+
                     self.maybe_report(entry)
 
                     if entry and not entry["done"]:
@@ -396,6 +399,8 @@ class Agent:
                         self.strikes[id] = 0
                         continue
 
+                    if entry and entry["done"]:
+                        self.update_submission(id, jobsub_job_id=self.known["jobsub_job_id"][id], status="Completed")
 
                 if self.strikes.get(id, 0) < 3:
                     # must have 3 strikes in a row
