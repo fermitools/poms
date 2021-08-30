@@ -171,41 +171,24 @@ class CampaignsPOMS:
         
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
+        lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
-        total = sam_specifics(ctx).count_files_in_datasets(exp, datasets)
+
+        total = ctx.sam.count_files(exp, "defname:%s" % lead.dataset)
 
         sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
 
-        spm = defaultdict(list)
-        for id,proj in sp_list:
-            if proj != None:
-                if len(spm[id]) < 100:
-                    spm[id].append(proj)
+        counts = ctx.db.query(CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)).filter(CampaignStage.campaign_id == campaign_id,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).group_by(CampaignStage.campaign_stage_id).all()
+        consumed_map = {}
+        generated_map = {}
+        for r in counts:
+            consumed_map[r[0]] = r[1]
+            generated_map[r[0]] = r[2]
 
-        logit.log("campaign_overview: spm: %s" % repr(spm) )
-
-        #---------------
-        # -- factor into SAMSpecifics...
-        ql = []
-        idl = []
-        for id in spm:
-            idl.append(id)
-            ql.append( "project_name in '%s'" % "','".join(spm[id]))
-
-        logit.log("campaign_overview: ql: %s" % repr(ql) )
-
-        cl = ctx.sam.count_files_list(exp, ql)
-
-        logit.log("campaign_overview: cl: %s" % repr(cl))
-        cm = {}
-        for i in range(len(cl)):
-            cm[idl[i]] = ql[i]
-
-        #---------------
- 
-        #
-        #
+        logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map) )
+        logit.log("campaign_overview: generated_map: %s" % repr(generated_map) )
 
         campaign = (
             ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).first()
@@ -240,7 +223,7 @@ class CampaignsPOMS:
 
         res.append(
             '  {id: %d, label: "%s\\n%s", x: %d, y: %d, font: {size: fs}},'
-            % (0, datasets[0], total , pos["x"] - 300, pos["y"] )
+            % (0, campaign.name, total , pos["x"] - 300, pos["y"] )
         )
 
         for c_s in csl:
@@ -259,12 +242,12 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (0, stages[0], 100.0*cm.get(stages[0],0)/total))
+        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (
 
         # then all the actual dependencies
         for c_d in c_dl:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, 100*cm.get(c_d.provides_campaign_stage_id,0)/total))
-
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % 
+ 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
@@ -284,16 +267,16 @@ class CampaignsPOMS:
         for c_s in csl:
             res.append(
                 "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
-                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experimen
             )
         res.append("};")
         res.append(
             "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
+ 
         )
         res.append("</script>")
 
         return campaign, "\n".join(res)
-
 
     # h3. launch_campaign
     def launch_campaign(
