@@ -243,11 +243,16 @@ class CampaignsPOMS:
 
         # first an edge from the dataset to the first stage
         res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (
+            0, c_dl[0].provides_campaign_stage_id, total ))
 
         # then all the actual dependencies
         for c_d in c_dl:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % 
- 
+            if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
+                consumed = consumed_map.get(c_d.needs_campaign_stage_id,0.0)
+                if consumed:
+                    res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % 
+                          (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed )/total))
+
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
@@ -267,8 +272,9 @@ class CampaignsPOMS:
         for c_s in csl:
             res.append(
                 "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
-                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experimen
-            )
+                % (c_s.campaign_stage_id, self.poms_service.path, 
+                   ctx.experiment, ctx.role, c_s.campaign_stage_id
+                ))
         res.append("};")
         res.append(
             "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
