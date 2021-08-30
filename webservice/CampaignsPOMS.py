@@ -165,12 +165,12 @@ class CampaignsPOMS:
 
     def campaign_overview(self, ctx, campaign_id):
 
+        logit.log(logit.INFO, "entering campaign_overview: %s" % campaign_id)
+
         stages = self.get_leading_stages(ctx, campaign_id)
         
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
-        datasets = ctx.db.query( CampaignStage.dataset ).filter(CampaignStage.campaign_stage_id.in_(stages)).all()
-        datasets = [x[0] for x in datasets]
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
         total = sam_specifics(ctx).count_files_in_datasets(exp, datasets)
