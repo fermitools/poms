@@ -243,7 +243,7 @@ class CampaignsPOMS:
 
         # first an edge from the dataset to the first stage
         res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (
-            0, c_dl[0].provides_campaign_stage_id, total ))
+            0, stages[0], total ))
 
         # then all the actual dependencies
         for c_d in c_dl:

@@ -194,6 +194,21 @@ class Permissions:
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
         logit.log("can_view: resp: ok")
 
+    def nonexistent(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
+        logit.log(
+            "nonexistent: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
+        )
+        owner = None
+        role = None
+        if item_id or name:
+            exp, owner, role = self.get_exp_owner_role(
+                ctx, t, item_id=item_id, name=name, experiment=experiment, campaign_id=campaign_id, campaign_name=campaign_name
+            )
+        if owner != None or role != None:
+            logit.log("nonexsitent: resp: fail")
+            raise PermissionError("%s named %s already exists." % (name, item_id))
+        logit.log("nonexistent: resp: ok")
+
     def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
         if self.is_superuser(ctx):

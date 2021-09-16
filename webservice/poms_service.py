@@ -445,6 +445,20 @@ class PomsService:
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
         return {}
 
+    # h4. gui_wf_clone
+    @poms_method(
+        p=[
+            {"p": "can_view", "t": "Campaign", "name": "campaign", "experiment": "experiment"},
+            {"p": "can_view", "t": "Campaign", "name": "from", "experiment": "experiment"},
+            {"p": "nonexistent", "t": "Campaign", "name": "to", "experiment": "experiment"},
+         ],
+        t="gui_wf_edit.html",
+        help_page="GUI_Workflow_Editor_User_Guide",
+        need_er=True,
+    )
+    def gui_wf_edit(self, experiment, role, *args, **kwargs):
+        return {}
+
     # h4. sample_workflows
 
     @poms_method(t="sample_workflows.html", help_page="Sample Workflows")
