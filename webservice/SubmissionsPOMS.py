@@ -657,24 +657,30 @@ class SubmissionsPOMS:
             .filter(SubmissionStatus.status.in_(status_list), SubmissionHistory.created == sq.c.latest)
             .all()
         )
+ 
+        if cl and cl != 'None':
 
-        ccl = (
-            ctx.db.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
-            .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
-            .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids))
-            .group_by(CampaignStage.campaign_id)
-            .all()
-        )
+            ccl = (
+                ctx.db.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
+                .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids))
+                .group_by(CampaignStage.campaign_id)
+                .all()
+            )
 
-        # the query never returns a 0 count, so initialize result with
-        # a zero count for everyone, then update with the nonzero counts
-        # from the query
-        res = {}
-        for c in cl:
-            res[c] = 0
+            # the query never returns a 0 count, so initialize result with
+            # a zero count for everyone, then update with the nonzero counts
+            # from the query
+            res = {}
+            for c in cl:
+                res[c] = 0
 
-        for row in ccl:
-            res[row[0]] = row[1]
+            for row in ccl:
+                res[row[0]] = row[1]
+
+        else:
+
+            res = list(ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment).filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id).filter(Submission.submission_id.in_(running_sids)))
 
         return res
 

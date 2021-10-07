@@ -368,10 +368,10 @@ class sam_project_checker:
         for i in range(len(summary_list)):
             submission = self.lookup_submission_list[i]
             cfrac = submission.campaign_stage_snapshot_obj.completion_pct / 100.0
-            if submission.consumed_files == None:
-                submission.consumed_files = summary_list[i].get("tot_consumed", 0)
-            if submission.output_files == None:
-                submission.output_files = count_list[i]
+            if submission.files_consumed == None:
+                submission.files_consumed = summary_list[i].get("tot_consumed", 0)
+            if submission.files_generated == None:
+                submission.files_generated = count_list[i]
 
             if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
                 # above zero, but should always pass...

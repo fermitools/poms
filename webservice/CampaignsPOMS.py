@@ -176,7 +176,25 @@ class CampaignsPOMS:
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
 
-        total = ctx.sam.count_files(exp, "defname:%s" % lead.dataset)
+        #
+        # for now we're skipping multiparam datasets
+        # and stagedfiles ones; they are expandable though...
+        # 
+        dslist = (ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+                 .filter(CampaignStageSnapshot.campaign_stage_id 
+                           == lead.campaign_stage_id)
+                 .filter(CampaignStageSnapshot.cs_split_type !='multiparam')
+                 .all())
+
+        dslist = [x[0] for x in dslist if x[0]]
+
+        # we start total very small so we don't divide by zero later if
+        # there arent any..
+        total = 0.001
+        for ds in dslist:
+            count = ctx.sam.count_files(exp, "defname:%s" % ds)
+            if count > 0:
+                total += count
 
         sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
 
@@ -221,9 +239,11 @@ class CampaignsPOMS:
         except:
             pos = {"x": 100, "y": 100}
 
+        dstxt = "\\n".join(dslist).replace('"',"'")
+        
         res.append(
-            '  {id: %d, label: "%s\\n%s", x: %d, y: %d, font: {size: fs}},'
-            % (0, campaign.name, total , pos["x"] - 300, pos["y"] )
+            '  {id: %d, label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
+            % (0, campaign.name, dstxt, int(total) , pos["x"] - 300, pos["y"] )
         )
 
         for c_s in csl:
@@ -242,8 +262,8 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f%%' }," % (
-            0, stages[0], total ))
+        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (
+            0, stages[0], int(total) ))
 
         # then all the actual dependencies
         for c_d in c_dl:

@@ -281,15 +281,9 @@ class Agent:
         if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
             self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
 
+    def get_running_submissions_LENS(self, group, since):
 
-    def check_submissions(self, group, since=""):
-        """
-            get submission info from Landscape for a given group
-            update various known bits of info
-        """
-
-        LOGIT.info("check_submissions: %s", group)
-
+        ddict = {}
         if time.time() - self.lastconn.get(group, 0) > self.maxtimedelta:
             # last info was too long ago, just clear it
             if self.lastconn.get(group, None):
@@ -300,6 +294,8 @@ class Agent:
             since = ', from: \\"%s\\", to:\\"now\\"' % since
         elif self.lastconn.get(group, None):
             since = ', from: \\"%s\\", to:\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 2*self.poll_interval))
+        else:
+            since = ''
 
         if group == "samdev":
             group = "fermilab"
@@ -308,7 +304,7 @@ class Agent:
             start = time.time()
             htr = self.ssess.post(
                 self.submission_uri,
-                data=self.cfg.get("submission_agent", "full_query") % (group, since),
+                data=self.cfg.get("submission_agent", "running_query") % (group, since),
                 timeout=self.timeouts,
                 headers=self.submission_headers,
             )
@@ -321,40 +317,41 @@ class Agent:
             ddict = {}
             pass
 
-        LOGIT.info("%s data: %s", group, repr(ddict))
+        print( "ddict: %s" % repr(ddict))
+        if ddict:
+            return ddict.get("data",{}).get("submissions",[])
+        else:
+            return []
 
-        if not ddict.get("data", None) or not ddict["data"].get("submissions", None):
-            LOGIT.info("No data?")
-            return
+    def get_running_submissions_POMS(self, group):
+        url = self.cfg.get("submission_agent", "poms_running_query")
+        try:
+            htr = self.psess.get(url)
+            flist = htr.json()
+            ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[3] == group]
+            htr.close()
+            return ddict
+        except:
+            return {}
+        
+
+    def check_submissions(self, group, since=""):
+        """
+            get submission info from Landscape for a given group
+            update various known bits of info
+        """
+
+        LOGIT.info("check_submissions: %s", group)
 
         thispass = set()
+        sublist = self.get_running_submissions_LENS( group, since)
+        sublist.extend( self.get_running_submissions_POMS(group))
 
-        # some come up with errors, look them up individually...
-        # shove in front of zeroed out entry in 'submissions' list.
+        LOGIT.info("%s data: %s", group, repr(sublist))
 
-        haveerrors = ddict.get("errors", None) != None
-        count = 0
-        ignore = set()
-        while count < 2 and haveerrors:
-            count = count + 1
-            haveerrors = False
-            for entry in ddict.get("errors", []):
-                LOGIT.info("checking error: %s", entry)
-                m = re.match("unable to find info for (.*)", entry["message"])
-                if m:
-                    jobid = m.group(1)
-                    ignore.add(jobid)
+        sublist.sort(key=(lambda x: x.get("pomsTaskID", "")))
 
-        #
-        # order by pomsTaskID so we don't have lock races in the db...
-        #
-        ddict["data"]["submissions"].sort(key=(lambda x: x.get("pomsTaskID", "")))
-
-        for entry in ddict["data"]["submissions"]:
-
-            if entry.get("id") in ignore:
-                LOGIT.info("ignoring: %s due to error", entry)
-                continue
+        for entry in sublist:
 
             # skip if we don't have a pomsTaskID...
             if not entry.get("pomsTaskID", None):
@@ -365,54 +362,22 @@ class Agent:
                 continue
 
             thispass.add(entry.get("pomsTaskID"))
-            # if we see it, reset our strikes count
-            self.strikes[entry.get("pomsTaskID")] = 0
 
-            self.maybe_report(entry)
+            id = entry.get('id')
+            pomsTaskID = entry.get('pomsTaskID')
 
-        LOGIT.debug("thispass: %s\nlast_seen: %s" % (repr(thispass), repr(self.last_seen.get(group, None))))
+            if self.known["status"].get(id,None) == "Completed":
+                continue
 
-        if self.last_seen.get(group, None):
-            missing = self.last_seen[group] - thispass
-            # submissions we used to see, but don't anymore...
-            for id in missing:
+            fullentry = self.get_individual_submission(id)
 
-                # if our last status was Completed, this is expected,
-                # just go on
-                if self.known["status"][id] == "Completed":
-                    continue
+            if fullentry and 'data' in fullentry:
+                 fullentry = fullentry['data'] 
 
-                #
-                # see if we can look up the individual submission
-                # if so, it isn't really gone, it just hasn't had an
-                # event lately...
-                #
-                if self.known["jobsub_job_id"].get(id):
-                    entry = self.get_individual_submission(self.known["jobsub_job_id"][id])
-                    if entry and 'data' in entry:
-                         entry = entry['data'] 
+            self.maybe_report(fullentry)
 
-                    self.maybe_report(entry)
-
-                    if entry and not entry["done"]:
-                        thispass.add(id)
-                        self.strikes[id] = 0
-                        continue
-
-                    if entry and entry["done"]:
-                        self.update_submission(id, jobsub_job_id=self.known["jobsub_job_id"][id], status="Completed")
-
-                if self.strikes.get(id, 0) < 3:
-                    # must have 3 strikes in a row
-                    self.strikes[id] = self.strikes.get(id, 0) + 1
-                    # put it  thispass so we get here next time
-                    thispass.add(id)
-                    continue
-
-
-                LOGIT.info("reporting no longer seen submission id %s completed." % id)
-                self.update_submission(id, jobsub_job_id=self.known["jobsub_job_id"][id], status="Completed")
-                self.known["status"][id] = "Completed"
+            if fullentry and fullentry["done"]:
+                self.update_submission(pomsTaskID, jobsub_job_id=id, status="Completed")
 
         self.last_seen[group] = thispass
 

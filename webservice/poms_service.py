@@ -738,7 +738,10 @@ class PomsService:
     # h4. running_submissions
     @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def running_submissions(self, **kwargs):
-        cl = list(map(int, kwargs["campaign_id_list"].split(",")))
+        if kwargs["campaign_id_list"]:
+            cl = list(map(int, kwargs["campaign_id_list"].split(",")))
+        else:
+            cl = None
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
 
     # see &l=webservice/SubmissionsPOMS.py#running_submissions&
