@@ -1147,7 +1147,7 @@ class CampaignsPOMS:
         }
 
     # h3. mark_campaign_active
-    def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None):
+    def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None, clear_cron = False):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")
@@ -1163,7 +1163,14 @@ class CampaignsPOMS:
                 if auth:
                     campaign.active = is_active in ("True", "Active", "true", "1")
                     ctx.db.add(campaign)
-                    ctx.db.commit()
                 else:
                     auth_error = True
+
+        if clear_cron and not auth_error:
+            csil = ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id.in_(campaign_ids)).all()
+            for csi in csil:
+                self.ps.stagesPOMS.update_launch_schedule(ctx,csi,delete=True)
+
+        ctx.db.commit()
+
         return auth_error

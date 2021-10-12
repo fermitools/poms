@@ -1022,12 +1022,15 @@ class StagesPOMS:
         return c_s, job, launch_flist
 
     # h3. mark_campaign_hold
-    def mark_campaign_hold(self, ctx, campaign_stage_ids, is_hold):
+    def mark_campaign_hold(self, ctx, campaign_stage_ids, is_hold, clear_cron = True):
         session_experimenter = ctx.get_experimenter()
         for cs in ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all():
             if is_hold in ("Hold", "Queue"):
                 cs.hold_experimenter_id = session_experimenter.experimenter_id
                 cs.role_held_with = ctx.role
+                if clear_cron:
+                    for csi in campaign_stage_ids:
+                        self.update_launch_schedule(ctx,csi,delete=True)
             elif is_hold == "Release":
                 cs.hold_experimenter_id = None
                 cs.role_held_with = None

@@ -144,6 +144,10 @@ Campaign Stages {{ show_hint('#Campaigns-Stages', 'Campaigns Stages') }}
             <input type="hidden" id="campaign_ids2HR" name="ids2HR">
         </div>
         <div class="field">
+            <div class="ui horizontal large label">remove crontabs</div>
+            <input type="checkbox" checked="true" class="ui checkbox" name="clear_cron" value="1">
+        </div>
+        <div class="field">
             <div class="ui horizontal large label">Mark selected campaign stages as</div>
             <input type="submit" class="ui teal button" name="is_hold" value="Queue">
             <input type="submit" class="ui teal button" name="is_hold" value="Release">
