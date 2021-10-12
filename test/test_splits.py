@@ -74,7 +74,7 @@ def make_split(ds, split, should_hit_end):
         hit_end = 0
         for i in range(1, 6):
             try:
-                res = mps.stagesPOMS.get_dataset_for(ctx, cs)
+                res = mps.stagesPOMS.get_dataset_for(ctx, cs, False)
             except AssertionError:
                 print("Hit end!")
                 hit_end = 1
@@ -99,6 +99,7 @@ split_table = [
     ['[["a","b"],["c","d"],["e","f"]]', "multiparam()", 0],
     ["gen_cfg", "byrun(low=1,high=4)", 0],
     ["gen_cfg", "byrun( low=1, high=4 ) ", 0],
+    ["gen_cfg", "byrun(low=1,high=3)", 1],  # make sure we hit the end..
     ["gen_cfg", "byexistingruns() ", 0],
     ["gen_cfg", "draining", 0],
     ["gen_cfg", "mod(3)", 1],

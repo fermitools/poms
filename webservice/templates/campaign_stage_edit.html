@@ -335,6 +335,9 @@ Campaign Stages
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
+      {% if jump_to_campaign %}
+      <input type="hidden" id="return_to_campaign" name="return_to_campaign" value="{{jump_to_campaign}}">
+      {%endif%}
     </form>
   </div>
   <div class="ui hidden divider"></div>

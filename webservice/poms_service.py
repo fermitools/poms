@@ -422,6 +422,10 @@ class PomsService:
             raise cherrypy.HTTPRedirect(
                 "%s/launch_jobs/%s/%s?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("ae_campaign_id"))
             )
+        if kwargs.get("return_to_campaign", None):
+            raise cherrypy.HTTPRedirect(
+                "%s/campaign_stage_info/%s/%s?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("return_to_campaign"))
+            )
 
         return {"data": data, "jquery_ui": False}
 

@@ -306,6 +306,11 @@ class StagesPOMS:
                         "completion_pct": completion_pct,
                         "campaign_id": campaign_id,
                     }
+                    
+                    if c_s and split_type != c_s.split_type:
+                        # clear last split if changing split type
+                        columns["cs_last_split"] = None
+
                     ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
                 # now redo dependencies
                 (
@@ -377,7 +382,7 @@ class StagesPOMS:
             # for testing ui...
             # data['authorized'] = True
             state = kwargs.pop("state", None)
-            jumpto = kwargs.pop("jump_to_campaign", None)
+            jumpto = kwargs.get("jump_to_campaign", None)
             data["state"] = state
             data["curr_experiment"] = experiment
             data["authorized"] = []
@@ -1058,6 +1063,7 @@ class StagesPOMS:
             minlist = None
         elif minlist[0][:2] == "*/":
             minevery = int(minlist[0][2:])
+            minlist = None
         else:
             minlist = [int(x) for x in minlist if x]
 
@@ -1066,6 +1072,7 @@ class StagesPOMS:
             hourlist = None
         elif hourlist[0][:2] == "*/":
             hourevery = int(hourlist[0][2:])
+            hourlist = None
         else:
             hourlist = [int(x) for x in hourlist if x]
 
@@ -1074,6 +1081,7 @@ class StagesPOMS:
             dowlist = None
         elif dowlist[0][:2] == "*/":
             dowevery = int(dowlist[0][2:])
+            dowlist = None
         else:
             # dowlist[0] = [int(x) for x in dowlist if x ]
             pass
@@ -1083,6 +1091,7 @@ class StagesPOMS:
             domlist = None
         elif domlist[0][:2] == "*/":
             domevery = int(domlist[0][2:])
+            domlist = None
         else:
             domlist = [int(x) for x in domlist if x]
 
