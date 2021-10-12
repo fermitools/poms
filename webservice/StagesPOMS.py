@@ -1009,6 +1009,10 @@ class StagesPOMS:
         #
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
         launch_flist = glob.glob("{}/*".format(dirname))
+
+        if( len(launch_flist) > 500 ):
+            launch_flist = launch_flist[:500]
+        
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
@@ -1049,24 +1053,36 @@ class StagesPOMS:
 
         logit.log("hourlist is {} ".format(hourlist))
 
+        minevery = None
         if minlist and minlist[0] == "*":
             minlist = None
+        elif minlist[0][:2] == "*/":
+            minevery = int(minlist[0][2:])
         else:
             minlist = [int(x) for x in minlist if x]
 
+        hourevery=None
         if hourlist and hourlist[0] == "*":
             hourlist = None
+        elif hourlist[0][:2] == "*/":
+            hourevery = int(hourlist[0][2:])
         else:
             hourlist = [int(x) for x in hourlist if x]
 
+        dowevery = None
         if dowlist and dowlist[0] == "*":
             dowlist = None
+        elif dowlist[0][:2] == "*/":
+            dowevery = int(dowlist[0][2:])
         else:
             # dowlist[0] = [int(x) for x in dowlist if x ]
             pass
 
+        domevery = None
         if domlist and domlist[0] == "*":
             domlist = None
+        elif domlist[0][:2] == "*/":
+            domevery = int(domlist[0][2:])
         else:
             domlist = [int(x) for x in domlist if x]
 
@@ -1092,15 +1108,23 @@ class StagesPOMS:
             )
 
             # set timing...
+            if dowevery:
+                job.dow.every(dowevery)
             if dowlist:
                 job.dow.on(*dowlist)
 
+            if minevery:
+                job.minute.every(minevery)
             if minlist:
                 job.minute.on(*minlist)
 
+            if hourevery:
+                job.hour.every(hourevery)
             if hourlist:
                 job.hour.on(*hourlist)
 
+            if domevery:
+                job.day.every(domevery)
             if domlist:
                 job.day.on(*domlist)
 
