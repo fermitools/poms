@@ -75,6 +75,12 @@ def compute_secs(time_str):
 
 
 def parse_date(date_time_str):
+    try:
+        return parse_date_2(date_time_str)
+    except ValueError:
+        return datetime.now()
+
+def parse_date_2(date_time_str):
     """ condor just gives month/day, so add the year and parse
         -- the trick is to add the *right* year.  At the year boundary
            (i.e. it's Jan 1, and the job started on Dec 31) we may
@@ -82,12 +88,16 @@ def parse_date(date_time_str):
            by checking yesterdays month.
            ... in fact we should go a little further back (27 days)
            for to get last month right further into this month.
+           .. but this is a lie now, newer condor seems to use
+           proper ISO dates: 2021-10-11 02:01:00, so handle that, too
     """
     # get todays, yesterdays year and month
     t_year, t_month = datetime.now().strftime("%Y %m").split()
     lm_year, lm_month = (datetime.now() - timedelta(days=27)).strftime("%Y %m").split()
 
-    if date_time_str[:2] == t_month:
+    if date_time_str[:4] == t_year or date_time_str[:4] == lm_year:
+        return datetime.strptime(date_time_str, "%Y-%m-%d %H:%M:%S")
+    elif date_time_str[:2] == t_month:
         date_time_str = "%s/%s" % (t_year, date_time_str)
     elif date_time_str[:2] == lm_month:
         date_time_str = "%s/%s" % (lm_year, date_time_str)
