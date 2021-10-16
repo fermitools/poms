@@ -310,7 +310,7 @@ class StagesPOMS:
                     if c_s and split_type != c_s.split_type:
                         # clear last split if changing split type
                         columns["cs_last_split"] = None
-                    if c_s and dataset != c_s.dataset
+                    if c_s and dataset != c_s.dataset:
                         # clear last split if changing dataset
                         columns["cs_last_split"] = None
 
