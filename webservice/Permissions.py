@@ -307,7 +307,7 @@ class Permissions:
         # the action requires production, rewrite it to production-shifter
         # so it matches below
         if role == 'production' and ctx.role == 'production-shifter':
-            role = 'prodution-shifter'
+            role = 'production-shifter'
 
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             logit.log("can_do: resp: fail")
