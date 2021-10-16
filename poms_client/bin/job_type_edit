@@ -14,7 +14,7 @@ groupArg.add_argument('--verbose', '-v', action='count')
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
 groupArg.add_argument('--name', metavar='Name of your template', type=str, help='the name of the campaign definition', required = True, default = None)
 groupArg.add_argument('--user', metavar='your user name', type=str, help='your user_name register at POMS', default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
-groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', required = True, default = None)
+groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', default = os.environ.get('EXPERIMENT',None))
 
 parser.add_argument('--output_file_patterns', metavar='string with output file pattern', type=str, help='The output pattern you are interested in your campaign (eg. %%.root)', default = None)
 parser.add_argument('--launch_script', metavar='the setup you do at your interactive node', type=str, nargs='*',help='the script that you run to submit jobs in your machine', default = None)

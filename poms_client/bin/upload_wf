@@ -8,7 +8,7 @@ import os
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n upload ini file to POMS")
 parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='analysis')
-parser.add_option('--experiment', help="experiment name", default = None)
+parser.add_option('--experiment', help="experiment name", default = os.environ.get('EXPERIMENT',None))
 parser.add_option('--test',  help="use test server", default = None)
 parser.add_option('--dev', action='store_const', const='dev', dest='test', metavar='', help='use the dev/test instance of POMS', default = False)
 parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')

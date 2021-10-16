@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n mark submission as awaiting approval")
 parser.add_option('--submission_id', help="submission id", default = os.environ['POMS4_SUBMISSION_ID'])
-parser.add_option('--experiment', help="experiment name", default = None)
+parser.add_option('--experiment', help="experiment name", default = os.environ.get('EXPERIMENT',None))
 parser.add_option('--verbose', '-v', action='store_true', default = None)
 parser.add_option('--dataset', help="dataset to propagate for dependencies", default = None)
 parser.add_option('--test',  help="use test server", default = None)
