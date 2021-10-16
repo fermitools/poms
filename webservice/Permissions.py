@@ -158,7 +158,7 @@ class Permissions:
 
     def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx):
+        if self.is_superuser(ctx) and ctx.role == 'superuser':
             return
 
         if item_id or name:
@@ -211,7 +211,7 @@ class Permissions:
 
     def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx):
+        if self.is_superuser(ctx) and ctx.role == 'superuser':
             return None
 
         if item_id or name:
@@ -257,7 +257,7 @@ class Permissions:
 
     def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx):
+        if self.is_superuser(ctx) and ctx.role == 'superuser':
             return
 
         if item_id or name:
