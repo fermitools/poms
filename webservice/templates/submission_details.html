@@ -150,12 +150,17 @@ Hold Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{sessio
 Release Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
 Kill Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
 Kick to Completed  <button onclick="confirm_call('Are you sure you want to mark this submission Completed?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?status=Completed&submission_id={{submission.submission_id}}&jobsub_job_id={{submission.jobsub_job_id}}')"> <i class="ui forward icon "></i></button>&nbsp;
+{%elif history[-1].status_id == 9000 %}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
+Kick to Completed  <button onclick="confirm_call('Are you sure you want to mark this submission Completed?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?status=Completed&submission_id={{submission.submission_id}}&jobsub_job_id={{submission.jobsub_job_id}}')"> <i class="ui forward icon "></i></button>&nbsp;
 {%elif history[-1].status_id == 7000 %}
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
 Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
 Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
 Kick to Located
-<button onclick="confirm_call('Are you sure you want to mark this submission Completed?',
+<button onclick="confirm_call('Are you sure you want to mark this submission Located?',
 '{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}')" title="Skip ahead to Located"><i class="ui forward icon"></i></button>
 {%else%}
 Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
