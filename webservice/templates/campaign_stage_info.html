@@ -87,7 +87,7 @@ all the time...
          <div class=menu>
               <div class=item>
                 <a href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
-                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}>
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj or session_role=="production-shifter"}}>
                 <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>
 

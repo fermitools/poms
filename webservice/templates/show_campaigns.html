@@ -117,7 +117,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     </a>
                 </td>
                 <td>
-                  {%if data.authorized[loop.index0] %}
+                  {%if data.authorized_shifter[loop.index0] %}
                     <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
                         <i class="chart rocket icon blue"></i>
                     </button>

@@ -770,6 +770,7 @@ class CampaignsPOMS:
             return csl, "", msg, data
 
         data["authorized"] = []
+        data["authorized_shifter"] = []
         for c_s in csl:
             # permissions module raises exceptions when not authorized,
             # so we have to use a try: block to decide if we're authorized
@@ -778,6 +779,12 @@ class CampaignsPOMS:
                 data["authorized"].append(True)
             except:
                 data["authorized"].append(False)
+
+            try:
+                self.poms_service.permissions.can_do(ctx, "Campaign", item_id=c_s.campaign_id)
+                data["authorized_shifter"].append(True)
+            except:
+                data["authorized_shifter"].append(True)
 
         last_activity_l = (
             ctx.db.query(func.max(Submission.updated))
