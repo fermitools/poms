@@ -448,6 +448,12 @@ class SubmissionsPOMS:
             .first()
         )
 
+        # don't mark recovery jobs Failed -- they get just 
+        # the jobs that didn't pass the original submission,
+        # the recovery is still a success even if they all fail again.
+        if (status == "Failed" and s.recovery_tasks_parent) 
+            status = "Completed"
+
         slist = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first()
 
         if slist:
