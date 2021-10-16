@@ -38,6 +38,10 @@ class Permissions:
         return self.sucache[ctx.username]
 
     def check_experiment_role(self, ctx):
+
+        if  self.is_superuser(ctx):
+            return "superuser"
+
         if ctx.experiment == "fermilab":
             ctx.experiment = "samdev"
         key = "%s:%s" % (ctx.username, ctx.experiment)
@@ -189,7 +193,7 @@ class Permissions:
         if not item_id and not name:
             return
 
-        if exp and exp != ctx.experiment:
+        if exp and exp != ctx.experiment and not self.is_superuser(ctx):
             logit.log("can_view: resp: fail")
             raise PermissionError("Must be acting as experiment %s to see this" % exp)
         logit.log("can_view: resp: ok")
@@ -243,7 +247,7 @@ class Permissions:
             logit.log("can_view: resp: ok")
             return
 
-        if exp and exp != ctx.experiment:
+        if exp and exp != ctx.experiment and not self.is_superuser(ctx):
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
@@ -289,7 +293,7 @@ class Permissions:
                 raise PermissionError("Only user %s can do this" % item_id)
             return
 
-        if exp and exp != ctx.experiment:
+        if exp and exp != ctx.experiment and not self.is_superuser(ctx):
             logit.log("can_do: resp: fail")
             raise PermissionError("Must be acting as experiment %s to do this" % exp)
 

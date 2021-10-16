@@ -49,7 +49,7 @@ done
 
 case "x$POMS_TEST" in
 xint*) baseurl="https://poms-int.fnal.gov:8443/poms" ;;
-x1*)   baseurl="https://fermicloud045.fnal.gov:8443/poms" ;;
+x1*)   baseurl="https://fermicloud210.fnal.gov:8443/poms" ;;
 x*)    baseurl="https://pomsgpvm01.fnal.gov:8443/poms" ;;
 esac
 
