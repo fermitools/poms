@@ -151,7 +151,7 @@ class MiscPOMS:
                 if action == "add":
                     logit.log("adding new LoginSetup...")
                     role = ctx.role
-                    if role in ("root", "superctx.username"):
+                    if role in ("root", "superuser"):
                         raise cherrypy.HTTPError(status=401, message="You are not authorized to add launch template.")
                     exists = (
                         ctx.db.query(LoginSetup)
@@ -214,8 +214,8 @@ class MiscPOMS:
                 data["view_inactive"] = None
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
-                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
-                data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
+                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superuser") else None
+                data["view_production"] = "view_production" if ctx.role in ("production", "production-shifter", "superuser") else None
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -257,7 +257,7 @@ class MiscPOMS:
             data["templates"] = q.all()
 
             for l_t in data["templates"]:
-                if ctx.role in ("root", "superctx.username"):
+                if ctx.role in ("root", "superuser"):
                     data["authorized"].append(True)
                 elif ctx.role == "production":
                     data["authorized"].append(True)
@@ -411,7 +411,7 @@ class MiscPOMS:
             try:
                 if action == "add":
                     role = ctx.role
-                    if role in ("root", "superctx.username"):
+                    if role in ("root", "superuser"):
                         raise cherrypy.HTTPError(status=401, message=("You are not authorized " "to add campaign definition."))
                     else:
                         j_t = JobType(
@@ -469,8 +469,8 @@ class MiscPOMS:
                 data["view_inactive"] = None
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
-                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superctx.username") else None
-                data["view_production"] = "view_production" if ctx.role in ("production", "superctx.username") else None
+                data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superuser") else None
+                data["view_production"] = "view_production" if ctx.role in ("production", "superuser") else None
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -515,7 +515,7 @@ class MiscPOMS:
             cids = []
             for df in data["definitions"]:
                 cids.append(df.JobType.job_type_id)
-                if ctx.role in ["root", "superctx.username"]:
+                if ctx.role in ["root", "superuser"]:
                     data["authorized"].append(True)
                 elif df.JobType.creator_role == "production" and ctx.role == "production":
                     data["authorized"].append(True)
