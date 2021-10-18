@@ -1,5 +1,6 @@
 from . import logit
-from .poms_model import CampaignDependency
+from .poms_model import CampaignDependency, Submission
+from sqlalchemy import func
 
 
 class sam_specifics:
@@ -22,6 +23,28 @@ class sam_specifics:
         logit.log("got details = %s" % repr(details))
         dataset = details.get("dataset_def_name", None)
         return dataset
+
+    def declare_approval_transfer_datasets(self, sid):
+        # we need to declare our "output" datsets to match our input...
+        s = self.ctx.db.query(Submission).filter(Submission.submission_id == sid).first()
+        cs = s.campaign_stage_obj
+        ndeps = (
+            self.ctx.db.query(func.count(CampaignDependency.provides_campaign_stage_id))
+           .filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id)
+           .group_by(CampaignDependency.provides_campaign_stage_id)
+           .first()
+        )
+        for i in range(1,ndeps[0]+1):
+            if cs.creator_role == "analysis":
+                dname = "poms_%s_depends_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, s.submission_id, i)
+            else:
+                dname = "poms_depends_%d_%d" % (s.submission_id, i)
+
+            logit.log("declare_approval_transfer_datasets: creating definition %s defname:%s" % (dname, s.submission_params['dataset']))
+
+            self.ctx.sam.create_definition(
+                cs.experiment, dname, "defname:%s" % s.submission_params['dataset']
+           )
 
     def create_recovery_dataset(self, s, rtype, rlist):
 

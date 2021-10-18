@@ -84,6 +84,7 @@ class Agent:
 
         htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
         self.elist = htr.json()
+        self.elist.sort()
         htr.close()
 
         self.lastconn = {}
@@ -147,6 +148,9 @@ class Agent:
            get submission info from service if the submissions call had
            an error.
         """
+
+        if jobsubjobid == None:
+            return None
 
         postresult = self.ssess.post(
             self.submission_uri,
@@ -218,6 +222,9 @@ class Agent:
         return res
 
     def maybe_report(self, entry):
+
+        if entry == None or entry['pomsTaskID'] == None:
+            return
 
         if entry["done"] == self.known["status"].get(entry["pomsTaskID"], None):
             report_status_flag = False
@@ -328,10 +335,13 @@ class Agent:
         try:
             htr = self.psess.get(url)
             flist = htr.json()
-            ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[3] == group]
+            print("poms running_submissions: ", repr(flist))
+            ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[2] == group]
+            print("poms running_submissions for " , group,  ": ", repr(ddict))
             htr.close()
             return ddict
         except:
+            logging.exception("running_submissons_POMS")
             return {}
         
 

@@ -430,6 +430,9 @@ class SubmissionsPOMS:
             .filter(SubmissionHistory.submission_id == submission_id)
             .first()
         )
+  
+        logit.log("get_last_history: sub_id %s returns %s" % (submission_id,lasthist))
+        return lasthist
 
     # h3. update_submission_status
     def update_submission_status(self, ctx, submission_id, status, when=None):
@@ -744,12 +747,13 @@ class SubmissionsPOMS:
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
+        self.init_statuses(ctx)
 
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
 
         lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status != self.status_Located:
+        if lasthist.status_id != self.status_Located:
             logit.log("Not launching dependencies because submission is not marked Located")
             return
 
@@ -801,12 +805,13 @@ class SubmissionsPOMS:
     #  Note: assumes submission is already locked
     def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
+        self.init_statuses(ctx)
         if not ctx.config_get("poms.launch_recovery_jobs", False):
             logit.log("recovery launches disabled")
             return 1
 
         lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status != self.status_Located and not recovery_typeoverride:
+        if lasthist.status_id != self.status_Located and not recovery_typeoverride:
             logit.log("Not launching recovery because submission is not marked Located")
             return
 
@@ -1262,7 +1267,9 @@ class SubmissionsPOMS:
         if cs and cs.campaign_stage_type == "approval":
             # special case for approval -- don't need to really launch...
             self.update_submission_status(ctx, sid, "Awaiting Approval")
-            ctx.db.commit()
+            ctx.db.commit() 
+
+            sam_specifics(ctx).declare_approval_transfer_datasets(sid)
 
             outdir, outfile, outfullpath = self.get_output_dir_file(
                 ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup
@@ -1276,6 +1283,10 @@ class SubmissionsPOMS:
             f.close()
             return lcmd, cs, campaign_stage_id, outdir, outfile
 
+        if cs and cs.campaign_stage_type == "datatransfer":
+            # also need "output" datasets for data transfer
+            sam_specifics(ctx).declare_approval_transfer_datasets(sid)
+        
         ctx.db.commit()
 
         cmdl = [
