@@ -161,6 +161,10 @@ def determine_changes(cursor, exp, users):
 
     cursor.execute(sql)
     for (username, experimenter_id, active, role,) in cursor.fetchall():
+        # for purposes of this script, users who are production-shifters
+        # have analysis role, as Ferry doesn't track production-shifters.
+        if role == 'production-shifter':
+            role = 'analysis'
         user = new_users.pop(username, None)
         if user is None:
             if active is True:

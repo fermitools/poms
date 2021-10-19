@@ -28,7 +28,7 @@ try:
             experiment = options.experiment,
             test = options.test)
 
-    print res
+    print(res)
 
 except:
     logging.exception("Exception in %s:" % sys.argv[0])

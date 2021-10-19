@@ -38,7 +38,7 @@ def launch_template_edit_test(**kwargs):
 
 
 def campaign_definition_edit_test(**kwargs):
-    print "---*4"
+    print("---*4")
     action = kwargs.pop('action')
     name = kwargs.pop('name')
     email = kwargs.pop('pc_email')

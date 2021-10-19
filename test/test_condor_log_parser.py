@@ -16,7 +16,7 @@ logger.addHandler(logging.StreamHandler())
 
 
 def test_condor_log_parser():
-    jobsub_job_id = "6583029@jobsub03.fnal.gov"
+    jobsub_job_id = "49654860@jobsub02.fnal.gov"
     experiment = "samdev"
     role = "Analysis"
     print("cert: %s, key %s" % (cert, key))

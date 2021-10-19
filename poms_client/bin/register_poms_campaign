@@ -38,7 +38,7 @@ try:
             campaign_definition = options.campaign_definition,
             test = options.test)
 
-    print res
+    print(res)
 except:
     logging.exception(sys.argv[0])
     sys.exit(1)

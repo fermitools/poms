@@ -19,7 +19,7 @@ class new:
        So if you just want to do new files, but at most 6 hours at at a time:
            new(window=6h)
        If you want catch up and to do one-week chunks starting at unix time 
-       1497934800: (i.e. from "date -D 2017-06-20 +%s") 
+       1497934800: (i.e. from "date -d 2017-06-20 +%s") 
            new(firsttime=1497934800, window=1w)
     """
 
