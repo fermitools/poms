@@ -460,7 +460,7 @@ class PomsService:
         help_page="GUI_Workflow_Editor_User_Guide",
         need_er=True,
     )
-    def gui_wf_edit(self, experiment, role, *args, **kwargs):
+    def gui_wf_clone(self, experiment, role, *args, **kwargs):
         return {}
 
     # h4. sample_workflows

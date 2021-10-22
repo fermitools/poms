@@ -73,7 +73,7 @@ class Permissions:
 
         k = None
         q = None
-        if t == "Experiment":
+        if t == "Experiment" or t == "Experimenter":
             return experiment, None, None
 
         if t == "Submission":

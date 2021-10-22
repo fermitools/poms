@@ -153,6 +153,11 @@ json_field_editor.dictstart = function (id) {
         res.push('</tr>');
         i = i + 1
     }
+    if(i == 0) {
+        res.push('<tr><td>')
+        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + ')" class="blue icon dlink plus square"></i>');
+        res.push('</td></tr>')
+    }
     res.push('</tbody>');
     res.push('</table>');
     res.push('&nbsp;&nbsp;&nbsp;');
