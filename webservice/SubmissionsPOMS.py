@@ -162,13 +162,15 @@ class SubmissionsPOMS:
     def get_submissions_with_status(self, ctx, status_id, recheck_sids=None):
         self.init_statuses(ctx)
         sq = (
-            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            ctx.db.query(SubmissionHistory.submission_id.label("l_sid"), func.max(SubmissionHistory.created).label("latest"))
+            .group_by(SubmissionHistory.submission_id)
             .subquery()
         )
 
         query = (
             ctx.db.query(SubmissionHistory.submission_id,SubmissionHistory.status_id)
             .filter(SubmissionHistory.created == sq.c.latest)
+            .filter(SubmissionHistory.submission_id == sq.c.l_sid)
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id, SubmissionHistory.status_id)
             .having(SubmissionHistory.status_id == status_id)
