@@ -482,7 +482,7 @@ class SubmissionsPOMS:
         # *could*  have a launch that took a Really Long Time, and we might
         # have falsely concluded that the launch failed...
         final_states = (self.status_Located, self.status_Removed, self.status_Failed)
-        if lasthist and lasthist.status_id in final_states:
+        if lasthist and lasthist.status_id in final_states and ctx.username == 'poms':
             return
 
         # don't roll back Completed
