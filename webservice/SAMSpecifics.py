@@ -397,8 +397,8 @@ class sam_project_checker:
                 submission.files_generated = count_list[i]
 
             if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
-                # above zero, but should always pass...
-                threshold = 0.00001
+                # not zero, but should always pass...
+                threshold = -0.00001
 
             elif submission.project:
                 threshold = summary_list[i].get("tot_consumed", 0) * cfrac
@@ -415,7 +415,7 @@ class sam_project_checker:
             thresholds.append(threshold)
             val = float(count_list[i])
             res.append("submission %s val %f threshold %f " % (submission.submission_id, val, threshold))
-            if val >= threshold and (threshold > 0 or submission.recovery_tasks):
+            if val >= threshold and (threshold != 0 or submission.recovery_tasks_parent):
                 res.append("adding submission %s " % submission)
                 finish_up_submissions.append(submission.submission_id)
 

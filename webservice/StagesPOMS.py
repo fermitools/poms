@@ -98,6 +98,7 @@ class StagesPOMS:
             takes action = 'edit'/'add'/ etc.
             sesshandle is the cherrypy.session instead of cherrypy.session.get method
         """
+        c_s = None
         data = {}
         experimenter = ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).scalar()
         experiment = ctx.experiment
