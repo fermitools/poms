@@ -342,9 +342,16 @@ class sam_project_checker:
         allkiddims = basedims
         plist = self.get_file_patterns(submission)
 
+        prev = None
         for pat in plist:
             if pat == "None":
                 pat = "%"
+
+            # don't add duplicated clauses if the dependencies
+            # have the same pattern
+            if pat == prev:
+                continue
+            prev = pat
 
             if pat.find(" ") < 0:
                 pat = "file_name %s" % pat
