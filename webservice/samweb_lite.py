@@ -194,7 +194,7 @@ class samweb_lite:
         urls = [
             "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
             % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
-            if s.project and s.project != None else None
+            if s.project and s.project != 'None' else None
             for s in task_list
         ]
         with requests.Session() as sess:
