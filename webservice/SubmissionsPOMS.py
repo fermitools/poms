@@ -851,6 +851,8 @@ class SubmissionsPOMS:
 
             nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
 
+            s.recovery_position = s.recovery_position + 1
+
             if nfiles > 0:
 
                 launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
