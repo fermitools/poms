@@ -218,7 +218,7 @@ class SubmissionsPOMS:
         self.checker = sam_project_checker(ctx)
 
         completed_projects = []
-        finish_up_submissions = []
+        finish_up_submissions = set()
         mark_located = []
 
         ctx.db.execute("SET SESSION lock_timeout = '450s';")
@@ -244,6 +244,7 @@ class SubmissionsPOMS:
             .all()
         ):
             res.append("completion type completed: %s" % s.submission_id)
+            finish_up_submissions.add(s.submission_id)
 
         # now get the ones with completion_type "located":
         # and decide if they go on the finish_up_submissions list...
@@ -260,7 +261,7 @@ class SubmissionsPOMS:
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get("force_located", False)):
-                finish_up_submissions.append(s.submission_id)
+                finish_up_submissions.add(s.submission_id)
             elif s.project:
                 self.checker.add_project_submission(s)
             else:
@@ -268,6 +269,7 @@ class SubmissionsPOMS:
 
         finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
 
+        finish_up_submissions = list(finish_up_submissions)  
         finish_up_submissions.sort()
 
         for s in finish_up_submissions:
@@ -813,7 +815,7 @@ class SubmissionsPOMS:
             return 1
 
         lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status_id != self.status_Located and not recovery_typeoverride:
+        if lasthist.status_id != self.status_Located and not recovery_type_override:
             logit.log("Not launching recovery because submission is not marked Located")
             return
 

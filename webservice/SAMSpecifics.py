@@ -62,7 +62,7 @@ class sam_specifics:
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
             # work around consumed/completed status chagnes
-            recovery_dims = recovery_dims.replace("consumed_status consumed","consumed status 'co%'")
+            recovery_dims = recovery_dims.replace("consumed_status consumed","consumed_status 'co%'")
 
             # recovery dimensions can return an empty string if there is nothing to do.
             if not recovery_dims:
@@ -107,7 +107,7 @@ class sam_specifics:
                 sep = "and"
             recovery_dims += ")"
         else:
-            # default to consumed status(?)
+            # default to consumed_status(?)
             recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status co%%)" % (s.project, s.project)
 
         try:
@@ -422,12 +422,12 @@ class sam_project_checker:
             thresholds.append(threshold)
             val = float(count_list[i])
             if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
-                if val == -1.0
+                if val == -1.0:
                     val = 0.1
             res.append("submission %s val %f threshold %f " % (submission.submission_id, val, threshold))
             if val >= threshold and (threshold != 0 or submission.recovery_tasks_parent):
                 res.append("adding submission %s " % submission)
-                finish_up_submissions.append(submission.submission_id)
+                finish_up_submissions.add(submission.submission_id)
 
         return finish_up_submissions, res
 
