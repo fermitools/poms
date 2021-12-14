@@ -226,7 +226,7 @@ def poms_method(
                 uvdict.update(values)
                 values = uvdict
 
-            if values.get('rtype_override'):
+            if isinstance(values,dict) and values.get('rtype_override'):
                 rtype = values['rtype_override']
                 values = values['html']
 
