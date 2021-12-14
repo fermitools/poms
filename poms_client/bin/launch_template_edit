@@ -16,7 +16,7 @@ groupArg.add_argument('--verbose', '-v', action='count')
 groupArg.add_argument('--launch_account', metavar='launch_account', type=str, 
 help='Please provide the user account for the submission (e.g. your user, or production user e.g. novapro, minospro, dunepro)',default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 groupArg.add_argument('--action', metavar='add-edit-delete', type=str, help='you should choose between add, edit or delete', required = True)
-groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', default=os.environment.get('EXPERIMENT',None))
+groupArg.add_argument('--experiment', metavar='Experiment', type=str, help='The experiment this submission belong', default=os.environ.get('EXPERIMENT',None))
 
 
 parser.add_argument('--launch_name', metavar='Name of your template', type=str, help='the name of the launch template', default = None)

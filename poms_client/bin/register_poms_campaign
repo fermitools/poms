@@ -14,7 +14,7 @@ parser.add_option('--campaign', help="campaign name or id", default = None)
 parser.add_option('--user',     help="username", 
  default=os.environ.get('GRID_USER',os.environ.get('USER','unknown')))
 
-parser.add_option('--experiment', help="experiment name", default = os.environment.get('EXPERIMENT',None))
+parser.add_option('--experiment', help="experiment name", default = os.environ.get('EXPERIMENT',None))
 parser.add_option('--version',  help="software version for campaign", default = None)
 parser.add_option('--campaign-definition',  help="software version for campaign", default = None)
 parser.add_option('--dataset',  help="dataset name for job", default = None)
