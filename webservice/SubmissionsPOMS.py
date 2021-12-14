@@ -1414,7 +1414,8 @@ class SubmissionsPOMS:
         if output_commands:
             cmd = cmd[cmd.find("ssh -tx") :]
             cmd = cmd[:-2]
-            return cmd
+            # make  poms_method not redirect, but show the text
+            return {'rtype_override': 'html', 'html': "<pre>%s</pre>" % cmd}
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
             ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
