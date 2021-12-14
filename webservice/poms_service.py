@@ -881,7 +881,7 @@ class PomsService:
 
     @poms_method(p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}])
     def launch_jobs_commands(self, **kwargs):
-        return self.submissionsPOMS.launch_jobs(**kwargs)[0]
+        return self.submissionsPOMS.launch_jobs(**kwargs)
 
     # see &l=webservice/SubmissionsPOMS.py#launch_jobs&
 
