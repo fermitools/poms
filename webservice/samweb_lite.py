@@ -425,14 +425,61 @@ class samweb_lite:
                     break
             except Exception as e:
                 logit.log("ERROR", "Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
-                # don't bother retrying 409 errors, means its already defined..
-                if i == retries or e.args[0:3] == "409":
+                # 409 error means its already defined..
+                # check if the definition exists and remove it
+                if e.args[0][0:3] == "409":
+                    # delete the existing SAM definition
+                    self.remove_existing_definition(experiment, name)
+                    # recreate the SAM definition with updated dimensions
+                    self.create_definition(experiment, name, dims)
+                    break
+                elif i == retries:
                     raise
 
             time.sleep(5)
 
         return text
 
+    def remove_existing_definition(self, experiment, name):
+        logit.log("INFO", "remove_existing_definition( %s, %s )" % (experiment, name))
+        base = "https://samweb.fnal.gov:8483"
+        path = "/sam/%s/api/definitions/name/%s" % (experiment, name)
+        url = "%s%s" % (base, path)
+        res = None
+        logit.log("INFO", "remove_existing_definition: calling: %s " % url)
+        text = None
+        try:
+            with requests.Session() as sess:
+                logit.log("INFO", "GET definitions/name %s" % name)
+                # check the definition exists
+                res = sess.get(
+                    url,
+                    verify=False,
+                )
+                res.raise_for_status()
+
+                text = res.content
+                # reset "sess", otherwise the delete call will miss the cert
+                sess.close()
+                logit.log("INFO", "GET definitions/name returns: %s" % text)
+                logit.log("INFO", "DELETE definitions/name %s" % name)
+                # delete the preexisting SAM definition
+                res = sess.delete(
+                    url,
+                    verify=False,
+                    cert=(
+                        "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                        "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                    ),
+                )
+                res.raise_for_status()
+
+                text = res.content
+                logit.log("INFO", "DELETE definitions/name %s returns: %s" % (name,text))
+        except Exception as e:
+            logit.log("ERROR", "Exception for definition: url %s exception %s" % (url, e.args))
+            raise
+        return text
 
 if __name__ == "__main__":
     requests.packages.urllib3.disable_warnings()
@@ -457,6 +504,7 @@ if __name__ == "__main__":
     sys.exit(0)
 
     print(sl.create_definition("samdev", "mwm_test_%d" % os.getpid(), "(snapshot_for_project_name mwm_test_proj_1465918505)"))
+    print(sl.remove_existing_definition("samdev", "mwm_test_%d" % os.getpid()))
     i = sl.fetch_info("nova", "arrieta1-Offsite_test_Caltech-20160404_1157")
     i2 = sl.fetch_info("nova", "brebel-AnalysisSkimmer-20151120_0126")
     print("got:")
