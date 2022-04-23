@@ -152,8 +152,9 @@ class sam_specifics:
         ischildof = "ischildof:( " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
-        if s.campaign_stage_obj.campaign_stage_type == "generator":
+        if s.campaign_stage_obj.campaign_stage_type == "generator" or not s.project:
             # if we're a generator, the previous stage should have declared it
+            # or eventually it doesn't have a SAM project
             return dname
 
         if jobtype.file_patterns.find(" ") > 0:
@@ -182,7 +183,19 @@ class sam_specifics:
             #if ndate != cdate:
             #    basedims = "%s and create_date <= '%s'" % (basedims, ndate)
 
+        cur_dname_dims = "defname:%s" % dname
+        cur_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, cur_dname_dims,  dbhandle=self.ctx.db)
+
         dims = "%s and %s" % (basedims, dim_bits)
+        new_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, dims,  dbhandle=self.ctx.db)
+        logit.log("count files: defname %s has %d files" % (dname, cur_dname_nfiles) )
+        logit.log("count files: new dimensions has %d files" % new_dname_nfiles )
+
+        # if #files in the current SAM definition are not less than #files in the updated SAM definition
+        # we do not need to update it, so keep the DAM definition with current dimensions
+        if cur_dname_nfiles >= new_dname_nfiles:
+            logit.log("Do not need to update defname: %s" % dname)
+            return dname
 
         try:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
