@@ -7,7 +7,7 @@ import logging
 import sys
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n get a submission id")
-parser.add_option('--campaign', help="campaign name or id", default = None)
+parser.add_option('--campaign', help="campaign stage name or id", default = None)
 parser.add_option('--user',     help="username", default = os.environ.get('GRID_USER',os.environ.get('USER',None)))
 parser.add_option('--experiment', help="experiment name", default = os.environ.get('EXPERIMENT',None))
 parser.add_option('--command_executed',  help="command name for job", default = None)
@@ -27,7 +27,7 @@ if options.verbose:
 
 try:
     update_session_role(options.poms_role, test_client = options.test)
-    res = get_submission_id_for(campaign = options.campaign,
+    res = get_submission_id_for(campaign_stage_id = options.campaign,
             user = options.user,
             experiment = options.experiment,
             command_executed = options.command_executed,

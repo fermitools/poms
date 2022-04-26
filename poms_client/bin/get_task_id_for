@@ -25,7 +25,8 @@ parser.add_option('--poms_role', type=str, help='use to test the client URL quer
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
-logging.warning(f'Notice: {sys.argv[0]} is deprecated, use get_submission_id_for')
+logging.warning('Notice: %s is deprecated, use get_submission_id_for'%sys.argv[0])
+
 
 try:
     update_session_role(options.poms_role, test_client = options.test)
