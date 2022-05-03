@@ -61,7 +61,8 @@ def safe_get(sess, url, *args, **kwargs):
         sess.mount("https://", HTTPAdapter(max_retries=Retry(total=5, backoff_factor=0.2)))
         # Timeout may need adjustment!
         reply = sess.get(url, timeout=5.0, verify=False, *args, **kwargs)
-        if reply.status_code != 200 and reply.status_code != 404:
+        # SAM returns 400 when dataset definition isn't found calling files/count, so treat that as a 404
+        if reply.status_code not in [200, 400, 404]:
             logit.log("ERROR", "Error: got status %d for url %s" % (reply.status_code, url))
             # Process error, store faulty query in DB
             fault = FaultyRequest(url=url, status=reply.status_code, message=reply.reason)
