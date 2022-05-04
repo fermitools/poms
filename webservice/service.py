@@ -19,6 +19,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
+from prometheus_client import make_wsgi_app
+
 from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
 from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
@@ -244,6 +246,7 @@ if run_it:
 
     poms_instance = poms_service.PomsService()
     app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
+    cherrypy.tree.graft(make_wsgi_app(), poms_instance.path+'/metrics')
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()

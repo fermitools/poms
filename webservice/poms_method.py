@@ -9,6 +9,7 @@ import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
+from prometheus_client import Histogram, Counter
 
 # h3. std python
 import json
@@ -42,6 +43,7 @@ from . import (
 # stack trace, and have the error page templates show part of message
 # and unfold it if requested...
 
+error_counter = Counter('poms_webservice_response_errors_total', 'Number of error reponses', ['error','code'])
 
 def error_rewrite(f):
     def wrapper(*args, **kwargs):
@@ -49,31 +51,40 @@ def error_rewrite(f):
             return f(*args, **kwargs)
         except PermissionError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='401').inc()
             raise cherrypy.HTTPError(401, repr(e))
         except TypeError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, repr(e))
         except KeyError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Missing form field: %s" % repr(e))
         except AttributeError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Not found item: %s" % repr(e))
         except sqlalchemy.exc.DataError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
         except ValueError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Invalid argument: %s" % repr(e))
         except jinja2.exceptions.UndefinedError as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Missing arguments")
         except cherrypy.HTTPRedirect as e:
             raise
         except cherrypy.HTTPError as e:
+            error_counter.labels(error=e.reason,code=e.code).inc()
             raise
         except Exception as e:
             logging.exception("rewriting:")
+            error_counter.labels(error=type(e).__name__,code='400').inc()
             raise cherrypy.HTTPError(400, "Unknown error %s" % repr(e))
 
     return wrapper
@@ -123,6 +134,7 @@ class JSONORMEncoder(json.JSONEncoder):
 
 # h2. The actual poms_method decorator, the docstring covers the parameters
 
+req_histogram = Histogram('poms_webservice_response_time_seconds', 'Time spent handling request', ['method'])
 
 def poms_method(
     p=[],
@@ -164,6 +176,8 @@ def poms_method(
     """
 
     def decorator(func):
+        timer=req_histogram.labels(method=func.__name__)
+        @timer.time()
         def method(self, *args, **kwargs):
             if not call_args:
                 for i in range(len(args)):
