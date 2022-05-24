@@ -1180,13 +1180,13 @@ class SubmissionsPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise PermissionError("non experimenter launch not on localhost")
 
-        if ctx.role == "production" and not lt.launch_host.find(exp) >= 0 and exp != "samdev":
+        if ctx.role == "production" and not lt.launch_host.find(exp) >= 0 and not lt.launch_host == "fifeutilgpvm01.fnal.gov" and exp != "samdev":
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             raise AssertionError(output)
 
         if ctx.role == "analysis" and not (
-            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud210.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov")
+            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud210.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov", "fifeutilgpvm01.fnal.gov")
         ):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
