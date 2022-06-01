@@ -1127,7 +1127,7 @@ class PomsService:
         return self.miscPOMS.held_launches_remove(**kwargs)
 
     @poms_method()
-    def clear_cache(*args, **kwargs):
+    def clear_cache(self, *args, **kwargs):
         return self.permissions.clear_cache()
 
     # h4. shutdown
