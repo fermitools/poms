@@ -277,6 +277,8 @@ def main():
 
     cursor.close()
     conn.close()
+    # have poms clear its permissions cache since we updated permissions
+    req = requests.get("http://127.0.0.1:8080/poms/clear_cache")
     logging.debug("main: elapsed seconds: %s", (time.time() - stime))
     logging.debug("main: finito!")
 

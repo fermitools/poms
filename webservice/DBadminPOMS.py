@@ -56,4 +56,6 @@ class DBadminPOMS:
                 #   logit.log("update_experiment_shifters: user %s already not a shifter" % u)
 
         ctx.db.commit()
+        # clear permissions cache since we updated permissions.
+        self.permissions.clear_cache()
         return "Ok"
