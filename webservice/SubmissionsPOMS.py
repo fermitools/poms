@@ -1412,6 +1412,7 @@ class SubmissionsPOMS:
             "export POMS_TEST=%s" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
+            "export GROUP=%s" % group,
         ]
 
         cleanup_cmdl = [
