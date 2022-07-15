@@ -1231,6 +1231,9 @@ class SubmissionsPOMS:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
             htgettokenopts = "--credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % exp
+            # samdev doesn't really have a managed token...
+            if lt.launch_account == "samdev":
+                htgettokenopts = ""
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
