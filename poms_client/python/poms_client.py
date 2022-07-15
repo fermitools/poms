@@ -722,19 +722,43 @@ def getconfig(kwargs):
     _foundconfig = config
     return config
 
-def base_path(test_client, config):
+def base_path(test_client, config, tokens=False):
 
     if test_client:
         if test_client == "int":
-            base = config.get('url', 'base_int_ssl')
+            base = config.get('url', 'base_int_ssl_tokens' if tokens else 'base_int_ssl')
         else:
-            base = config.get('url', 'base_dev_ssl')
+            base = config.get('url', 'base_dev_ssl_tokens' if tokens else 'base_dev_ssl')
 
         logging.debug("base = %r", base)
     else:
         #base=config['url']['base_prod']
-        base = config.get('url', 'base_prod')
+        base = config.get('url', 'base_prod_tokens' if tokens else 'base_prod')
     return base
+
+def check_stale_token(options):
+    token = auth_token()
+    rs.headers.add('Authorization: BEARER %s' % token)
+    rs.verify = False
+    try:
+        url = "%s/file_uploads/%s/analysis/%s?fmt=json" % (
+              base_path(options.test, getconfig({})), options.experiment, os.environ['USER'], True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            c = rs.get(url)
+        d = c.json()
+        for f in d.get("file_stat_list", []):
+            if f[0][:3] == "vt_":
+                pdate = datetime.datetime.strptime(f[2], "%Y-%m-%dT%H:%M:%SZ")
+
+                if options.verbose:
+                    logging.info("proxy on POMS has date %sZ", pdate)
+                    logging.info("current time %sZ", datetime.datetime.utcnow().isoformat())
+                return datetime.datetime.utcnow() - pdate > datetime.timedelta(days=3)
+    except Exception as e:
+        logging.exception("Failed getting uploaded certificate date from POMS")
+    # if we don't find it or something went wrong, its stale :-)
+    return True
 
 def check_stale_proxy(options):
     cert = auth_cert()

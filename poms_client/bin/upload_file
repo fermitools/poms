@@ -14,6 +14,7 @@ parser.add_option('--dev', action='store_const', const='dev', dest='test', metav
 parser.add_option('--int', action='store_const', const='int', dest='test', metavar='', help='use the int/integration instance of POMS')
 parser.add_option('--verbose', action='store_true', help="be verbose", default = None)
 parser.add_option('--proxy', action='store_true', help='upload a proxy', default=None)
+parser.add_option('--vaulttoken', action='store_true', help='upload a vault token', default=None)
 parser.add_option('--refresh', action='store_true', help='upload proxy only if stale', default=None)
 
 (options, args ) = parser.parse_args()
@@ -27,6 +28,36 @@ if options.refresh:
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 
+try:
+
+    if options.vaulttoken:
+
+        if options.refresh:
+             if not poms_client.check_stale_token(options):
+                 if options.verbose:
+                      logging.info("POMS vault token less than 3 days old.. leaving it alone.")
+                 sys.exit(0)
+             else:
+                 logging.info("POMS token stale, continuing..")
+
+        vaultfile = "/tmp/vt_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
+        if os.environ.get('BEARER_TOKEN_FILE', None):
+            # already have a token(?), just upload
+            os.system("cp /tmp/vt_u%d  %s" % (os.getuid(), vaultfile))
+        else:
+             try:
+                 os.unlink(vaultfile)
+             except:
+                 pass
+             # assume jobsub_lite/condor RPM install
+             os.system('/usr/bin/condor_vault_storer %s' % options.experiment)
+             os.system("cp /tmp/vt_u%d %s" % (os.getuid(), vaultfile))
+        args.append(vaultfile)
+except SystemExit:
+    pass
+except:
+    logging.exception(sys.argv[0] + ": while getting proxy:")
+    sys.exit(1)
 try:
 
     if options.proxy:
