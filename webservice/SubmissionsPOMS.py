@@ -1144,7 +1144,7 @@ class SubmissionsPOMS:
             # for the moment, using fifeutilgpvm02 is code for using
             # jobsub_lite and tokens.  This needs a flag on
             # the campaigns and/or experiments instead.
-            do_jobsub_lite = lt.launch_host == "fifeutilgpvm02.fnal.gov"
+            do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
 
             # if we're launching jobs, the campaign must now be active
             if not cs.campaign_obj.active:
@@ -1232,7 +1232,7 @@ class SubmissionsPOMS:
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
             htgettokenopts = "--credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % exp
             # samdev doesn't really have a managed token...
-            if lt.launch_account == "samdev":
+            if lt.launch_account == "samdevpro":
                 htgettokenopts = ""
 
         allheld = self.get_job_launches(ctx) == "hold"
@@ -1374,7 +1374,7 @@ class SubmissionsPOMS:
             if do_tokens
             else "export X509_USER_PROXY=%s" % proxyfile,
            
-            "htgettoken --nokerberos --nooidc %s -i %s -r %s " % (htgettokenopts, exp, role)
+            "htgettoken --nokerberos --nooidc %s -i %s -r %s -a fermicloud543.fnal.gov " % (htgettokenopts, exp, role)
             if do_tokens
             else
             # proxy file has to belong to us, apparently, so...
@@ -1382,7 +1382,7 @@ class SubmissionsPOMS:
             % (uu, uu),
             
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; unsetup jobsub_client"
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin"
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (
