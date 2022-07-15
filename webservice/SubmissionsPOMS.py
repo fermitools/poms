@@ -1226,11 +1226,11 @@ class SubmissionsPOMS:
         if ctx.role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
-            vaulttokenfile = "%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
+            htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-            vaulttokenfile = "/opt/%spro/%spro.Production.token" % (exp, exp)
+            htgettokenopts = "--credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % exp
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1370,16 +1370,14 @@ class SubmissionsPOMS:
             "export BEARER_TOKEN_FILE=/tmp/token_%s; " % uu + "export _condor_SEC_CREDENTIAL_STORER=/bin/true"
             if do_tokens
             else "export X509_USER_PROXY=%s" % proxyfile,
-            (
-                "htgettoken --vaulttokeninfile=%s --nokerberos --nooidc -i %s " % (vaulttokenfile, exp)
-                if do_tokens
-                else
-                # proxy file has to belong to us, apparently, so...
-                "cp $X509_USER_PROXY /tmp/proxy%s && export X509_USER_PROXY=/tmp/proxy%s && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
-                % (uu, uu)
-            )
-            if ctx.role == "analysis"
-            else ":",
+           
+            "htgettoken --nokerberos --nooidc %s -i %s -r %s " % (htgettokenopts, exp, role)
+            if do_tokens
+            else
+            # proxy file has to belong to us, apparently, so...
+            "cp $X509_USER_PROXY /tmp/proxy%s && export X509_USER_PROXY=/tmp/proxy%s && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
+            % (uu, uu),
+            
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; unsetup jobsub_client"
             if do_tokens
@@ -1416,14 +1414,11 @@ class SubmissionsPOMS:
             "export JOBSUB_GROUP=%s" % group,
         ]
 
-        if ctx.role == "analysis":
-            cleanup_cmdl = [
-                # we made either a token or a proxy copy just for
-                # authenticating this launch, so clean it up...
-                "rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            ]
-        else:
-            cleanup_cmdl = []
+        cleanup_cmdl = [
+            # we made either a token or a proxy copy just for
+            # authenticating this launch, so clean it up...
+            "rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
+        ]
 
         if definition_parameters:
             if isinstance(definition_parameters, str):
