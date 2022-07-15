@@ -1382,7 +1382,7 @@ class SubmissionsPOMS:
             % (uu, uu),
             
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin"
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc v2_6_6; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin"
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (
