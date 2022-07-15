@@ -1,5 +1,6 @@
 import poms.webservice.logit as logit
-import time 
+import time
+
 
 class stagedfiles:
     """
@@ -39,7 +40,7 @@ class stagedfiles:
     def next(self):
         res = self.peek()
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
-        newfullname = res.replace("slice", "full") + "_%s"%int(time.time())
+        newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
         if self.cs.cs_last_split:
             snapshotbit = "snapshot_id %s or" % self.cs.cs_last_split
             self.samhandle.create_definition(

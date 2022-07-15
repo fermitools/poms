@@ -30,21 +30,21 @@ class sam_specifics:
         cs = s.campaign_stage_obj
         ndeps = (
             self.ctx.db.query(func.count(CampaignDependency.provides_campaign_stage_id))
-           .filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id)
-           .group_by(CampaignDependency.provides_campaign_stage_id)
-           .first()
+            .filter(CampaignDependency.needs_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id)
+            .group_by(CampaignDependency.provides_campaign_stage_id)
+            .first()
         )
-        for i in range(1,ndeps[0]+1):
+        for i in range(1, ndeps[0] + 1):
             if cs.creator_role == "analysis":
                 dname = "poms_%s_depends_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, s.submission_id, i)
             else:
                 dname = "poms_depends_%d_%d" % (s.submission_id, i)
 
-            logit.log("declare_approval_transfer_datasets: creating definition %s defname:%s" % (dname, s.submission_params['dataset']))
+            logit.log(
+                "declare_approval_transfer_datasets: creating definition %s defname:%s" % (dname, s.submission_params["dataset"])
+            )
 
-            self.ctx.sam.create_definition(
-                cs.experiment, dname, "defname:%s" % s.submission_params['dataset']
-           )
+            self.ctx.sam.create_definition(cs.experiment, dname, "defname:%s" % s.submission_params["dataset"])
 
     def create_recovery_dataset(self, s, rtype, rlist):
 
@@ -56,13 +56,16 @@ class sam_specifics:
             # not using ctx.sam.recovery_dimensions here becuase it
             # doesn't do what I want on ended incomplete projects, etc.
             # so not a good choice for our default option.
-            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status co%%)" % (s.project, s.project)
+            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status co%%)" % (
+                s.project,
+                s.project,
+            )
         elif rtype.name == "proj_status":
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
             # work around consumed/completed status chagnes
-            recovery_dims = recovery_dims.replace("consumed_status consumed","consumed_status 'co%'")
+            recovery_dims = recovery_dims.replace("consumed_status consumed", "consumed_status 'co%'")
 
             # recovery dimensions can return an empty string if there is nothing to do.
             if not recovery_dims:
@@ -108,7 +111,10 @@ class sam_specifics:
             recovery_dims += ")"
         else:
             # default to consumed_status(?)
-            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status co%%)" % (s.project, s.project)
+            recovery_dims = "snapshot_for_project_name %s minus (project_name %s and consumed_status co%%)" % (
+                s.project,
+                s.project,
+            )
 
         try:
             logit.log("counting files dims %s" % recovery_dims)
@@ -180,16 +186,18 @@ class sam_specifics:
             # frozen after we run, so it doesn't collect later similar projects
             # output.
             # .. nevermind, that actually exclues recovery launch output..
-            #if ndate != cdate:
+            # if ndate != cdate:
             #    basedims = "%s and create_date <= '%s'" % (basedims, ndate)
 
         cur_dname_dims = "defname:%s" % dname
-        cur_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, cur_dname_dims,  dbhandle=self.ctx.db)
+        cur_dname_nfiles = self.ctx.sam.count_files(
+            s.campaign_stage_snapshot_obj.experiment, cur_dname_dims, dbhandle=self.ctx.db
+        )
 
         dims = "%s and %s" % (basedims, dim_bits)
-        new_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, dims,  dbhandle=self.ctx.db)
-        logit.log("count files: defname %s has %d files" % (dname, cur_dname_nfiles) )
-        logit.log("count files: new dimensions has %d files" % new_dname_nfiles )
+        new_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, dims, dbhandle=self.ctx.db)
+        logit.log("count files: defname %s has %d files" % (dname, cur_dname_nfiles))
+        logit.log("count files: new dimensions has %d files" % new_dname_nfiles)
 
         # if #files in the current SAM definition are not less than #files in the updated SAM definition
         # we do not need to update it, so keep the DAM definition with current dimensions
@@ -304,14 +312,14 @@ class sam_specifics:
             all_kids_decl_list,
         )
 
-    def count_files_in_datasets(self, exp,  datasets):
+    def count_files_in_datasets(self, exp, datasets):
         cdl = []
         for d in datasets:
             cdl.append("defname:%s" % d)
-        dims =" or ".join([c for c in cdl if c != None])
+        dims = " or ".join([c for c in cdl if c != None])
         logit.log("count_files_in_datasets: Counting dimension %s" % dims)
-        return self.ctx.sam.count_files(exp, dims,  dbhandle=self.ctx.db)
-        
+        return self.ctx.sam.count_files(exp, dims, dbhandle=self.ctx.db)
+
 
 class sam_project_checker:
     def __init__(self, ctx):
@@ -416,7 +424,7 @@ class sam_project_checker:
             if submission.files_generated == None:
                 submission.files_generated = count_list[i]
 
-            if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
+            if submission.campaign_stage_snapshot_obj.completion_type == "complete":
                 # not zero, but should always pass...
                 threshold = 0.00001
 
@@ -434,7 +442,7 @@ class sam_project_checker:
 
             thresholds.append(threshold)
             val = float(count_list[i])
-            if submission.campaign_stage_snapshot_obj.completion_type == 'complete':
+            if submission.campaign_stage_snapshot_obj.completion_type == "complete":
                 if val == -1.0:
                     val = 0.1
             res.append("submission %s val %f threshold %f " % (submission.submission_id, val, threshold))
@@ -443,4 +451,3 @@ class sam_project_checker:
                 finish_up_submissions.add(submission.submission_id)
 
         return finish_up_submissions, res
-

@@ -307,7 +307,7 @@ class StagesPOMS:
                         "completion_pct": completion_pct,
                         "campaign_id": campaign_id,
                     }
-                    
+
                     if c_s and split_type != c_s.split_type:
                         # clear last split if changing split type
                         columns["cs_last_split"] = None
@@ -375,7 +375,9 @@ class StagesPOMS:
                 data["view_mine"] = experimenter.experimenter_id
                 data["view_others"] = experimenter.experimenter_id
                 data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superuser") else None
-                data["view_production"] = "view_production" if ctx.role in ("production", "production-shifter", "superuser") else None
+                data["view_production"] = (
+                    "view_production" if ctx.role in ("production", "production-shifter", "superuser") else None
+                )
             else:
                 data["view_active"] = kwargs.get("view_active", None)
                 data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -616,7 +618,7 @@ class StagesPOMS:
             data["view_mine"] = experimenter.experimenter_id
             data["view_others"] = experimenter.experimenter_id
             data["view_analysis"] = "view_analysis" if ctx.role in ("analysis", "superuser") else None
-            data["view_production"] = "view_production" if ctx.role in ("production","production-shifter", "superuser") else None
+            data["view_production"] = "view_production" if ctx.role in ("production", "production-shifter", "superuser") else None
         else:
             data["view_active"] = kwargs.get("view_active", None)
             data["view_inactive"] = kwargs.get("view_inactive", None)
@@ -751,9 +753,9 @@ class StagesPOMS:
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
         launch_flist = glob.glob("{}/*".format(dirname))
 
-        if( len(launch_flist) > 500 ):
+        if len(launch_flist) > 500:
             launch_flist = launch_flist[:500]
-        
+
         launch_flist = list(map(os.path.basename, launch_flist))
 
         recent_submission_list = (
@@ -896,7 +898,7 @@ class StagesPOMS:
             m = re.match(r"poms_(depends|recover)_(.*)_[0-9]", pd)
             if m:
                 depends[sid] = int(m.group(2))
-                darrow[sid] = ("&#x21b3;" if m.group(1) == "depends" else "&#x21ba;")
+                darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
             else:
                 depends[sid] = None
                 darrow[sid] = ""
@@ -960,9 +962,9 @@ class StagesPOMS:
             launch for a given campaign
         """
         if test_launch and camp.test_split_type:
-           split_type = camp.test_split_type
+            split_type = camp.test_split_type
         else:
-           split_type = camp.cs_split_type 
+            split_type = camp.cs_split_type
 
         if not split_type or split_type == "None" or split_type == "none":
             return camp.dataset
@@ -1019,14 +1021,14 @@ class StagesPOMS:
         dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
         launch_flist = glob.glob("{}/*".format(dirname))
 
-        if( len(launch_flist) > 500 ):
+        if len(launch_flist) > 500:
             launch_flist = launch_flist[:500]
-        
+
         launch_flist = list(map(os.path.basename, launch_flist))
         return c_s, job, launch_flist
 
     # h3. mark_campaign_hold
-    def mark_campaign_hold(self, ctx, campaign_stage_ids, is_hold, clear_cron = True):
+    def mark_campaign_hold(self, ctx, campaign_stage_ids, is_hold, clear_cron=True):
         session_experimenter = ctx.get_experimenter()
         for cs in ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(campaign_stage_ids)).all():
             if is_hold in ("Hold", "Queue"):
@@ -1034,7 +1036,7 @@ class StagesPOMS:
                 cs.role_held_with = ctx.role
                 if clear_cron:
                     for csi in campaign_stage_ids:
-                        self.update_launch_schedule(ctx,csi,delete=True)
+                        self.update_launch_schedule(ctx, csi, delete=True)
             elif is_hold == "Release":
                 cs.hold_experimenter_id = None
                 cs.role_held_with = None
@@ -1074,7 +1076,7 @@ class StagesPOMS:
         else:
             minlist = [int(x) for x in minlist if x]
 
-        hourevery=None
+        hourevery = None
         if hourlist and hourlist[0] == "*":
             hourlist = None
         elif hourlist[0][:2] == "*/":

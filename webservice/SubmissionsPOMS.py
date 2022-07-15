@@ -13,6 +13,7 @@ import re
 import select
 import subprocess
 import time
+import uuid
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -168,7 +169,7 @@ class SubmissionsPOMS:
         )
 
         query = (
-            ctx.db.query(SubmissionHistory.submission_id,SubmissionHistory.status_id)
+            ctx.db.query(SubmissionHistory.submission_id, SubmissionHistory.status_id)
             .filter(SubmissionHistory.created == sq.c.latest)
             .filter(SubmissionHistory.submission_id == sq.c.l_sid)
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
@@ -269,7 +270,7 @@ class SubmissionsPOMS:
 
         finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
 
-        finish_up_submissions = list(finish_up_submissions)  
+        finish_up_submissions = list(finish_up_submissions)
         finish_up_submissions.sort()
 
         for s in finish_up_submissions:
@@ -280,8 +281,8 @@ class SubmissionsPOMS:
         # now commit having marked things located, to release database
         # locks.
         #
-        if ctx.experiment == 'borked':
-            # testing hook 
+        if ctx.experiment == "borked":
+            # testing hook
             logit.log("faking database error")
             res.append("faking database error")
             ctx.db.rollback()
@@ -310,7 +311,7 @@ class SubmissionsPOMS:
                 # finish up any pending changes before the next try
                 ctx.db.commit()
             except Exception as e:
-                logit.logger.exception("exception %s during finish_up_submissions %s" % (e,submission))
+                logit.logger.exception("exception %s during finish_up_submissions %s" % (e, submission))
                 ctx.db.rollback()
 
         return res
@@ -413,8 +414,8 @@ class SubmissionsPOMS:
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         ctx.db.commit()
         return s.submission_id
-    
-    # h3. get_last_history 
+
+    # h3. get_last_history
     #
     #   query to find curent status of a submission; factored out
     #   because its easy to get wrong...
@@ -434,8 +435,8 @@ class SubmissionsPOMS:
             .filter(SubmissionHistory.submission_id == submission_id)
             .first()
         )
-  
-        logit.log("get_last_history: sub_id %s returns %s" % (submission_id,lasthist))
+
+        logit.log("get_last_history: sub_id %s returns %s" % (submission_id, lasthist))
         return lasthist
 
     # h3. update_submission_status
@@ -455,10 +456,10 @@ class SubmissionsPOMS:
             .first()
         )
 
-        # don't mark recovery jobs Failed -- they get just 
+        # don't mark recovery jobs Failed -- they get just
         # the jobs that didn't pass the original submission,
         # the recovery is still a success even if they all fail again.
-        if (status == "Failed" and s.recovery_tasks_parent):
+        if status == "Failed" and s.recovery_tasks_parent:
             status = "Completed"
 
         slist = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first()
@@ -469,14 +470,11 @@ class SubmissionsPOMS:
             # not a known status, just bail
             return
 
-        lasthist = self.get_last_history(ctx,submission_id)
+        lasthist = self.get_last_history(ctx, submission_id)
 
         logit.log(
             "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
-            % (submission_id, status_id, 
-               lasthist.status_id if lasthist else "", 
-               lasthist.created if lasthist else ""
-              )
+            % (submission_id, status_id, lasthist.status_id if lasthist else "", lasthist.created if lasthist else "")
         )
 
         # don't roll back Located, Failed, or Removed (final states)
@@ -484,7 +482,7 @@ class SubmissionsPOMS:
         # *could*  have a launch that took a Really Long Time, and we might
         # have falsely concluded that the launch failed...
         final_states = (self.status_Located, self.status_Removed, self.status_Failed)
-        if lasthist and lasthist.status_id in final_states and ctx.username == 'poms':
+        if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
             return
 
         # don't roll back Completed
@@ -541,13 +539,26 @@ class SubmissionsPOMS:
         failed_sids = [x[0] for x in newtups]
 
         res = []
-        for submission in ctx.db.query(Submission).filter(Submission.submission_id.in_(failed_sids)).order_by(Submission.submission_id).with_for_update(read=True).all():
+        for submission in (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id.in_(failed_sids))
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
+            .all()
+        ):
             # sometimes jobs complete quickly, and we do not see them go by..
             # so if we got a jobsub_job_id, check for a job log to find
             # out what happened
             if submission.jobsub_job_id:
                 logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(ctx.db, submission.jobsub_job_id, cert, key, submission.campaign_stage_obj.experiment, submission.campaign_stage_obj.creator_role)
+                job_data = get_joblogs(
+                    ctx.db,
+                    submission.jobsub_job_id,
+                    cert,
+                    key,
+                    submission.campaign_stage_obj.experiment,
+                    submission.campaign_stage_obj.creator_role,
+                )
 
                 if job_data:
                     res.append("found job log for %s!" % submission_id)
@@ -582,12 +593,12 @@ class SubmissionsPOMS:
             .all()
         )
 
-        qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'";
+        qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'"
 
-        dq = text(qt%("depends",submission_id)).columns(submission_id=Integer)
-        depend_ids =  [x[0] for x in ctx.db.execute(dq).fetchall()]
+        dq = text(qt % ("depends", submission_id)).columns(submission_id=Integer)
+        depend_ids = [x[0] for x in ctx.db.execute(dq).fetchall()]
 
-        rq = text(qt%("recover",submission_id)).columns(submission_id=Integer)
+        rq = text(qt % ("recover", submission_id)).columns(submission_id=Integer)
         recovery_ids = [x[0] for x in ctx.db.execute(rq).fetchall()]
 
         rtypes = ctx.db.query(RecoveryType).all()
@@ -670,8 +681,8 @@ class SubmissionsPOMS:
             .filter(SubmissionStatus.status.in_(status_list), SubmissionHistory.created == sq.c.latest)
             .all()
         )
- 
-        if cl and cl != 'None':
+
+        if cl and cl != "None":
 
             ccl = (
                 ctx.db.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
@@ -693,7 +704,11 @@ class SubmissionsPOMS:
 
         else:
 
-            res = list(ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment).filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id).filter(Submission.submission_id.in_(running_sids)))
+            res = list(
+                ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment)
+                .filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id)
+                .filter(Submission.submission_id.in_(running_sids))
+            )
 
         return res
 
@@ -711,7 +726,7 @@ class SubmissionsPOMS:
             #
             # https://stackoverflow.com/questions/42559434/updates-to-json-field-dont-persist-to-db
             #
-            flag_modified(s,"submission_params")
+            flag_modified(s, "submission_params")
         else:
             s.submission_params = {"force_located": True}
         ctx.db.add(s)
@@ -721,12 +736,7 @@ class SubmissionsPOMS:
     # h3. update_submission
     def update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
 
-        s = (
-            ctx.db.query(Submission)
-            .filter(Submission.submission_id == submission_id)
-            .with_for_update(read=True)
-            .first()
-        )
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
             return "Unknown."
 
@@ -942,7 +952,14 @@ class SubmissionsPOMS:
         if self.get_job_launches(ctx) == "hold":
             return "Held."
 
-        hl = ctx.db.query(HeldLaunch).join(CampaignStage, HeldLaunch.campaign_stage_id==CampaignStage.campaign_stage_id).filter(CampaignStage.hold_experimenter_id == None).with_for_update(read=True).order_by(HeldLaunch.created).first()
+        hl = (
+            ctx.db.query(HeldLaunch)
+            .join(CampaignStage, HeldLaunch.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .filter(CampaignStage.hold_experimenter_id == None)
+            .with_for_update(read=True)
+            .order_by(HeldLaunch.created)
+            .first()
+        )
         if hl:
             launcher = hl.launcher
             campaign_stage_id = hl.campaign_stage_id
@@ -1123,6 +1140,12 @@ class SubmissionsPOMS:
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
+            # XXX
+            # for the moment, using fifeutilgpvm02 is code for using
+            # jobsub_lite and tokens.  This needs a flag on
+            # the campaigns and/or experiments instead.
+            do_jobsub_lite = lt.launch_host == "fifeutilgpvm02.fnal.gov"
+
             # if we're launching jobs, the campaign must now be active
             if not cs.campaign_obj.active:
                 cs.campaign_obj.active = True
@@ -1186,7 +1209,14 @@ class SubmissionsPOMS:
             raise AssertionError(output)
 
         if ctx.role == "analysis" and not (
-            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud210.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov")
+            lt.launch_host
+            in (
+                "pomsgpvm01.fnal.gov",
+                "fermicloud210.fnal.gov",
+                "poms-int.fnal.gov",
+                "pomsint.fnal.gov",
+                "fifeutilgpvm02.fnal.gov",
+            )
         ):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
@@ -1196,9 +1226,11 @@ class SubmissionsPOMS:
         if ctx.role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
+            vaulttokenfile = "%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+            vaulttokenfile = "/opt/%spro/%spro.Production.token" % (exp, exp)
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1273,7 +1305,7 @@ class SubmissionsPOMS:
         if cs and cs.campaign_stage_type == "approval":
             # special case for approval -- don't need to really launch...
             self.update_submission_status(ctx, sid, "Awaiting Approval")
-            ctx.db.commit() 
+            ctx.db.commit()
 
             sam_specifics(ctx).declare_approval_transfer_datasets(sid)
 
@@ -1292,8 +1324,10 @@ class SubmissionsPOMS:
         if cs and cs.campaign_stage_type == "datatransfer":
             # also need "output" datasets for data transfer
             sam_specifics(ctx).declare_approval_transfer_datasets(sid)
-        
+
         ctx.db.commit()
+
+        uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
 
         cmdl = [
             "exec 2>&1",
@@ -1322,13 +1356,34 @@ class SubmissionsPOMS:
             # 3. setup *just* poms_jobsub_wrapper, so it gets on the
             #    front of the path and can intercept calls to "jobsub_submit"
             #
-            "export X509_USER_PROXY=%s" % proxyfile,
-            # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy$$ && export X509_USER_PROXY=/tmp/proxy$$  && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
+            # also, for now we're conditionally doing different things
+            # about authentication based on 'do_tokens'
+            # this conditonal expression ugliness should go away once
+            # we migrate to jobsub_lite for everyone...
+            #
+            # note we actually turn off running condor_vault_storer
+            # (that's the _condor_SEC_CREDENTIAL_STORER=/bin/true)
+            # because we assume that's getting done by
+            #  * the production proxy service for production proxies and
+            #  * by the analysis user uploading their vault token...
+            #
+            "export BEARER_TOKEN_FILE=/tmp/token_%s; " % uu + "export _condor_SEC_CREDENTIAL_STORER=/bin/true"
+            if do_tokens
+            else "export X509_USER_PROXY=%s" % proxyfile,
+            (
+                "htgettoken --vaulttokeninfile=%s --nokerberos --nooidc -i %s " % (vaulttokenfile, exp)
+                if do_tokens
+                else
+                # proxy file has to belong to us, apparently, so...
+                "cp $X509_USER_PROXY /tmp/proxy%s && export X509_USER_PROXY=/tmp/proxy%s && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
+                % (uu, uu)
+            )
             if ctx.role == "analysis"
             else ":",
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; unsetup jobsub_client"
+            if do_tokens
+            else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (
                 lt.launch_setup
                 % {
@@ -1360,6 +1415,16 @@ class SubmissionsPOMS:
             "export POMS_TASK_DEFINITION_ID=%s" % cdid,
             "export JOBSUB_GROUP=%s" % group,
         ]
+
+        if ctx.role == "analysis":
+            cleanup_cmdl = [
+                # we made either a token or a proxy copy just for
+                # authenticating this launch, so clean it up...
+                "rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
+            ]
+        else:
+            cleanup_cmdl = []
+
         if definition_parameters:
             if isinstance(definition_parameters, str):
                 params = OrderedDict(json.loads(definition_parameters))
@@ -1406,6 +1471,7 @@ class SubmissionsPOMS:
             cmdl.append("/bin/bash -i")
         else:
             cmdl.append(lcmd)
+        cmdl.extend(cleanup_cmdl)
         cmdl.append("echo == completed: $$ ==")
         cmdl.append("exit")
         cmdl.append("' &")
@@ -1416,7 +1482,7 @@ class SubmissionsPOMS:
         if output_commands:
             cmd = cmd[cmd.find("ssh -tx") :]
             cmd = cmd[:-2]
-            return  "<pre>%s</pre>" % cmd
+            return "<pre>%s</pre>" % cmd
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
             ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup

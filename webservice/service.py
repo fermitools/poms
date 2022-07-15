@@ -63,10 +63,10 @@ class SAEnginePlugin(plugins.SimplePlugin):
             db_path,
             echo=False,
             echo_pool=False,
-            pool_size=40,       # 40 connections total in pool
-            pool_recycle=600,   # recycle after 10 minutes
-            pool_pre_ping=True  # check connections before using
-            )
+            pool_size=40,  # 40 connections total in pool
+            pool_recycle=600,  # recycle after 10 minutes
+            pool_pre_ping=True,  # check connections before using
+        )
         atexit.register(self.destroy)
 
     def stop(self):
@@ -169,7 +169,7 @@ def augment_params():
             401, "POMS account does not exist for %s.  To be added you must registered in FERRY." % get_user()
         )
 
-    roles = ["analysis", "production-shifter", "production",  "superuser"]
+    roles = ["analysis", "production-shifter", "production", "superuser"]
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
@@ -246,7 +246,7 @@ if run_it:
 
     poms_instance = poms_service.PomsService()
     app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
-    cherrypy.tree.graft(make_wsgi_app(), poms_instance.path+'/metrics')
+    cherrypy.tree.graft(make_wsgi_app(), poms_instance.path + "/metrics")
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()
     cherrypy.tools.db = SATool()

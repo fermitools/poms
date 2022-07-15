@@ -168,23 +168,23 @@ class CampaignsPOMS:
         logit.log(logit.INFO, "entering campaign_overview: %s" % campaign_id)
 
         stages = self.get_leading_stages(ctx, campaign_id)
-        
+
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
         lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
-
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
 
         #
         # for now we're skipping multiparam datasets
         # and stagedfiles ones; they are expandable though...
-        # 
-        dslist = (ctx.db.query(distinct(CampaignStageSnapshot.dataset))
-                 .filter(CampaignStageSnapshot.campaign_stage_id 
-                           == lead.campaign_stage_id)
-                 .filter(CampaignStageSnapshot.cs_split_type !='multiparam')
-                 .all())
+        #
+        dslist = (
+            ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+            .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
+            .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
+            .all()
+        )
 
         dslist = [x[0] for x in dslist if x[0]]
 
@@ -196,17 +196,26 @@ class CampaignsPOMS:
             if count > 0:
                 total += count
 
-        sp_list = ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
+        sp_list = (
+            ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
+        )
 
-        counts = ctx.db.query(CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)).filter(CampaignStage.campaign_id == campaign_id,Submission.campaign_stage_id == CampaignStage.campaign_stage_id).group_by(CampaignStage.campaign_stage_id).all()
+        counts = (
+            ctx.db.query(
+                CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
+            )
+            .filter(CampaignStage.campaign_id == campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .group_by(CampaignStage.campaign_stage_id)
+            .all()
+        )
         consumed_map = {}
         generated_map = {}
         for r in counts:
             consumed_map[r[0]] = r[1]
             generated_map[r[0]] = r[2]
 
-        logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map) )
-        logit.log("campaign_overview: generated_map: %s" % repr(generated_map) )
+        logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map))
+        logit.log("campaign_overview: generated_map: %s" % repr(generated_map))
 
         campaign = (
             ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).first()
@@ -239,11 +248,11 @@ class CampaignsPOMS:
         except:
             pos = {"x": 100, "y": 100}
 
-        dstxt = "\\n".join(dslist).replace('"',"'")
-        
+        dstxt = "\\n".join(dslist).replace('"', "'")
+
         res.append(
             '  {id: %d, label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
-            % (0, campaign.name, dstxt, int(total) , pos["x"] - 300, pos["y"] )
+            % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
         )
 
         for c_s in csl:
@@ -262,16 +271,17 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (
-            0, stages[0], int(total) ))
+        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
 
         # then all the actual dependencies
         for c_d in c_dl:
             if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
-                consumed = consumed_map.get(c_d.needs_campaign_stage_id,0.0)
+                consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
                 if consumed:
-                    res.append("  {from: %d, to: %d, arrows: 'to', label: '%3.0f'}," % 
-                          (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed )/total))
+                    res.append(
+                        "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
+                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
+                    )
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
@@ -292,13 +302,11 @@ class CampaignsPOMS:
         for c_s in csl:
             res.append(
                 "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
-                % (c_s.campaign_stage_id, self.poms_service.path, 
-                   ctx.experiment, ctx.role, c_s.campaign_stage_id
-                ))
+                % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+            )
         res.append("};")
         res.append(
             "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
- 
         )
         res.append("</script>")
 
@@ -1154,7 +1162,7 @@ class CampaignsPOMS:
         }
 
     # h3. mark_campaign_active
-    def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None, clear_cron = False):
+    def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None, clear_cron=False):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
         auth_error = False
         campaign_ids = (campaign_id or camp_l).split(",")
@@ -1176,7 +1184,7 @@ class CampaignsPOMS:
         if clear_cron and not auth_error:
             csil = ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id.in_(campaign_ids)).all()
             for csi in csil:
-                self.ps.stagesPOMS.update_launch_schedule(ctx,csi,delete=True)
+                self.ps.stagesPOMS.update_launch_schedule(ctx, csi, delete=True)
 
         ctx.db.commit()
 

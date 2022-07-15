@@ -39,7 +39,7 @@ class Permissions:
 
     def check_experiment_role(self, ctx):
 
-        if  self.is_superuser(ctx):
+        if self.is_superuser(ctx):
             return "superuser"
 
         if ctx.experiment == "fermilab":
@@ -162,7 +162,7 @@ class Permissions:
 
     def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx) and ctx.role == 'superuser':
+        if self.is_superuser(ctx) and ctx.role == "superuser":
             return
 
         if item_id or name:
@@ -215,7 +215,7 @@ class Permissions:
 
     def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx) and ctx.role == 'superuser':
+        if self.is_superuser(ctx) and ctx.role == "superuser":
             return None
 
         if item_id or name:
@@ -261,7 +261,7 @@ class Permissions:
 
     def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
 
-        if self.is_superuser(ctx) and ctx.role == 'superuser':
+        if self.is_superuser(ctx) and ctx.role == "superuser":
             return
 
         if item_id or name:
@@ -307,11 +307,11 @@ class Permissions:
             return
 
         # make production-shifter work -- you can *do* things production
-        # users can do, so if the user is a production-shifter (ctx.role) 
+        # users can do, so if the user is a production-shifter (ctx.role)
         # the action requires production, rewrite it to production-shifter
         # so it matches below
-        if role == 'production' and ctx.role == 'production-shifter':
-            role = 'production-shifter'
+        if role == "production" and ctx.role == "production-shifter":
+            role = "production-shifter"
 
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             logit.log("can_do: resp: fail")

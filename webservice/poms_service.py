@@ -249,9 +249,7 @@ class PomsService:
     # h4. update_experiment_shifters
 
     @poms_method(
-        p=[{"p": "is_superuser"}],
-        redirect="%(poms_path)s/experiment_shifters/%(experiment)s/%(role)s",
-        rtype="redirect",
+        p=[{"p": "is_superuser"}], redirect="%(poms_path)s/experiment_shifters/%(experiment)s/%(role)s", rtype="redirect"
     )
     def update_experiment_shifters(self, **kwargs):
         return {"data": self.dbadminPOMS.update_experiment_shifters(**kwargs)}
@@ -309,7 +307,6 @@ class PomsService:
     @poms_method(
         p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="CampaignDepsHelp"
     )
-
     def campaign_overview(self, **kwargs):
         c, d = self.campaignsPOMS.campaign_overview(**kwargs)
         return {"s": c, "svgdata": d}
@@ -424,7 +421,8 @@ class PomsService:
             )
         if kwargs.get("return_to_campaign", None):
             raise cherrypy.HTTPRedirect(
-                "%s/campaign_stage_info/%s/%s?campaign_stage_id=%s" % (self.path, ctx.experiment, ctx.role, kwargs.get("return_to_campaign"))
+                "%s/campaign_stage_info/%s/%s?campaign_stage_id=%s"
+                % (self.path, ctx.experiment, ctx.role, kwargs.get("return_to_campaign"))
             )
 
         return {"data": data, "jquery_ui": False}
@@ -455,7 +453,7 @@ class PomsService:
             {"p": "can_view", "t": "Campaign", "name": "campaign", "experiment": "experiment"},
             {"p": "can_view", "t": "Campaign", "name": "from", "experiment": "experiment"},
             {"p": "nonexistent", "t": "Campaign", "name": "to", "experiment": "experiment"},
-         ],
+        ],
         t="gui_wf_edit.html",
         help_page="GUI_Workflow_Editor_User_Guide",
         need_er=True,
@@ -564,7 +562,17 @@ class PomsService:
     # h4. submission_details
     @poms_method(
         p=[{"p": "can_view", "t": "Submission", "item_id": "submission_id"}],
-        u=["submission", "history", "dataset", "recoverymap", "statusmap", "ds", "submission_log_format", "recovery_ids", "depend_ids"],
+        u=[
+            "submission",
+            "history",
+            "dataset",
+            "recoverymap",
+            "statusmap",
+            "ds",
+            "submission_log_format",
+            "recovery_ids",
+            "depend_ids",
+        ],
         t="submission_details.html",
         help_page="SubmissionDetailsHelp",
     )
@@ -1139,4 +1147,3 @@ class PomsService:
     def shutdown(self, **kwargs):
         logging.info("Shutting down...")
         return sys.exit(0)
-

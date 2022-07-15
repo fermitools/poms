@@ -31,7 +31,7 @@ def get_joblogs(dbhandle, jobsub_job_id, cert, key, experiment, role):
         submission_id = submission.submission_id
         username = submission.experimenter_creator_obj.username
 
-    jobsub_job_id = jobsub_job_id.replace('@','.0@')
+    jobsub_job_id = jobsub_job_id.replace("@", ".0@")
     files = fetcher.index(jobsub_job_id, experiment, role, True, user=username)
 
     if files is None:
@@ -79,6 +79,7 @@ def parse_date(date_time_str):
         return parse_date_2(date_time_str)
     except ValueError:
         return datetime.now()
+
 
 def parse_date_2(date_time_str):
     """ condor just gives month/day, so add the year and parse

@@ -115,7 +115,7 @@ class FilesStatus:
         ]
 
         if clear_campaign_column:
-           columns = columns[1:]
+            columns = columns[1:]
 
         listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
         datarows = deque()
@@ -132,46 +132,46 @@ class FilesStatus:
             if task_jobsub_job_id is None:
                 task_jobsub_job_id = "s%s" % s.submission_id
             row = [
-                    [
-                        s.campaign_stage_obj.name,
-                        "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
-                    ],
-                    [
-                        task_jobsub_job_id.replace("@", "@<br>"),
-                        "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
-                    ],
-                    [
-                        s.project,
-                        "https://samweb.fnal.gov:8483/station_monitor/%s/stations/%s/projects/%s"
-                        % (cs.experiment, cs.experiment, s.project),
-                    ],
-                    [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
-                    [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                    [output_list[i], listfiles % output_files[i]],
-                    [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-                    [
-                        "%d"
-                        % (
-                            psummary.get("tot_consumed", 0)
-                            + psummary.get("tot_failed", 0)
-                            + psummary.get("tot_skipped", 0)
-                            + psummary.get("tot_delivered", 0)
-                        ),
-                        listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
-                    ],
-                    ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                    [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-                    [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-                    [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-                    [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                    [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-                    [some_kids_list[i], listfiles % some_kids_needed[i]],
-                    [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
-                ]
-            
+                [
+                    s.campaign_stage_obj.name,
+                    "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
+                ],
+                [
+                    task_jobsub_job_id.replace("@", "@<br>"),
+                    "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
+                ],
+                [
+                    s.project,
+                    "https://samweb.fnal.gov:8483/station_monitor/%s/stations/%s/projects/%s"
+                    % (cs.experiment, cs.experiment, s.project),
+                ],
+                [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
+                [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                [output_list[i], listfiles % output_files[i]],
+                [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                [
+                    "%d"
+                    % (
+                        psummary.get("tot_consumed", 0)
+                        + psummary.get("tot_failed", 0)
+                        + psummary.get("tot_skipped", 0)
+                        + psummary.get("tot_delivered", 0)
+                    ),
+                    listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
+                ],
+                ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+                [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+                [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+                [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+                [some_kids_list[i], listfiles % some_kids_needed[i]],
+                [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+            ]
+
             if clear_campaign_column:
-               row = row[1:]
-            datarows.append( row )
+                row = row[1:]
+            datarows.append(row)
 
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 

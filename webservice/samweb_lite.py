@@ -18,7 +18,8 @@ from poms.webservice.poms_model import FaultyRequest
 import poms.webservice.logit as logit
 
 # shut up annoying InsecureRequestWarnings
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning) 
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+
 
 def safe_get(sess, url, *args, **kwargs):
     # TODO: Need more refactoring to optimize
@@ -195,7 +196,8 @@ class samweb_lite:
         urls = [
             "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
             % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
-            if s.project and s.project != 'None' else None
+            if s.project and s.project != "None"
+            else None
             for s in task_list
         ]
         with requests.Session() as sess:
@@ -221,7 +223,9 @@ class samweb_lite:
     def do_totals(self, info):
         if not info.get("processes", None):
             info["tot_jobs"] = info.get("process_counts", {}).get("completed", 0)
-            info["tot_consumed"] = info.get("file_counts", {}).get("consumed", 0) + info.get("file_counts", {}).get("completed", 0)
+            info["tot_consumed"] = info.get("file_counts", {}).get("consumed", 0) + info.get("file_counts", {}).get(
+                "completed", 0
+            )
             info["tot_failed"] = info.get("file_counts", {}).get("failed", 0)
             info["tot_delivered"] = info.get("file_counts", {}).get("delivered", 0)
             info["tot_unknown"] = info.get("file_counts", {}).get("unknown", 0)
@@ -391,7 +395,7 @@ class samweb_lite:
                 try:
                     infos.append(int(r.text))
                 except BaseException as b:
-                    logit.log("Exception %s converting count_files response to int: %s" % (b,r.text))
+                    logit.log("Exception %s converting count_files response to int: %s" % (b, r.text))
                     infos.append(-1)
         return infos
 
@@ -453,10 +457,7 @@ class samweb_lite:
             with requests.Session() as sess:
                 logit.log("INFO", "GET definitions/name %s" % name)
                 # check the definition exists
-                res = sess.get(
-                    url,
-                    verify=False,
-                )
+                res = sess.get(url, verify=False)
                 res.raise_for_status()
 
                 text = res.content
@@ -476,11 +477,12 @@ class samweb_lite:
                 res.raise_for_status()
 
                 text = res.content
-                logit.log("INFO", "DELETE definitions/name %s returns: %s" % (name,text))
+                logit.log("INFO", "DELETE definitions/name %s returns: %s" % (name, text))
         except Exception as e:
             logit.log("ERROR", "Exception for definition: url %s exception %s" % (url, e.args))
             raise
         return text
+
 
 if __name__ == "__main__":
     requests.packages.urllib3.disable_warnings()
