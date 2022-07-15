@@ -1230,7 +1230,7 @@ class SubmissionsPOMS:
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-            htgettokenopts = "--credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % exp
+            htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (ctx.role, exp)
             # samdev doesn't really have a managed token...
             if lt.launch_account == "samdevpro":
                 htgettokenopts = ""
@@ -1374,7 +1374,7 @@ class SubmissionsPOMS:
             if do_tokens
             else "export X509_USER_PROXY=%s" % proxyfile,
            
-            "htgettoken --nokerberos --nooidc %s -i %s -r %s -a fermicloud543.fnal.gov " % (htgettokenopts, exp, role)
+            "htgettoken --nokerberos --nooidc %s -i %s -a fermicloud543.fnal.gov " % (htgettokenopts, group)
             if do_tokens
             else
             # proxy file has to belong to us, apparently, so...
@@ -1382,7 +1382,7 @@ class SubmissionsPOMS:
             % (uu, uu),
             
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc v2_6_6; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin"
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc_config v2_6_6"
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (
@@ -1396,7 +1396,7 @@ class SubmissionsPOMS:
                     "experimenter": experimenter_login,
                 }
             ).replace("'", """'"'"'"""),
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db',
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin',
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
