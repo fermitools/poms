@@ -1233,7 +1233,7 @@ class SubmissionsPOMS:
             htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (ctx.role, exp)
             # samdev doesn't really have a managed token...
             if lt.launch_account == "samdevpro":
-                htgettokenopts = ""
+                htgettokenopts = "-r default"
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1382,7 +1382,7 @@ class SubmissionsPOMS:
             % (uu, uu),
             
             "source /grid/fermiapp/products/common/etc/setups",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc_config v2_6_6"
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc_config v2_6_6; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0"
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
             (
