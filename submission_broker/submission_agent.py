@@ -52,13 +52,11 @@ class Agent:
             our experiment list from POMS
         """
 
-        self.psess = requests.Session()
-        self.ssess = requests.Session()
         self.cfg = configparser.ConfigParser()
         self.cfg.read(config)
 
-        self.poms_uri = self.cfg.get("submission_agent", "poms_uri")
-        self.submission_uri = self.cfg.get("submission_agent", "submission_uri")
+        self.poms_uri = poms_uri if poms_uri else self.cfg.get("submission_agent", "poms_uri")
+        self.submission_uri = submission_uri if submission_uri else self.cfg.get("submission_agent", "submission_uri")
         # biggest time window we should ask LENS for
         self.maxtimedelta = 3600
         self.known = {}
@@ -68,6 +66,14 @@ class Agent:
         self.known["maxjobs"] = {}
         self.known["poms_task_id"] = {}
         self.known["jobsub_job_id"] = {}
+
+        self.psess = requests.Session()
+        self.ssess = requests.Session()
+        self.headers = {
+            self.cfg.get("submission_agent", "poms_user_header", fallback='X-Shib-Userid'):
+            self.cfg.get("submission_agent", "poms_user", fallback='poms')
+        }
+        self.psess.headers.update(self.headers)
         self.submission_headers = {
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
@@ -76,13 +82,15 @@ class Agent:
             "DNT": "1",
             "Origin": "https://landscape.fnal.gov",
         }
+        self.ssess.headers.update(self.submission_headers)
+
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
         self.timeouts = (300, 300)
         self.strikes = {}
         self.poll_interval = 120
 
-        htr = self.psess.get("http://127.0.0.1:8080/poms/experiment_list")
+        htr = self.psess.get("%s/experiment_list"%self.poms_uri)
         self.elist = htr.json()
         self.elist.sort()
         htr.close()
@@ -118,6 +126,7 @@ class Agent:
                     "status": status,
                     "pct_complete": pct_complete,
                 },
+                headers=self.headers,
                 timeout=self.timeouts,
                 verify=False,
             )
@@ -156,7 +165,6 @@ class Agent:
             self.submission_uri,
             data=self.cfg.get("submission_agent", "submission_info_query") % jobsubjobid,
             timeout=self.timeouts,
-            headers=self.submission_headers,
         )
         ddict = postresult.json()
         LOGIT.info("individual submission %s data: %s", jobsubjobid, repr(ddict))
@@ -189,7 +197,6 @@ class Agent:
             self.submission_uri,
             data=self.cfg.get("submission_agent", "submission_project_query") % entry["id"],
             timeout=self.timeouts,
-            headers=self.submission_headers,
         )
         ddict = postresult.json()
         ddict = ddict["data"]["submission"]
@@ -313,7 +320,6 @@ class Agent:
                 self.submission_uri,
                 data=self.cfg.get("submission_agent", "running_query") % (group, since),
                 timeout=self.timeouts,
-                headers=self.submission_headers,
             )
             ddict = htr.json()
             htr.close()
