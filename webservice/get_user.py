@@ -3,10 +3,9 @@ import cherrypy
 
 def get_user():
     if cherrypy.request.headers.get("X-Shib-Userid", None) and cherrypy.request.headers["X-Shib-Userid"] != '(null)':
-        username = cherrypy.request.headers["X-Shib-Userid"]
-        
+        return cherrypy.request.headers["X-Shib-Userid"]
     elif cherrypy.request.headers.get("X-Scitoken-Sub", None) and cherrypy.request.headers["X-Scitoken-Sub"] != '(null)':
-        username = cherrypy.request.headers["X-Scitoken-Sub"].replace("@fnal.gov","")
-    elif cherrypy.config.get("standalone_test_user", None):
-        username = cherrypy.config.get("standalone_test_user", None)
-    return username
+        # TODO lookup actual username from FERRY since token subject is now UUID
+        #return cherrypy.request.headers["X-Scitoken-Sub"].replace("@fnal.gov","")
+        raise PermissionError("Tokens not implemented")
+    raise PermissionError("No valid username found in request")
