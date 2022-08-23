@@ -1193,7 +1193,7 @@ class SubmissionsPOMS:
             else:
                 c_param_overrides = []
 
-            c_param_overrides = cs.param_overrides
+            c_param_overrides += cs.param_overrides
 
             # if it is a test launch, add in the test param overrides
             # and flag the task as a test (secretly relies on poms_client
