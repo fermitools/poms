@@ -1190,6 +1190,8 @@ class SubmissionsPOMS:
             # with campaign default overrides.
             if cs.merge_overrides:
                 c_param_overrides = cs.campaign_obj.defaults.get("defaults", {}).get("param_overrides", [])
+                if isinstance(c_param_overrides,str):
+                    c_param_overrides = json.decode(c_param_overrides)
             else:
                 c_param_overrides = []
 
