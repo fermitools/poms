@@ -9,8 +9,11 @@ def get_user():
     elif cherrypy.request.headers.get("X-Scitoken-Scope", None) and cherrypy.request.headers["X-Scitoken-Scope"] != "(null)":
         # we have the username in the storage scope, so mooch it out of there
         m = re.match(r".*storage.create:/\S*/users/(\S*)\s.*", cherrypy.request.headers["X-Scitoken-Scope"])
+        m2 = re.match(r".*storage.create:/(\S*)/\s.*\s.*", cherrypy.request.headers["X-Scitoken-Scope"])
         if m:
             username = m.group(1)
+        elif m2:
+            username = m.group(1) + "pro"
         else:
             username = cherrypy.config.get("standalone_test_user", None)
     elif cherrypy.config.get("standalone_test_user", None):
