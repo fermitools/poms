@@ -13,7 +13,7 @@ def get_user():
         if m:
             username = m.group(1)
         elif m2:
-            username = m.group(1) + "pro"
+            username = m2.group(1) + "pro"
         else:
             username = cherrypy.config.get("standalone_test_user", None)
     elif cherrypy.config.get("standalone_test_user", None):
