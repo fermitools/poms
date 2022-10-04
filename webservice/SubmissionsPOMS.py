@@ -1398,7 +1398,7 @@ class SubmissionsPOMS:
                     "experimenter": experimenter_login,
                 }
             ).replace("'", """'"'"'"""),
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db; unsetup jobsub_client; export JOBSUB_CLIENT_DIR=/opt/jobsub_lite/bin',
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db ',
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,

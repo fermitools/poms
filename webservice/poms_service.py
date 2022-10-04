@@ -1,4 +1,3 @@
-# h2. Module webservice.poms_service
 #
 # This module attaches all the webservice methods to
 # the cherrypy instance, via the mount call in &l=webservice/service.py&
@@ -1066,7 +1065,8 @@ class PomsService:
         # import pprint
         if not upload.file:
             return "Pick the file first!"
-
+	
+	
         data = upload.file.read().decode("utf-8")
 
         p = ConfigParser(interpolation=None)
