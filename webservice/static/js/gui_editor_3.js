@@ -1507,9 +1507,10 @@ gui_editor.prototype.draw_state = function () {
         const label_el = document.getElementById('node-label');
         const label = label_el.value;
 
-        if (label == '') {
+        if (label == '' || label.trim() == '') {
            label_el.style.borderWidth = 2;
            label_el.style.borderColor = 'red';
+           label_el.value = '';
            return
         } else {
            label_el.style.borderWidth = 1;
