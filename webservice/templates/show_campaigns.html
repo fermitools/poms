@@ -91,7 +91,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <th>Creator</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="campaign_table_body">
         {% for s in tl|sort(attribute='name') %}
             <tr id="c_tr_{{loop.index}}">
                 <!-- id is hidden by css look for #campaign_table above -->
@@ -370,7 +370,6 @@ $(document).ready(function() {
 
             var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
             $(this).trigger('search', [f]);
-            $(this).paging({limit:100});
         }
     })
     .bind('filterEnd', function(){
@@ -380,8 +379,11 @@ $(document).ready(function() {
                 return $(this).val() || '';
             }).get();
             $.tablesorter.storage(this, 'tablesorter-filters', f);
-            $(this).paging({limit:100});
         }
+    });
+
+    $("#campaign_table_body").on("change", function(){
+        $('#campaign_table').paging({limit:100});
     });
 
 });
