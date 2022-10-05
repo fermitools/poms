@@ -195,13 +195,21 @@ Launch Recovery for Submission
 </div>
 </div>
 <div class="ui horizontal segments">
-<div class="ui segment raised">
+<div class="ui segment raised" style="max-width: 40%;">
 <h3>History</h3>
 
 {% for sh in history %}
 {% if loop.previtem and loop.previtem.status_id != sh.status_id %}
 {{sh.created}} {{statusmap[sh.status_id]}} <br>
 {% endif %}
+{% endfor %}
+
+</div>
+<div class="ui segment raised">
+<h3>File Stats</h3>
+
+{% for stat in statuses %}
+<span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
 {% endfor %}
 
 </div>
