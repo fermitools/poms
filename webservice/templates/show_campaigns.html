@@ -380,7 +380,7 @@ $('#campaign_table')
         $.tablesorter.storage(this, 'tablesorter-filters', f);
     }
 });
-
+$('#campaign_table').paging({limit:200});
 function get_running() {
   $.ajax({
       url: "{{pomspath}}/running_submissions/{{session_experiment}}/{{session_role}}?campaign_id_list={%for c in tl %}{{c.campaign_id}},{%endfor%}-1",
