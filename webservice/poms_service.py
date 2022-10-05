@@ -571,6 +571,7 @@ class PomsService:
             "submission_log_format",
             "recovery_ids",
             "depend_ids",
+            "statuses"
         ],
         t="submission_details.html",
         help_page="SubmissionDetailsHelp",
