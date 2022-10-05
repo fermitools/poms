@@ -360,6 +360,10 @@ $(document).ready(function() {
     }
     get_running();
     $('#campaign_table').paging({limit:100});
+
+
+
+
 });
 
 $('#campaign_table')
@@ -370,6 +374,7 @@ $('#campaign_table')
 
         var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
         $(this).trigger('search', [f]);
+        $(this).paging({limit:100});
     }
 })
 .bind('filterEnd', function(){
@@ -379,6 +384,7 @@ $('#campaign_table')
             return $(this).val() || '';
         }).get();
         $.tablesorter.storage(this, 'tablesorter-filters', f);
+        $(this).paging({limit:100});
     }
 });
 
