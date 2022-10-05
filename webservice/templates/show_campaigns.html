@@ -362,31 +362,31 @@ $(document).ready(function() {
     $('#campaign_table').paging({limit:100});
 
 
+    $('#campaign_table')
+    .bind('filterInit', function() {
+        // check that storage ulility is loaded
+        if ($.tablesorter.storage) {
+            // get saved filters
 
+            var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+            $(this).trigger('search', [f]);
+            $(this).paging({limit:100});
+        }
+    })
+    .bind('filterEnd', function(){
+        if ($.tablesorter.storage) {
+            // save current filters
+            var f = $(this).find('.tablesorter-filter').map(function() {
+                return $(this).val() || '';
+            }).get();
+            $.tablesorter.storage(this, 'tablesorter-filters', f);
+            $(this).paging({limit:100});
+        }
+    });
 
 });
 
-$('#campaign_table')
-.bind('filterInit', function() {
-    // check that storage ulility is loaded
-    if ($.tablesorter.storage) {
-        // get saved filters
 
-        var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
-        $(this).trigger('search', [f]);
-        $(this).paging({limit:100});
-    }
-})
-.bind('filterEnd', function(){
-    if ($.tablesorter.storage) {
-        // save current filters
-        var f = $(this).find('.tablesorter-filter').map(function() {
-            return $(this).val() || '';
-        }).get();
-        $.tablesorter.storage(this, 'tablesorter-filters', f);
-        $(this).paging({limit:100});
-    }
-});
 
 function get_running() {
   $.ajax({
