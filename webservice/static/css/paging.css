@@ -11,7 +11,7 @@
     border-radius: 3px;
 }
 .paging-nav .selected-page{
-    background: #187ed5;
+    background: #009c95;
     font-weight: bold;
 }
 .paging-nav, #tableData {
