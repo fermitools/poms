@@ -346,7 +346,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
    });
 </script>
 <script>
-
+var pager;
 $(document).ready(function() {
     $('#campaign_table').tablesorter( {
         widgets : [ 'filter', 'saveSort' ],
@@ -376,14 +376,11 @@ $(document).ready(function() {
         if ($.tablesorter.storage) {
             // save current filters
             var f = $(this).find('.tablesorter-filter').map(function() {
+                $("#campaign_table").paging("instance").refresh();
                 return $(this).val() || '';
             }).get();
             $.tablesorter.storage(this, 'tablesorter-filters', f);
         }
-    });
-
-    $("#campaign_table_body").on("change", function(){
-        $('#campaign_table').paging({limit:100});
     });
 
 });

@@ -1,16 +1,17 @@
 (function($) {
     $(function() {
-        $.widget("zpd.paging", {
+        $.widget("poms.paging", {
+
             options: {
                 limit: 5,
                 rowDisplayStyle: 'block',
                 activePage: 0,
-                rows: []
+                rows: [] 
             },
             _create: function() {
-                var rows = $("tbody", this.element).children();
+                var rows = $("tbody > tr", this.element).not('.filtered');
                 this.options.rows = rows;
-                this.options.rowDisplayStyle = rows.css('display');
+                this.options.rowDisplayStyle = rows.css('display', "normal");
                 var nav = this._getNavBar();
                 this.element.after(nav);
                 this.showPage(0);
@@ -18,7 +19,7 @@
             _getNavBar: function() {
                 var rows = this.options.rows;
                 var nav = $('<div>', {class: 'paging-nav'});
-                for (var i = 0; i < Math.ceil(rows.length / this.options.limit); i++) {
+                for (var i = 0; i < Math.ceil(rows.not(".filtered").length / this.options.limit); i++) {
                     this._on($('<a>', {
                         href: '#',
                         text: (i + 1),
@@ -42,18 +43,30 @@
                         {click: "pageStepHandler"});
                 return nav;
             },
+            refresh: function() {
+                $(".paging-nav").remove();
+                var rows = $("tbody > tr", this.element);
+                
+                this.options.rows = rows;
+                this.options.rowDisplayStyle = rows.css('display','normal');
+                var nav = this._getNavBar();
+                this.element.after(nav);
+                this.showPage(0);
+            },
             showPage: function(pageNum) {
                 var num = pageNum * 1; //it has to be numeric
                 this.options.activePage = num;
                 var rows = this.options.rows;
                 var limit = this.options.limit;
-                for (var i = 0; i < rows.length; i++) {
+                for (var i = 0; i < rows.not(".filtered").length; i++) {
                     if (i >= limit * num && i < limit * (num + 1)) {
-                        $(rows[i]).css('display', this.options.rowDisplayStyle);
-                    } else {
-                        $(rows[i]).css('display', 'none');
+                        $(rows.not(".filtered")[i]).show();
+                    } 
+                    else {
+                        $(rows.not(".filtered")[i]).hide();
                     }
                 }
+                $(".filtered").hide();
             },
             pageClickHandler: function(event) {
                 event.preventDefault();
