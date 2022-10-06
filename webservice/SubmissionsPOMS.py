@@ -658,8 +658,56 @@ class SubmissionsPOMS:
         elif "{}/{}".format(dirname, ds2) in flist:
             ds = ds2
             submission_log_format = 1
+       
+        statuses = []
+        cs = submission.campaign_stage_snapshot_obj.campaign_stage
+        listfiles = "../../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
+        (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        ) = sam_specifics(ctx).get_file_stats_for_submissions([submission], cs.experiment)
+        
+        i = 0
+        psummary = summary_list[i]
+        partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
+        # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+        pending = partpending
+      
+        statuses = [
+            ["Available output: ", output_list[i], listfiles % output_files[i]],
+            ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+            ["Delivered to SAM: ",
+                "%d"
+                % (
+                    psummary.get("tot_consumed", 0)
+                    + psummary.get("tot_failed", 0)
+                    + psummary.get("tot_skipped", 0)
+                    + psummary.get("tot_delivered", 0)
+                ),
+                listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
+            ],
+            ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+            ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+            ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+            ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+            ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+            ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+            ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
+            ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+        ]
 
-        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids
+        
+
+
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses
 
     # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):
