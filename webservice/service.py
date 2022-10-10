@@ -164,9 +164,10 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
+    exp =cherrypy.url().split("/")[5]
     if not e:
         raise cherrypy.HTTPError(
-            401, "POMS account does not exist for %s.  To be added you must registered in FERRY." % get_user()
+            401, "%s is not a registered user for %s in the POMS database" % (get_user(), exp)
         )
 
     roles = ["analysis", "production-shifter", "production", "superuser"]
