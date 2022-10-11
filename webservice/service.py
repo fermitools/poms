@@ -164,6 +164,7 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
+
     exp = cherrypy.url().split("/")[5] if len(cherrypy.url().split("/")) > 4 else "this experiment"
     
     if not e:
