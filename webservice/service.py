@@ -164,7 +164,6 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
-
     exp = cherrypy.url().split("/")[5] if len(cherrypy.url().split("/")) > 4 else "this experiment"
     
     if not e:
@@ -203,7 +202,7 @@ def pidfile():
 
 def parse_command_line():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-cs", "--config", help="Filepath for POMS config file.")
+
     parser.add_argument("--use-wsgi", dest="use_wsgi", action="store_true", help="Run behind WSGI. (Default)")
     parser.add_argument("--no-wsgi", dest="use_wsgi", action="store_false", help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)
