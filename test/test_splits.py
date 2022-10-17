@@ -83,7 +83,7 @@ def make_split(ds, split, should_hit_end):
             n = samhandle.count_files(cs.experiment, "defname:" + res)
             print("got %s with %d files" % (res, n))
 
-            if check_end:
+            if check_end and hit_end:
                 assert n > 0
 
         if check_end:
@@ -95,7 +95,7 @@ def make_split(ds, split, should_hit_end):
 
 
 split_table = [
-    ["a,b,c", "list()", 1],
+    ["a,b,gen_cfg", "list()", 1],
     ['[["a","b"],["c","d"],["e","f"]]', "multiparam()", 0],
     ["gen_cfg", "byrun(low=1,high=4)", 0],
     ["gen_cfg", "byrun( low=1, high=4 ) ", 0],
