@@ -164,9 +164,11 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
-    exp = cherrypy.url().split("/")[5] if len(cherrypy.url().split("/")) > 4 else "this experiment"
     
     if not e:
+        exp =  "this experiment" 
+        if len(cherrypy.url().split("/")) >= 5:
+            exp = cherrypy.url().split("/")[5]
         raise cherrypy.HTTPError(
             401, "%s is not a registered user for %s in the POMS database" % (get_user(), exp)
         )
