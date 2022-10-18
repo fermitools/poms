@@ -167,7 +167,7 @@ def augment_params():
     
     if not e:
         exp =  "this experiment" 
-        if len(cherrypy.url().split("/")) >= 5:
+        if len(cherrypy.url().split("/")) > 5:
             exp = cherrypy.url().split("/")[5]
         raise cherrypy.HTTPError(
             401, "%s is not a registered user for %s in the POMS database" % (get_user(), exp)
