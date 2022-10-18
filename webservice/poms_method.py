@@ -243,8 +243,8 @@ def poms_method(
                 uvdict.update(values)
                 values = uvdict
 
-            if values.get('rtype_override'):
-                rtype = values['rtype_override']
+            if values and values.get('rtype_override'):
+                self.rtype = values['rtype_override']
                 values = values['html']
 
             logit.log("after call: values = %s" % repr(values))
