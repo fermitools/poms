@@ -19,3 +19,4 @@ def get_user():
     elif cherrypy.config.get("standalone_test_user", None):
         username = cherrypy.config.get("standalone_test_user", None)
     return username
+
