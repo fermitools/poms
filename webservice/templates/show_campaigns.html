@@ -80,6 +80,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <th>Active</th>
                 <th>Submis-<br>sions<br>Running</th>
                 <th data-sorter="false" data-filter="false">Submis-<br>sion<br>History</th>
+                <th data-sorter="false" data-filter="false">CPU &<br>Wall Time<br>by Site</th>
                 <th data-sorter="false" data-filter="false">Files<br>Report</th>
                 <th data-sorter="false" data-filter="false">Launch</th>
                 <th data-sorter="false" data-filter="false">Depend-<br>encies</th>
@@ -106,6 +107,13 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{s.name}}&stage_name=*&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
                         <button type="button">
                         <i class="chart line icon"></i>
+                        </button>
+                    </a>
+                </td>
+                <td>
+                    <a href="https://landscape.fnal.gov/kibana/app/kibana#/visualize/create?type=histogram&indexPattern=c41e97f0-92c6-11e9-b8c9-555a8104b54b&_g=(filters:!())&_a=(filters:!(('$state':(store:appState),meta:(alias:'Campaign%20ID',disabled:!f,index:c41e97f0-92c6-11e9-b8c9-555a8104b54b,key:POMS4_CAMPAIGN_ID,negate:!f,params:(query:{{s.campaign_id}},type:phrase),type:phrase,value:'{{s.campaign_id}}'),query:(match:(POMS4_CAMPAIGN_ID:(query:{{s.campaign_id}},type:phrase))))),linked:!f,query:(language:lucene,query:''),uiState:(),vis:(aggs:!((enabled:!t,id:'1',params:(customLabel:'CPU%20Time',field:cputime),schema:metric,type:sum),(enabled:!t,id:'2',params:(customLabel:Site,field:MATCH_GLIDEIN_Site,missingBucket:!f,missingBucketLabel:Missing,order:desc,orderBy:'3',otherBucket:!f,otherBucketLabel:Other,size:5),schema:segment,type:terms),(enabled:!t,id:'3',params:(customLabel:Walltime,field:walltime),schema:metric,type:sum)),params:(addLegend:!t,addTimeMarker:!f,addTooltip:!t,categoryAxes:!((id:CategoryAxis-1,labels:(show:!t,truncate:100),position:bottom,scale:(type:linear),show:!t,style:(),title:(),type:category)),grid:(categoryLines:!f,style:(color:%23eee),valueAxis:!n),legendPosition:right,orderBucketsBySum:!f,seriesParams:!((data:(id:'1',label:'CPU%20Time'),drawLinesBetweenPoints:!t,interpolate:linear,mode:stacked,show:true,showCircles:!t,type:histogram,valueAxis:ValueAxis-1),(data:(id:'3',label:Walltime),drawLinesBetweenPoints:!t,mode:stacked,show:!t,showCircles:!t,type:histogram,valueAxis:ValueAxis-1)),times:!(),type:histogram,valueAxes:!((id:ValueAxis-1,labels:(filter:!f,rotate:0,show:!t,truncate:100),name:LeftAxis-1,position:left,scale:(mode:normal,type:linear),show:!t,style:(),title:(text:'CPU%20%26%20Wall%20Time'),type:value))),title:'New%20Visualization',type:histogram))" target="_blank">
+                        <button type="button">
+                        <i class="chart bar icon"></i>
                         </button>
                     </a>
                 </td>
