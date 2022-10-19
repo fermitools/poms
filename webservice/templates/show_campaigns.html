@@ -29,11 +29,16 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
 </style>
 
 <script>
- function confirm_call(msg, url) {
-         var r = confirm(msg);
-     if ( r ) {
-         location.assign(url)
-     }
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
  }
 </script>
 
@@ -118,7 +123,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 </td>
                 <td>
                   {%if data.authorized_shifter[loop.index0] %}
-                    <button onclick="disable_icon(this); confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}');">
+                    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}', this);">
                         <i class="chart rocket icon blue"></i>
                     </button>
                   {%else%}
@@ -385,11 +390,6 @@ $(document).ready(function() {
 
 });
 
-function disable_icon(icon){
-    $(icon).attr("disabled", true);
-    $(icon).children('i').eq(0).addClass("spinner");
-    $(icon).children('i').eq(0).addClass("loading");
-}
 
 
 function get_running() {

@@ -26,11 +26,16 @@ Submission Details {%include 'help_button.html'%}
 {%endblock%}
 {%block content%}
 <script>
- function confirm_call(msg, url) {
-     var r = confirm(msg);
-     if ( r ) {
-         location.assign(url)
-     }
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
  }
  function confirm_validate(msg) {
      var r = confirm(msg);
