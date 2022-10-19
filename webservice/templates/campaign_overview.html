@@ -30,7 +30,7 @@
 		<i class="clipboard outline icon"></i>
 		</button>
 	    </a>
-	    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
+	    <button onclick="disable_icon(this); confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}');">
 		<i class="chart rocket icon blue"></i>
 	    </button>
 	    <a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">
@@ -60,3 +60,11 @@
 {%block final%}
 
 {%endblock%}
+<script type="text/javascript">
+	function disable_icon(icon){
+    $(icon).attr("disabled", true);
+	$(icon).children('i').eq(0).addClass("spinner");
+	$(icon).children('i').eq(0).addClass("loading");
+}
+
+</script>
