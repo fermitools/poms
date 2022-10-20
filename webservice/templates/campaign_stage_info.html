@@ -45,8 +45,18 @@ all the time...
   <br/>
   <span class="info">statistics for last 30 days</span>
 
-    <script>
+    <script >
         $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
+
+        function showEditLastSplitModal(){
+          $("#edit_last_split_modal").modal("show");
+        }
+        $(function() {
+          $("#last_split_submit").submit(function(){
+            return confirm("Are you sure you want to change the last split?");
+          });
+        });
+        
     </script>
   </div>
 
@@ -58,6 +68,51 @@ all the time...
        }
    }
   </script>
+
+<div class="ui small modal" id="edit_last_split_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Last Split Editor
+  </div>
+  <div class="ui text container">
+      <form id="last_split_submit" class="ui form raised segment" action="{{pomspath}}/update_campaign_split/{{session_experiment}}/{{session_role}}" method="GET">
+        <table class="ui celled table" id="ep_table">
+          <thead>
+            <tr>
+              <th>Select a Campaign Stage Snapshot ID</th>
+            </tr>
+          </thead>
+          <tbody id="last_split_body">
+              <tr>
+                <td>
+                  <input type="hidden" name="campaign_stage_id" value="{{CampaignStage.campaign_stage_id}}">
+                    <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
+                        <option value="0">-</option>
+                        {% for cs in campaign_stage_snapshots %}
+                          {% if CampaignStage.cs_last_split == cs[0] %}
+                            <option selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          {%else%}
+                            <option value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          {%endif%}
+                        {% endfor %}
+                    </select>
+                </td>
+              </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">
+                <div class="actions">
+                  <button class="ui button deny red">Cancel</button>
+                  <button type="submit" class="ui button approve teal">Accept</button>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </form>
+  </div>
+</div> <!-- Ends edit_last_split_modal  -->
 
   <div class="ui horizontal segments">
     <div class="ui segment raised">
@@ -228,7 +283,7 @@ all the time...
     {# currently unused
     <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br/>
     #}
-    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
+    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <i class="large edit link blue icon" id="edit_last_split_modal_btn" onclick="showEditLastSplitModal()"></i><a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
     <!-- <b>Active</b>: {{CampaignStage.active}} <br/> -->
     <b>Created</b>: {{CampaignStage.created}}<br/>
     <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br/>
@@ -315,3 +370,4 @@ all the time...
 
 
 {%endblock%}
+

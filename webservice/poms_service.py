@@ -549,6 +549,19 @@ class PomsService:
     def reset_campaign_split(self, **kwargs):
         return self.stagesPOMS.reset_campaign_split(**kwargs)
 
+    
+    # see &l=webservice/StagesPOMS.py#update_campaign_split&
+
+    # h4. update_campaign_split
+
+    @poms_method(
+        p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"}],
+        redirect="%(poms_path)s/campaign_stage_info/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
+        rtype="redirect",
+    )
+    def update_campaign_split(self, **kwargs):
+        return self.stagesPOMS.update_campaign_split(**kwargs)
+
     # see &l=webservice/StagesPOMS.py#reset_campaign_split&
 
     # h4. campaign_stage_datasets
@@ -604,6 +617,7 @@ class PomsService:
             "dep_svg",
             "last_activity",
             "recent_submissions",
+            "campaign_stage_snapshots"
         ],
         help_page="POMS_UserDocumentation",
         t="campaign_stage_info.html",

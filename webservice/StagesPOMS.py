@@ -22,7 +22,7 @@ import re
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -689,6 +689,18 @@ class StagesPOMS:
         c_s.cs_last_split = None
         ctx.db.commit()
 
+    # h3. update_campaign_split
+    def update_campaign_split(self, ctx, campaign_stage_id, campaign_stage_snapshot_id):
+        """
+            reset a campaign_stages cs_last_split field so the sequence
+            starts over
+        """
+        campaign_stage_id = int(campaign_stage_id)
+
+        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
+        c_s.cs_last_split = campaign_stage_snapshot_id
+        ctx.db.commit()
+
     # h3. campaign_stage_info
     def campaign_stage_info(self, ctx, campaign_stage_id):
         """
@@ -702,7 +714,20 @@ class StagesPOMS:
             .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.creator == Experimenter.experimenter_id)
             .first()
         )
-
+        # get existing campaign stage snapshots
+        campaign_stage_snapshots_db = (
+            ctx.db.query(CampaignStageSnapshot)
+            .filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id)
+            .order_by(desc(CampaignStageSnapshot.campaign_stage_snapshot_id))
+            .all()
+        )
+        campaign_stage_snapshots = []
+        if campaign_stage_snapshots_db:
+                for item in campaign_stage_snapshots_db:
+                        if item.updated:
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.updated).strftime("%Y-%m-%d %H:%M:%S")])
+                        else:
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.created).strftime("%Y-%m-%d %H:%M:%S")])
         # default to time window of campaign
         if ctx.tmin is None and ctx.tdays is None:
             ctx.tmin = campaign_stage_info.CampaignStage.created
@@ -797,6 +822,7 @@ class StagesPOMS:
             dep_svg,
             last_activity,
             recent_submissions,
+            campaign_stage_snapshots
         )
 
     # h3. campaign_stage_submissions
