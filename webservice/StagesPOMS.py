@@ -690,15 +690,47 @@ class StagesPOMS:
         ctx.db.commit()
 
     # h3. update_campaign_split
-    def update_campaign_split(self, ctx, campaign_stage_id, campaign_stage_snapshot_id):
+    def update_campaign_split(self, ctx, campaign_stage_id, campaign_stage_snapshot_id, last_split_custom_val):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over
         """
         campaign_stage_id = int(campaign_stage_id)
+        id_to_use = None
+        # ask for forgiveness rather than permission for a bad value
+        try:
+            s = int(last_split_custom_val) + 1
+            id_to_use = int(last_split_custom_val)
+        except Exception:
+            if campaign_stage_snapshot_id:
+                id_to_use = int(campaign_stage_snapshot_id)
+            else:
+                logit.log(logit.ERROR, "update_campaign_split: improper custom value entered")
+                raise TypeError("The value entered is not formatted properly, please enter an integer value corresponding to a campaign stage id.")
 
-        c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
-        c_s.cs_last_split = campaign_stage_snapshot_id
+        try:
+            c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
+            if id_to_use == 0:
+                c_s.cs_last_split  = None
+                ctx.db.commit()
+                return
+        except Exception:
+            logit.log(logit.ERROR, "update_campaign_split: campaign stage not found")
+            raise AssertionError("Campaign stage not found")
+        try:
+            c_s_s = ctx.db.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_snapshot_id == id_to_use).one()
+        except Exception:
+            logit.log(logit.ERROR, "update_campaign_split: campaign stage snapshot %s not found" %id_to_use)
+            raise AssertionError("Campaign stage snapshot %s not found" %id_to_use)
+            
+        if c_s.campaign_id != c_s_s.campaign_stage.campaign_id:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not belong to this campaign")
+            raise AssertionError("Requested campaign stage snapshot does not belong to this campaign")
+        if c_s.cs_split_type != c_s_s.cs_split_type:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
+            raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
+        
+        c_s.cs_last_split = id_to_use
         ctx.db.commit()
 
     # h3. campaign_stage_info
@@ -717,7 +749,7 @@ class StagesPOMS:
         # get existing campaign stage snapshots
         campaign_stage_snapshots_db = (
             ctx.db.query(CampaignStageSnapshot)
-            .filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id)
+            .filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id, CampaignStageSnapshot.cs_split_type == campaign_stage_info.CampaignStage.cs_split_type)
             .order_by(desc(CampaignStageSnapshot.campaign_stage_snapshot_id))
             .all()
         )

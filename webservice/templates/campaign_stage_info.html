@@ -85,17 +85,20 @@ all the time...
           <tbody id="last_split_body">
               <tr>
                 <td>
-                  <input type="hidden" name="campaign_stage_id" value="{{CampaignStage.campaign_stage_id}}">
-                    <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
-                        <option value="0">-</option>
-                        {% for cs in campaign_stage_snapshots %}
-                          {% if CampaignStage.cs_last_split == cs[0] %}
-                            <option selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
-                          {%else%}
-                            <option value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
-                          {%endif%}
-                        {% endfor %}
-                    </select>
+                  <input type="hidden" name="campaign_stage_id" value="{{CampaignStage.campaign_stage_id}}"/>
+                  <label for="last_split_custom_val">Enter a custom last split value</label>
+                  <input type="number" name="last_split_custom_val" id="last_split_custom_val" placeholder="{{CampaignStage.cs_last_split}}"/>
+                  <label for="campaign_stage_snapshot_id">Or select from the following options</label>
+                  <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
+                      <option value="0">-</option>
+                      {% for cs in campaign_stage_snapshots %}
+                        {% if CampaignStage.cs_last_split == cs[0] %}
+                          <option selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%else%}
+                          <option value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%endif%}
+                      {% endfor %}
+                  </select>
                 </td>
               </tr>
           </tbody>
