@@ -998,6 +998,8 @@ class StagesPOMS:
         try:
             res = splitter.next()
         except StopIteration:
+            if camp.default_clear_cronjob:
+                self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
             raise AssertionError("No more splits in this campaign.")
 
         ctx.db.commit()
