@@ -595,7 +595,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                         dataset, ae_active, ae_split_type, ae_software_version,
                         ae_completion_type, ae_completion_pct, ae_param_overrides,
                         ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides,
-                        test_client=None, role=None, configfile=None):
+                        test_client=None, role=None, configfile=None, campaign_stage_edit = True):
     logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
     method = "campaign_stage_edit"
     logging.debug("#" * 10)
