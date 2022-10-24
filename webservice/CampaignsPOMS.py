@@ -96,7 +96,7 @@ class CampaignsPOMS:
                 completion_pct="95",
                 completion_type="complete",
                 cs_split_type="None",
-                default_clear_cronjob = True,
+                default_clear_cronjob = "True",
                 dataset="from_parent",
                 job_type_id=(
                     ctx.db.query(JobType.job_type_id)
@@ -471,6 +471,7 @@ class CampaignsPOMS:
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
             )
+            res.append("default_clear_cronjob=True")
 
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
@@ -491,7 +492,6 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
-                    res.append("default_clear_cronjob=%s" % (defaults.get("default_clear_cronjob") or "True"))
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
