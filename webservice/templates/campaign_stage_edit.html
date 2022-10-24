@@ -218,7 +218,7 @@ Campaign Stages
         </div>
         <div class="field">
           <label>Default Clear Crontab</label>
-          <input name="default_clear_cronjob" type="checkbox" id="default_clear_cronjob">
+          <input name="default_clear_cronjob" type="checkbox" id="default_clear_cronjob"/>
           <a target="_blank">
             <i style="float: none" class="icon small help circle link tooltip">
               <span class="tooltiptext">If enabled, POMS will automatically clear crontab<br> entries when you run out of slices.</span>
@@ -346,6 +346,7 @@ Campaign Stages
       <input type="hidden" id="ae_param_overrides" name="ae_param_overrides" value="[]">
       <input type="hidden" id="ae_test_param_overrides" name="ae_test_param_overrides" value="[]">
       <input type="hidden" id="ae_depends" name="ae_depends" value="[]">
+      <input type="hidden" id="ae_cronjob" name="ae_cronjob" value="true">
       {% if jump_to_campaign %}
       <input type="hidden" id="return_to_campaign" name="return_to_campaign" value="{{jump_to_campaign}}">
       {%endif%}
@@ -754,6 +755,10 @@ function edit_campaign(index,clone) {
   $("#ae_completion_type").val($("#c_completion_type_"+index).text() ).trigger('change');
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
   $("#default_clear_cronjob").prop("checked", $("#c_campaign_stage_clear_cronjob_"+index).text().toLowerCase().includes("t") );
+  $("#ae_cronjob").val($("#default_clear_cronjob").is(':checked'));
+  $("#default_clear_cronjob").unbind().change(function(){
+    $("#ae_cronjob").val($("#default_clear_cronjob").is(':checked'));
+  });
   $("#campaign_add_edit_modal").modal('show');
 
   console.log("clone = : " + clone)

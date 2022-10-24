@@ -595,7 +595,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                         dataset, ae_active, ae_split_type, ae_software_version,
                         ae_completion_type, ae_completion_pct, ae_param_overrides,
                         ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides,
-                        test_client=None, role=None, configfile=None, default_clear_cronjob = True):
+                        test_client=None, role=None, configfile=None, ae_cronjob = True):
     logging.debug("in get campaign_stage_edit test_client = " + repr(test_client))
     method = "campaign_stage_edit"
     logging.debug("#" * 10)
@@ -641,7 +641,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                                        ae_launch_name=ae_launch_name,
                                        ae_campaign_definition=ae_campaign_definition,
                                        test_client=test_client,
-                                       configfile=configfile, default_clear_cronjob = default_clear_cronjob)
+                                       configfile=configfile, default_clear_cronjob = ae_cronjob)
     return "status_code", status_code
     #return data['message']
 
