@@ -1073,7 +1073,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
-                    obj.default_clear_cronjob = default_clear_cronjob
+                    obj.default_clear_cronjob = default_clear_cronjob in (True, "True", "true")
                     obj.dataset = dataset
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
@@ -1100,7 +1100,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
-                    default_clear_cronjob = default_clear_cronjob,
+                    default_clear_cronjob = default_clear_cronjob  in (True, "True", "true"),
                     dataset=dataset,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
