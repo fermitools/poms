@@ -5,7 +5,7 @@ List of methods: wrapup_tasks,
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 """
-
+import configparser
 import glob
 import json
 import os
@@ -346,18 +346,15 @@ class SubmissionsPOMS:
         # try to extract the project name from the launch command...
         #
         project = None
-        for projre in (
-            "-e SAM_PROJECT=([^ ]*)",
-            "-e SAM_PROJECT_NAME=([^ ]*)",
-            "--sam_project[ =]([^ ]*)",
-            "--project_name[ =]([^ ]*)",
-            "--project[ =]([^ ]*)",
-        ):
+        config = configparser.ConfigParser()
+        config.read("../webservice/poms.ini")
+        launch_commands = config.get("launch_commands", "projre").split(",")
+        for projre in launch_commands:
             m = re.search(projre, command_executed)
             if m:
                 project = m.group(1)
                 break
-
+        
         q = ctx.db.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
             q = q.filter(CampaignStage.campaign_stage_id == int(campaign))
