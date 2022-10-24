@@ -2055,7 +2055,7 @@ gui_editor.prototype.new_stage = function (name, label) {
         'software_version': null,
         'dataset_or_split_data': null,
         'cs_split_type': null,
-        'default_clear_cronjob':null,
+        'default_clear_cronjob':true,
         'completion_type': null,
         'completion_pct': null,
         'param_overrides': null,
