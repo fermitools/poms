@@ -171,7 +171,7 @@ class StagesPOMS:
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop("ae_split_type", None)
-            default_clear_cronjob = kwargs.pop("ae_cronjob")
+            default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
             vo_role = kwargs.pop("ae_vo_role")
             software_version = kwargs.pop("ae_software_version")
             dataset = kwargs.pop("ae_dataset")
