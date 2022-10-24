@@ -753,7 +753,7 @@ function edit_campaign(index,clone) {
   //
   $("#ae_completion_type").val($("#c_completion_type_"+index).text() ).trigger('change');
   $("#ae_completion_pct").val( $("#c_completion_pct_"+index).text() );
-  $("#default_clear_cronjob").attr("selected", $("#c_campaign_stage_clear_cronjob_"+index).text().toLowerCase().includes("t") );
+  $("#default_clear_cronjob").attr("checked", $("#c_campaign_stage_clear_cronjob_"+index).text().toLowerCase().includes("t") );
   $("#campaign_add_edit_modal").modal('show');
 
   console.log("clone = : " + clone)
