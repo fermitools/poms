@@ -641,7 +641,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                                        ae_launch_name=ae_launch_name,
                                        ae_campaign_definition=ae_campaign_definition,
                                        test_client=test_client,
-                                       configfile=configfile)
+                                       configfile=configfile, default_clear_cronjob = default_clear_cronjob)
     return "status_code", status_code
     #return data['message']
 
