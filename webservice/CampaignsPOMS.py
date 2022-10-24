@@ -490,6 +490,7 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("default_clear_cronjob=%s" % (defaults.get("default_clear_cronjob") or "True"))
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
@@ -523,6 +524,8 @@ class CampaignsPOMS:
                 res.append("dataset_or_split_data=%s" % c_s.dataset)
             if c_s.cs_split_type != defaults.get("cs_split_type"):
                 res.append("cs_split_type=%s" % c_s.cs_split_type)
+            if c_s.default_clear_cronjob != defaults.get("default_clear_cronjob"):
+                res.append("default_clear_cronjob=%s" % c_s.default_clear_cronjob)
             if c_s.completion_type != defaults.get("completion_type"):
                 res.append("completion_type=%s" % c_s.completion_type)
             if str(c_s.completion_pct) != defaults.get("completion_pct"):
@@ -1002,6 +1005,7 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
+            default_clear_cronjob = form.pop("cs_split_type", True)
             dataset = form.pop("dataset_or_split_data")
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
@@ -1069,6 +1073,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
+                    obj.default_clear_cronjob = default_clear_cronjob
                     obj.dataset = dataset
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
@@ -1095,6 +1100,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
+                    default_clear_cronjob = default_clear_cronjob,
                     dataset=dataset,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
