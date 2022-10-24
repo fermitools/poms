@@ -4,6 +4,19 @@
 <title>POMS Campaign Overview</title>
 
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<script type="text/javascript">
+	function confirm_call(msg, url, icon = null) {
+	   var r = confirm(msg);
+	   if ( r ) {
+		   if (icon != null){
+			   $(icon).attr("disabled", true);
+			   $(icon).children('i').eq(0).addClass("spinner");
+			   $(icon).children('i').eq(0).addClass("loading");
+		   }
+		   location.assign(url)
+	   }
+	}
+</script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
 {%endblock%}
 
@@ -30,7 +43,7 @@
 		<i class="clipboard outline icon"></i>
 		</button>
 	    </a>
-	    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}')">
+	    <button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}', this);">
 		<i class="chart rocket icon blue"></i>
 	    </button>
 	    <a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">
@@ -60,3 +73,6 @@
 {%block final%}
 
 {%endblock%}
+
+
+   
