@@ -1005,7 +1005,7 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
-            default_clear_cronjob = form.pop("cs_split_type", True)
+            default_clear_cronjob = form.pop("default_clear_cronjob", True)
             dataset = form.pop("dataset_or_split_data")
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
