@@ -171,6 +171,7 @@ class StagesPOMS:
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop("ae_split_type", None)
+            default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
             vo_role = kwargs.pop("ae_vo_role")
             software_version = kwargs.pop("ae_software_version")
             dataset = kwargs.pop("ae_dataset")
@@ -270,6 +271,7 @@ class StagesPOMS:
                             name=name,
                             experiment=experiment,
                             vo_role=vo_role,
+                            default_clear_cronjob=default_clear_cronjob,
                             # active=active,
                             cs_split_type=split_type,
                             software_version=software_version,
@@ -295,6 +297,7 @@ class StagesPOMS:
                         "vo_role": vo_role,
                         # "active": active,
                         "cs_split_type": split_type,
+                        "default_clear_cronjob":default_clear_cronjob,
                         "software_version": software_version,
                         "dataset": dataset,
                         "param_overrides": param_overrides,
