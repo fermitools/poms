@@ -96,6 +96,7 @@ class CampaignsPOMS:
                 completion_pct="95",
                 completion_type="complete",
                 cs_split_type="None",
+                default_clear_cronjob = True,
                 dataset="from_parent",
                 job_type_id=(
                     ctx.db.query(JobType.job_type_id)
@@ -1073,7 +1074,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
-                    obj.default_clear_cronjob = default_clear_cronjob in (True, "True", "true")
+                    obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
@@ -1100,7 +1101,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
-                    default_clear_cronjob = default_clear_cronjob  in (True, "True", "true"),
+                    default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
