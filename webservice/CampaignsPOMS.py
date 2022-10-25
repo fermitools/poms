@@ -471,7 +471,6 @@ class CampaignsPOMS:
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
             )
-            res.append("default_clear_cronjob=%s" % "True")
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
 
@@ -500,6 +499,7 @@ class CampaignsPOMS:
                     res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                     res.append("stage_type=%s" % (defaults.get("stage_type") or "regular"))
                     res.append("output_ancestor_depth=%s" % (defaults.get("output_ancestor_depth") or "1"))
+                    res.append("default_clear_cronjob=%s" % "True")
                     res.append("")
                 else:
                     defaults = {}
