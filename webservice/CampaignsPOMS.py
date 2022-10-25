@@ -490,6 +490,7 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("default_clear_cronjob=%s" % "True")
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
@@ -499,7 +500,6 @@ class CampaignsPOMS:
                     res.append("job_type=%s" % (defaults.get("job_type") or "generic"))
                     res.append("stage_type=%s" % (defaults.get("stage_type") or "regular"))
                     res.append("output_ancestor_depth=%s" % (defaults.get("output_ancestor_depth") or "1"))
-                    res.append("default_clear_cronjob=%s" % "True")
                     res.append("")
                 else:
                     defaults = {}
