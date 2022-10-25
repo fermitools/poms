@@ -538,7 +538,7 @@ class CampaignsPOMS:
                 res.append("job_type=%s" % c_s.job_type_obj.name)
             res.append("merge_overrides=%s" % c_s.merge_overrides)
             res.append("stage_type=%s" % c_s.campaign_stage_type)
-            res.append("default_clear_cronjob=%s" % c_s.default_clear_cronjob)
+            res.append("default_clear_cronjob=%s" % str(c_s.default_clear_cronjob))
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
