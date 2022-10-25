@@ -96,6 +96,7 @@ class CampaignsPOMS:
                 completion_pct="95",
                 completion_type="complete",
                 cs_split_type="None",
+                default_clear_cronjob = True,
                 dataset="from_parent",
                 job_type_id=(
                     ctx.db.query(JobType.job_type_id)
@@ -470,7 +471,6 @@ class CampaignsPOMS:
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
             )
-
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
 
@@ -490,6 +490,7 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("default_clear_cronjob=%s" % "True")
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
@@ -537,6 +538,7 @@ class CampaignsPOMS:
                 res.append("job_type=%s" % c_s.job_type_obj.name)
             res.append("merge_overrides=%s" % c_s.merge_overrides)
             res.append("stage_type=%s" % c_s.campaign_stage_type)
+            res.append("default_clear_cronjob=%s" % str(c_s.default_clear_cronjob))
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
@@ -1002,6 +1004,7 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
+            default_clear_cronjob = form.pop("default_clear_cronjob", True)
             dataset = form.pop("dataset_or_split_data")
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
@@ -1069,6 +1072,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
+                    obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
@@ -1095,6 +1099,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
+                    default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,

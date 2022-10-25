@@ -86,6 +86,7 @@ class CampaignStage(Base):
     campaign_stage_type = Column(Text, nullable=False)
     merge_overrides = Column(Boolean, nullable=True)
     output_ancestor_depth = Column(Integer, server_default="1")
+    default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
 
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
@@ -274,6 +275,7 @@ class CampaignStageSnapshot(Base):
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     # completion_pct = Column(Text, nullable=False, server_default="95")
     completion_pct = Column(Integer, nullable=False, server_default="95")
+    default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
 
     campaign_stage = relationship("CampaignStage")
 

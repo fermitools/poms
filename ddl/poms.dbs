@@ -62,6 +62,7 @@
 			<column name="updated" type="timestamptz" jt="93" />
 			<column name="cs_last_split" type="integer" jt="4" />
 			<column name="cs_split_type" type="text" jt="12" />
+			<column name="default_clear_cronjob" type="bool" jt="7" />
 			<column name="cs_split_dimensions" type="text" jt="12" />
 			<index name="idx_campaign_snapshots" unique="PRIMARY_KEY" >
 				<column name="campaign_stage_snapshot_id" />
@@ -99,6 +100,7 @@
 			<column name="updated" type="timestamptz" jt="93" />
 			<column name="cs_last_split" type="integer" jt="4" />
 			<column name="cs_split_type" type="text" jt="12" />
+			<column name="default_clear_cronjob" type="bool" jt="7" />
 			<column name="cs_split_dimensions" type="text" jt="12" />
 			<column name="hold_experimenter_id" type="integer" jt="4" />
 			<column name="role_held_with" type="text" jt="12" />
