@@ -471,7 +471,7 @@ class CampaignsPOMS:
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
             )
-
+            res.append("default_clear_cronjob=%s" % "True")
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
 
@@ -491,7 +491,6 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
-                    res.append("default_clear_cronjob=%s" % (defaults.get("default_clear_cronjob") or "True"))
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
@@ -525,8 +524,6 @@ class CampaignsPOMS:
                 res.append("dataset_or_split_data=%s" % c_s.dataset)
             if c_s.cs_split_type != defaults.get("cs_split_type"):
                 res.append("cs_split_type=%s" % c_s.cs_split_type)
-            if c_s.default_clear_cronjob != defaults.get("default_clear_cronjob"):
-                res.append("default_clear_cronjob=%s" % c_s.default_clear_cronjob)
             if c_s.completion_type != defaults.get("completion_type"):
                 res.append("completion_type=%s" % c_s.completion_type)
             if str(c_s.completion_pct) != defaults.get("completion_pct"):
@@ -541,6 +538,7 @@ class CampaignsPOMS:
                 res.append("job_type=%s" % c_s.job_type_obj.name)
             res.append("merge_overrides=%s" % c_s.merge_overrides)
             res.append("stage_type=%s" % c_s.campaign_stage_type)
+            res.append("default_clear_cronjob=%s" % c_s.default_clear_cronjob)
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
