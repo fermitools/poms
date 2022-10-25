@@ -685,14 +685,16 @@ class SubmissionsPOMS:
                 "%d"
                 % (
                     psummary.get("tot_consumed", 0)
+                    + psummary.get("tot_cancelled", 0)
                     + psummary.get("tot_failed", 0)
                     + psummary.get("tot_skipped", 0)
                     + psummary.get("tot_delivered", 0)
                 ),
-                listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
+                listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
             ],
             ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
             ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+            ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
             ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
             ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
             ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],

@@ -106,6 +106,7 @@ class FilesStatus:
             "deliv-<br>ered<br>SAM",
             "unknown<br>SAM",
             "con-<br>sumed",
+            "cancelled",
             "failed",
             "skipped",
             "w/some kids<br>declared",
@@ -153,6 +154,7 @@ class FilesStatus:
                     "%d"
                     % (
                         psummary.get("tot_consumed", 0)
+                        + psummary.get("tot_cancelled", 0)
                         + psummary.get("tot_failed", 0)
                         + psummary.get("tot_skipped", 0)
                         + psummary.get("tot_delivered", 0)
@@ -161,6 +163,7 @@ class FilesStatus:
                 ],
                 ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
                 [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+                [psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
                 [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
                 [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
                 [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],

@@ -26,6 +26,8 @@ def get_status(entry):
     """
     if entry["done"] and entry["failed"] * 2 > entry["completed"]:
         return "Failed"
+    if entry["cancelled"]:
+        return "Cancelled"
     if entry["done"]:
         return "Completed"
     if entry["held"] > 0:
@@ -244,14 +246,14 @@ class Agent:
 
         ntot = (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 
-                int(entry["failed"]))
+                int(entry["failed"]) + int(entry["cancelled"]))
 
         if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
             self.known["maxjobs"][entry["pomsTaskID"]] = ntot
         else:
             ntot = self.known["maxjobs"][entry["pomsTaskID"]]
 
-        ncomp = int(entry["completed"]) + int(entry["failed"])
+        ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
 
         if ntot > 0:
             report_pct_complete = ncomp * 100.0 / ntot
