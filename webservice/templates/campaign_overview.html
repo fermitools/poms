@@ -29,10 +29,6 @@
 {%block subheader%}
 Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> <span class="ui label">{{s.campaign_id}}</span>
 &nbsp;
-<h3>Campaign Tags: </h3>
-		{% for tag in s.tags %}
-			{{tag.tag_name}}
-		{% endfor %}
 {%endblock%}
 
 {%block content %}
@@ -106,6 +102,10 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		<b>Active</b>: {{s.active}}<br/>
 		<b>Campaign Type</b>: {{s.campaign_type}}<br/>
 		<b>Campaign Keywords</b>: {{s.campaign_keywords}}<br/>
+		<h3>Campaign Tags: </h3>
+		{% for tag in s.tags %}
+			{{tag.tag_name}}
+		{% endfor %}
 	</div>
 </div>
 		
