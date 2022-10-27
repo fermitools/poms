@@ -235,10 +235,10 @@ class CampaignsPOMS:
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
         res = []
-        res.append('<div id="dependencies" style="font-size: larger;"></div>')
+        res.append('<div id="overview" style="font-size: larger;"></div>')
         res.append('<script type="text/javascript">')
 
-        res.append('var container = document.getElementById("dependencies");')
+        res.append('var container = document.getElementById("overview");')
         res.append("var fss = window.getComputedStyle(container, null).getPropertyValue('font-size');")
         res.append("var fs = parseFloat(fss);")
         res.append("var nodes = new vis.DataSet([")
