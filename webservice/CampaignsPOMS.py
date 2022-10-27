@@ -268,7 +268,7 @@ class CampaignsPOMS:
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
-                    % (c_s.campaign_stage_id, c_s.name, pos["x"] + 150, pos["y"])
+                    % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"])
                 )
             else:
                 res.append('  {id: %d, label: "%s", font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name))
@@ -304,7 +304,8 @@ class CampaignsPOMS:
         res.append("  layout: {")
         res.append("      hierarchical: {")
         res.append("         direction: 'LR',")
-        res.append("         sortMethod: 'directed'")
+        res.append("         sortMethod: 'directed',")
+        res.append("         nodeSpacing: 150,")
         res.append("      }")
         res.append("   }")
         res.append("};")
