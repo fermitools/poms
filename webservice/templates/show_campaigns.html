@@ -101,7 +101,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
         {% for s in tl|sort(attribute='name') %}
             <tr id="c_tr_{{loop.index}}">
                 <!-- id is hidden by css look for #campaign_table above -->
-                <td id="c_id_{{loop.index}}" href="{{pomspath}}/campaign_overview/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}">{{s.campaign_id}}</td>
+                <td id="c_id_{{loop.index}}"><a href="{{pomspath}}/campaign_overview/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}">{{s.campaign_id}}</a></td>
                 <td align="center"><input type="checkbox" id="c_cbox_{{loop.index}}"></td>
                 <td><a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}">{{s.name}}</a> </td>
                 <td style="text-align:right">{{s.campaign_id}}</td>
