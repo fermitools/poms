@@ -184,7 +184,7 @@ class CampaignsPOMS:
         # for now we're skipping multiparam datasets
         # and stagedfiles ones; they are expandable though...
         #
-        if not lead:
+        if lead:
             dslist = (
                 ctx.db.query(distinct(CampaignStageSnapshot.dataset))
                 .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
