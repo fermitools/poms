@@ -22,7 +22,7 @@
 
 {%block header%}
 <h1 class="ui header">
-          Campaign Overview: {{tag}}
+          Campaign Overview
 </h1>
 {%endblock%}
 
@@ -42,15 +42,19 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 							<i class="chart line icon"></i> Campaign Stage Submissions
 						</a>
 					</div>
+					<div class="item">
+						<a href="https://landscape.fnal.gov/kibana/app/kibana#/visualize/create?type=histogram&indexPattern=c41e97f0-92c6-11e9-b8c9-555a8104b54b&_g=(filters:!())&_a=(filters:!(('$state':(store:appState),meta:(alias:'Campaign%20ID',disabled:!f,index:c41e97f0-92c6-11e9-b8c9-555a8104b54b,key:POMS4_CAMPAIGN_ID,negate:!f,params:(query:{{s.campaign_id}},type:phrase),type:phrase,value:'{{s.campaign_id}}'),query:(match:(POMS4_CAMPAIGN_ID:(query:{{s.campaign_id}},type:phrase))))),linked:!f,query:(language:lucene,query:''),uiState:(),vis:(aggs:!((enabled:!t,id:'1',params:(customLabel:'CPU%20Time',field:cputime),schema:metric,type:sum),(enabled:!t,id:'2',params:(customLabel:Site,field:MATCH_GLIDEIN_Site,missingBucket:!f,missingBucketLabel:Missing,order:desc,orderBy:'3',otherBucket:!f,otherBucketLabel:Other,size:5),schema:segment,type:terms),(enabled:!t,id:'3',params:(customLabel:Walltime,field:walltime),schema:metric,type:sum)),params:(addLegend:!t,addTimeMarker:!f,addTooltip:!t,categoryAxes:!((id:CategoryAxis-1,labels:(show:!t,truncate:100),position:bottom,scale:(type:linear),show:!t,style:(),title:(),type:category)),grid:(categoryLines:!f,style:(color:%23eee),valueAxis:!n),legendPosition:right,orderBucketsBySum:!f,seriesParams:!((data:(id:'1',label:'CPU%20Time'),drawLinesBetweenPoints:!t,interpolate:linear,mode:stacked,show:true,showCircles:!t,type:histogram,valueAxis:ValueAxis-1),(data:(id:'3',label:Walltime),drawLinesBetweenPoints:!t,mode:stacked,show:!t,showCircles:!t,type:histogram,valueAxis:ValueAxis-1)),times:!(),type:histogram,valueAxes:!((id:ValueAxis-1,labels:(filter:!f,rotate:0,show:!t,truncate:100),name:LeftAxis-1,position:left,scale:(mode:normal,type:linear),show:!t,style:(),title:(text:'CPU%20%26%20Wall%20Time'),type:value))),title:'New%20Visualization',type:histogram))" target="_blank">
+							<i class="chart bar icon"></i> CPU and Wall Time by Site
+						</a>
+					</div>
 					<div class=item>
 					   	<a href="{{pomspath}}/campaign_deps/{{session_experiment}}/{{session_role}}?campaign_name={{s.name|urlencode}}" target='_blank'>
 							<i class="sitemap icon"></i> Campaign Dependencies
 					   	</a>
 					</div>
 					<div class=item>
-						<i class="clipboard outline icon"></i>
 						<a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
-							<i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i> Campaign Submission Files
+							<i class="clipboard outline icon"></i> Campaign Submission Files
 						</a>
 					</div>
 				</div>
@@ -64,9 +68,9 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 						</button>
 					</div>
 					<div class=item>
-					   	<a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}" target='_blank'>
+						<button onclick="location.href='{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}'">
 							<i class="edit icon blue"></i> Edit Campaign
-						</a>
+						</button>
 					</div>
 					<div class=item>
 						<button class="button" onclick="delete_campaign('{{s.name}}', '{{s.campaign_id}}');">
@@ -77,7 +81,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 			</div> 
 		</div>  
 		<div class="ui horizontal segments" >
-			<div class="ui segment raised" style="max-width: 33%; ">
+			<div class="ui segment raised" style="max-width: 40%; ">
 				<h3>Campaign Details</h3>
 				<div style="max-height: 300px; overflow-y: scroll;">
 					<b>Name</b>: {{s.name}}<br/>
@@ -91,7 +95,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 			</div>
 			<div class="ui segment raised" >
 				<h3>Campaign Tags</h3>
-				<div style="max-width: 33%; max-height: 300px; overflow-y: scroll;">
+				<div style="max-height: 300px; overflow-y: scroll;">
 					{% for tag in s.tags %}
 					{{tag.tag_name}}
 					{% endfor %}
@@ -101,18 +105,28 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 				<h3>Campaign Stages</h3>
 				<div style="max-height: 300px; overflow-y: scroll;">
 					{% for CampaignStage in s.stages %}
-					<b>Stage</b>: <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}">{{CampaignStage.name}}</a> <span class="ui label">{{CampaignStage.campaign_stage_id}}</span><br/>
-					{% endfor %}]
+					<b>Stage</b>: <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}" target='_blank'>{{CampaignStage.name}}</a> <span class="ui label">{{CampaignStage.campaign_stage_id}}</span><br/>
+					{% endfor %}
 				</div>
 			</div>
 		</div>
-		<div class="ui segment raised">
-			<h3>Campaign Overview</h3>
-			<br/>
-			<hrule>
-				{{svgdata|safe}}
+		<div class="ui horizontal segments" >
+			<div class="ui segment raised">
+				<h3>Campaign Overview</h3>
+				<br/>
+				<hrule>
+					{{svgdata|safe}}
+				</div>
+			</div>
+			<div class="ui segment raised">
+				<h3>Campaign Dependencies</h3>
+				<br/>
+				<hrule>
+					{{depsvgdata|safe}}
+				</div>
 			</div>
 		</div>
+		
 
 {%endblock%}
 

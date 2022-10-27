@@ -312,7 +312,9 @@ class CampaignsPOMS:
         )
         res.append("</script>")
 
-        return campaign, "\n".join(res)
+        campaign_deps = self.campaign_deps_svg(ctx, campaign.name)
+
+        return campaign, "\n".join(res), campaign_deps
 
     # h3. launch_campaign
     def launch_campaign(
