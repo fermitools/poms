@@ -259,7 +259,7 @@ class CampaignsPOMS:
         dstxt = "\\n".join(dslist).replace('"', "'")
 
         res.append(
-            '  {id: %d, label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
+            '  {id: %d, shape: "square", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
             % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
         )
 
@@ -281,8 +281,6 @@ class CampaignsPOMS:
         # first an edge from the dataset to the first stage
         if len(stages) > 0:
             res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
-        else:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, 0, int(total)))
 
         # then all the actual dependencies
         for c_d in c_dl:
@@ -293,6 +291,9 @@ class CampaignsPOMS:
                         "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
                         % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
                     )
+                else:
+                    res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
@@ -321,9 +322,7 @@ class CampaignsPOMS:
         )
         res.append("</script>")
 
-        campaign_deps = self.campaign_deps_svg(ctx, campaign.name)
-
-        return campaign, "\n".join(res), campaign_deps
+        return campaign, "\n".join(res)
 
     # h3. launch_campaign
     def launch_campaign(
