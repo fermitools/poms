@@ -95,18 +95,19 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 <div class="ui horizontal segments" >
 	<div class="ui segment raised">
 		<h3>Campaign Details</h3>
-		
-			<b>Name</b>: {{s.name}}<br/>
-			<b>Experiment</b>: {{s.experiment}}<br/>
-			<b>Creator</b>: {{s.experimenter_creator_obj.username}}<br/>
-			<b>Defaults</b>: {{s.defaults}}<br/>
-			<b>Active</b>: {{s.active}}<br/>
-			<b>Campaign Type</b>: {{s.campaign_type}}<br/>
-			<b>Campaign Keywords</b>: {{s.campaign_keywords}}<br/>
-			<h3>Campaign Tags</h3>
-			{% for tag in s.tags %}
-				{{tag.tag_name}}
-			{% endfor %}
+		<b>Name</b>: {{s.name}}<br/>
+		<b>Experiment</b>: {{s.experiment}}<br/>
+		<b>Creator</b>: {{s.experimenter_creator_obj.username}}<br/>
+		<b>Defaults</b>: {{s.defaults}}<br/>
+		<b>Active</b>: {{s.active}}<br/>
+		<b>Campaign Type</b>: {{s.campaign_type}}<br/>
+		<b>Campaign Keywords</b>: {{s.campaign_keywords}}<br/>
+		{% if s.tags.length > 0 %}
+		<h3>Campaign Tags</h3>
+		{% for tag in s.tags %}
+			{{tag.tag_name}}
+		{% endfor %}
+		{% endif%}
 	</div>
 </div>
 		
