@@ -260,7 +260,7 @@ class CampaignsPOMS:
 
         res.append(
             '  {id: %d, shape: "box", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
-            % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
+            % (0, campaign.name, dstxt, int(total), pos["x"] - 500, pos["y"])
         )
 
         for c_s in csl:
@@ -299,7 +299,7 @@ class CampaignsPOMS:
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'," % (200 + 50 * len(c_ids))),
+        res.append("  height: '%dpx'," % (200 * len(c_ids))),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")

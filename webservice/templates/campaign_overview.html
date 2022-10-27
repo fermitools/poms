@@ -93,9 +93,9 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 	</div> 
 </div>  
 <div class="ui horizontal segments" >
-	<div class="ui segment raised" style="max-width: 40%; ">
+	<div class="ui segment raised">
 		<h3>Campaign Details</h3>
-		<div style="max-height: 300px; overflow-y: scroll;">
+		
 			<b>Name</b>: {{s.name}}<br/>
 			<b>Experiment</b>: {{s.experiment}}<br/>
 			<b>Creator</b>: {{s.experimenter_creator_obj.username}}<br/>
@@ -103,23 +103,10 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 			<b>Active</b>: {{s.active}}<br/>
 			<b>Campaign Type</b>: {{s.campaign_type}}<br/>
 			<b>Campaign Keywords</b>: {{s.campaign_keywords}}<br/>
-		</div>
-	</div>
-	<div class="ui segment raised" >
-		<h3>Campaign Tags</h3>
-		<div style="max-height: 300px; overflow-y: scroll;">
+			<h3>Campaign Tags</h3>
 			{% for tag in s.tags %}
-			{{tag.tag_name}}
+				{{tag.tag_name}}
 			{% endfor %}
-		</div>
-	</div>
-	<div style="max-height:300px;" class="ui segment raised">
-		<h3>Campaign Stages</h3>
-		<div style="max-height: 300px; overflow-y: scroll;">
-			{% for CampaignStage in s.stages %}
-			<b>Stage</b>: <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}" target='_blank'>{{CampaignStage.name}}</a> <span class="ui label">{{CampaignStage.campaign_stage_id}}</span><br/>
-			{% endfor %}
-		</div>
 	</div>
 </div>
 		
