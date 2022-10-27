@@ -18,10 +18,11 @@ import traceback
 from collections import OrderedDict, deque, defaultdict
 from datetime import datetime, timedelta
 import re
+from unicodedata import name
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy import and_, distinct, func, or_, text, Integer, String
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -150,14 +151,14 @@ class CampaignsPOMS:
         # subquery to count dependencies
         q = (
             text(
-                "select campaign_stage_id from campaign_stages "
+                "select campaign_stage_id, name from campaign_stages "
                 " where campaign_id = :campaign_id "
                 "   and 0 = (select count(campaign_dep_id) "
                 "  from campaign_dependencies "
                 " where provides_campaign_stage_id = campaign_stage_id)"
             )
             .bindparams(campaign_id=campaign_id)
-            .columns(campaign_stage_id=Integer)
+            .columns(campaign_stage_id=Integer, name=String)
         )
 
         stages = ctx.db.execute(q).fetchall()
@@ -311,7 +312,7 @@ class CampaignsPOMS:
         )
         res.append("</script>")
 
-        return campaign, "\n".join(res)
+        return campaign, "\n".join(res), stages
 
     # h3. launch_campaign
     def launch_campaign(

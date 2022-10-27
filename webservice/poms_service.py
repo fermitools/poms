@@ -307,8 +307,8 @@ class PomsService:
         p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="CampaignDepsHelp"
     )
     def campaign_overview(self, **kwargs):
-        c, d = self.campaignsPOMS.campaign_overview(**kwargs)
-        return {"s": c, "svgdata": d}
+        c, d , cs= self.campaignsPOMS.campaign_overview(**kwargs)
+        return {"s": c, "svgdata": d, "stages":cs}
 
     # h4. job_type_rm
     @poms_method(rtype="json")
