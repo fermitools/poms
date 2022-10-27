@@ -306,6 +306,7 @@ class CampaignsPOMS:
         res.append("         direction: 'LR',")
         res.append("         sortMethod: 'directed',")
         res.append("         nodeSpacing: 150,")
+        res.append("         edgeMinimization: false,")
         res.append("      }")
         res.append("   }")
         res.append("};")
