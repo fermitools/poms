@@ -78,6 +78,16 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		</div>  
 		<div class="ui horizontal segments">
 			<div class="ui segment raised">
+				<h3>Campaign Details</h3>
+					<b>Name</b>: {{c.name}}<br/>
+					<b>Experiment</b>: {{c.experiment}}<br/>
+					<b>Creator</b>: {{c.experimenter_creator_obj.username}}<br/>
+					<b>Defaults</b>: {{c.defaults}}<br/>
+					<b>Active</b>: {{c.active}<br/>
+					<b>Campaign Type</b>: {{c.campaign_type}}<br/>
+					<b>Campaign Keywords</b>: {{c.campaign_keywords}}<br/>
+			</div>
+			<div class="ui segment raised">
 				<h3>Campaign Tags</h3>
 				<div style="overflow-y: scroll;" >
 					{% for tag in s.tags %}
@@ -88,23 +98,11 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 			<div style="max-height:300px;" class="ui segment raised">
 				<h3>Campaign Stages</h3>
 				<div style="overflow-y: scroll;" >
-					{% for CampaignStage in s.stages %}
+					{% for CampaignStage in c.stages %}
 					<b>Stage</b>: <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}">{{CampaignStage.name}}</a> <span class="ui label">{{CampaignStage.campaign_stage_id}}</span><br/>
 					{% endfor %}]
 				</div>
 			</div>
-		</div>
-		<div class="ui segment raised">
-		<h3>Launch/Setup</h3>
-			<b>Name</b>: {{login_setup_info.LoginSetup.name}}<br/>
-			<b>Experiment</b>: {{CampaignStage.experiment}}<br/>
-			<b>Launch Host</b>: {{login_setup_info.LoginSetup.launch_host}}<br/>
-			<b>Launch Account</b>: {{login_setup_info.LoginSetup.launch_account}}<br/>
-			<b>Launch Setup</b>: {{login_setup_info.LoginSetup.launch_setup}}<br/>
-			<b>Creator</b>: {{login_setup_info.Experimenter.username}}<br/>
-			<b>Created</b>: {{login_setup_info.LoginSetup.created}}<br/>
-			<b>Updater</b>: {{login_setup_info.Experimenter.username}}<br/>
-			<b>Updated</b>: {{login_setup_info.LoginSetup.updated}}<br/>
 		</div>
 		<div class="ui segment raised">
 			<h3>Campaign Overview</h3>
