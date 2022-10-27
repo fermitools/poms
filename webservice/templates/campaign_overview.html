@@ -102,7 +102,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		<b>Active</b>: {{s.active}}<br/>
 		<b>Campaign Type</b>: {{s.campaign_type}}<br/>
 		<b>Campaign Keywords</b>: {{s.campaign_keywords}}<br/>
-		{% if s.tags.length > 0 %}
+		{% if s.tags|length> 0 %}
 		<h3>Campaign Tags</h3>
 		{% for tag in s.tags %}
 			{{tag.tag_name}}
