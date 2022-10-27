@@ -280,7 +280,7 @@ class CampaignsPOMS:
 
         # first an edge from the dataset to the first stage
         if len(stages) > 0:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d', length:100, smooth:{enabled:true} }," % (0, stages[0], int(total)))
 
         # then all the actual dependencies
         for c_d in c_dl:
@@ -288,11 +288,11 @@ class CampaignsPOMS:
                 consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
                 if consumed:
                     res.append(
-                        "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
+                        "  {from: %d, to: %d, arrows: 'to', label: '%3.0f', smooth:{enabled:true}},"
                         % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
                     )
                 else:
-                    res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+                    res.append("  {from: %d, to: %d, arrows: 'to', smooth:{enabled:true}}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
 
 
         res.append("]);")
