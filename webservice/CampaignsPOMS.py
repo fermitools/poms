@@ -268,7 +268,7 @@ class CampaignsPOMS:
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
-                    % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"])
+                    % (c_s.campaign_stage_id, c_s.name, pos["x"] + 150, pos["y"])
                 )
             else:
                 res.append('  {id: %d, label: "%s", font: {size: fs}},' % (c_s.campaign_stage_id, c_s.name))
