@@ -173,7 +173,7 @@ class CampaignsPOMS:
 
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
-        if len(stages > 0):
+        if len(stages) > 0:
             lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
         else:
             lead = None
