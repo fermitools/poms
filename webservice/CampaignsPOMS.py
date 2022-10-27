@@ -279,7 +279,10 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
+        if len(stages) > 0:
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
+        else:
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, 0, int(total)))
 
         # then all the actual dependencies
         for c_d in c_dl:
