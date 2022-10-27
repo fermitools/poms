@@ -259,7 +259,7 @@ class CampaignsPOMS:
         dstxt = "\\n".join(dslist).replace('"', "'")
 
         res.append(
-            '  {id: %d, value:1, scaling: {label: {enabled:true}}, shape: "square", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
+            '  {id: %d, shape: "box", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
             % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
         )
 
