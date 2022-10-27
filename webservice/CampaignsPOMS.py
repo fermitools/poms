@@ -312,7 +312,7 @@ class CampaignsPOMS:
         )
         res.append("</script>")
 
-        return campaign, "\n".join(res), stages
+        return campaign, "\n".join(res)
 
     # h3. launch_campaign
     def launch_campaign(
