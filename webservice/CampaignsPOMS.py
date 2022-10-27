@@ -203,7 +203,7 @@ class CampaignsPOMS:
             count = ctx.sam.count_files(exp, "defname:%s" % ds)
             if count > 0:
                 total += count
-
+        logit.log("campaign_overview: total: %d" % total)
         sp_list = (
             ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
         )
