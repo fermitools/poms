@@ -53,8 +53,13 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 					   	</a>
 					</div>
 					<div class=item>
-						<a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}">
+						<a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?&campaign_id={{s.campaign_id}}&tdays=7&tmax={{last_activity}}" target='_blank'>
 							<i class="clipboard outline icon"></i> Campaign Submission Files
+						</a>
+					</div>
+					<div class="item">
+						<a href="{{pomspath}}/campaign_deps_ini/{{session_experiment}}/{{session_role}}?name={{s.name|urlencode}}" target='_blank'>
+							<i class="list icon"></i> INI file
 						</a>
 					</div>
 				</div>
@@ -111,7 +116,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 			</div>
 		</div>
 		<div class="ui horizontal segments" >
-			<div class="ui segment raised">
+			<div class="ui segment raised"  style="max-width:50%;">
 				<h3>Campaign Overview</h3>
 				<br/>
 				<hrule>
