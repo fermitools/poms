@@ -173,7 +173,10 @@ class CampaignsPOMS:
 
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
-        lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        if len(stages > 0):
+            lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        else:
+            lead = None
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
 
@@ -181,14 +184,17 @@ class CampaignsPOMS:
         # for now we're skipping multiparam datasets
         # and stagedfiles ones; they are expandable though...
         #
-        dslist = (
-            ctx.db.query(distinct(CampaignStageSnapshot.dataset))
-            .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
-            .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
-            .all()
-        )
+        if not lead:
+            dslist = (
+                ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+                .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
+                .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
+                .all()
+            )
 
-        dslist = [x[0] for x in dslist if x[0]]
+            dslist = [x[0] for x in dslist if x[0]]
+        else:
+            dslist = []
 
         # we start total very small so we don't divide by zero later if
         # there arent any..
