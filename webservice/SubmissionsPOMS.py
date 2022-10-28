@@ -1461,6 +1461,10 @@ class SubmissionsPOMS:
         cleanup_cmdl = [
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
+<<<<<<< HEAD
+=======
+            #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
+>>>>>>> 04e822de51e9fb5459e4821e590602f472012808
             "rm -f /tmp/proxy%s /tmp/token_%s" % (uu, uu)
         ]
 
