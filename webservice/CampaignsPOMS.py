@@ -264,7 +264,7 @@ class CampaignsPOMS:
         )
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
+            if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
