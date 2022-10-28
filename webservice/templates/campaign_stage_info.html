@@ -19,7 +19,7 @@ Campaign Stages
 
 {%block subheader%}
 Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br/>
-in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{CampaignStage.campaign_obj.campaign_id}}</span>
+in Campaign <a href="{{pomspath}}/campaign_overview/{{session_experiment}}/{{session_role}}?campaign_id={{CampaignStage.campaign_obj.campaign_id}}">{{CampaignStage.campaign_obj.name}}</a> <span class="ui label">{{CampaignStage.campaign_obj.campaign_id}}</span>
 {%endblock%}
 
 
