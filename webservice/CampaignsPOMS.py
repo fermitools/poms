@@ -18,6 +18,7 @@ import traceback
 from collections import OrderedDict, deque, defaultdict
 from datetime import datetime, timedelta
 import re
+from unicodedata import name
 
 import cherrypy
 from crontab import CronTab
@@ -172,7 +173,10 @@ class CampaignsPOMS:
 
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
-        lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        if len(stages) > 0:
+            lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        else:
+            lead = None
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
 
@@ -180,14 +184,17 @@ class CampaignsPOMS:
         # for now we're skipping multiparam datasets
         # and stagedfiles ones; they are expandable though...
         #
-        dslist = (
-            ctx.db.query(distinct(CampaignStageSnapshot.dataset))
-            .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
-            .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
-            .all()
-        )
+        if lead:
+            dslist = (
+                ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+                .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
+                .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
+                .all()
+            )
 
-        dslist = [x[0] for x in dslist if x[0]]
+            dslist = [x[0] for x in dslist if x[0]]
+        else:
+            dslist = []
 
         # we start total very small so we don't divide by zero later if
         # there arent any..
@@ -196,7 +203,7 @@ class CampaignsPOMS:
             count = ctx.sam.count_files(exp, "defname:%s" % ds)
             if count > 0:
                 total += count
-
+        logit.log("campaign_overview: total: %d" % total)
         sp_list = (
             ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
         )
@@ -234,10 +241,10 @@ class CampaignsPOMS:
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
         res = []
-        res.append('<div id="dependencies" style="font-size: larger;"></div>')
+        res.append('<div id="overview" style="font-size: larger;"></div>')
         res.append('<script type="text/javascript">')
 
-        res.append('var container = document.getElementById("dependencies");')
+        res.append('var container = document.getElementById("overview");')
         res.append("var fss = window.getComputedStyle(container, null).getPropertyValue('font-size');")
         res.append("var fs = parseFloat(fss);")
         res.append("var nodes = new vis.DataSet([")
@@ -252,12 +259,12 @@ class CampaignsPOMS:
         dstxt = "\\n".join(dslist).replace('"', "'")
 
         res.append(
-            '  {id: %d, label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
-            % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
+            '  {id: %d, shape: "box", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
+            % (0, campaign.name, dstxt, int(total), pos["x"] - 500, pos["y"])
         )
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
+            if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
@@ -272,7 +279,8 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
+        if len(stages) > 0:
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d', length:100 }," % (0, stages[0], int(total)))
 
         # then all the actual dependencies
         for c_d in c_dl:
@@ -283,17 +291,22 @@ class CampaignsPOMS:
                         "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
                         % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
                     )
+                else:
+                    res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'," % (200 + 50 * len(c_ids))),
+        res.append("  height: '450px',"),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
         res.append("         direction: 'LR',")
-        res.append("         sortMethod: 'directed'")
+        res.append("         sortMethod: 'directed',")
+        res.append("         nodeSpacing: 150,")
+        res.append("         parentCentralization: false")
         res.append("      }")
         res.append("   }")
         res.append("};")
@@ -628,7 +641,7 @@ class CampaignsPOMS:
         res.append("var nodes = new vis.DataSet([")
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults['positions'] and campaign.defaults.get("positions", {}).get(c_s.name, None):
+            if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
