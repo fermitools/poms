@@ -18,6 +18,8 @@ class DBadminPOMS:
     """
         generic auto generated database edit/admin screens
     """
+    def __init__(self):
+        self.permissions = Permissions
     # h3. experiment_membership
     def experiment_membership(self, ctx):
         """
@@ -57,5 +59,5 @@ class DBadminPOMS:
 
         ctx.db.commit()
         # clear permissions cache since we updated permissions.
-        Permissions.clear_cache()
+        self.permissions.clear_cache()
         return "Ok"
