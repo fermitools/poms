@@ -1,3 +1,4 @@
+import uuid
 class limitn:
     """
        This type, when filled out as limitn(n)  for some integer
@@ -10,6 +11,7 @@ class limitn:
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.ds = cs.dataset
+        self.id = uuid.uuid4()
         try:
             self.n = int(cs.cs_split_type[7:].strip(")"))
         except:
@@ -19,7 +21,7 @@ class limitn:
         return ["n"]
 
     def peek(self):
-        new = self.cs.dataset + "_limit%d" % (self.n)
+        new = self.cs.dataset + "_%s_limit%d" % (str(self.id), self.n)
         self.samhandle.create_definition(self.cs.experiment, new, "defname: %s with limit %d" % (self.cs.dataset, self.n))
         if self.samhandle.count_files(self.cs.job_type_obj.experiment, "defname:" + new) == 0:
             raise StopIteration

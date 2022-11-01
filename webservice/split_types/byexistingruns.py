@@ -1,5 +1,6 @@
 import poms.webservice.logit as logit
 import time
+import uuid
 
 
 class byexistingruns:
@@ -16,6 +17,7 @@ class byexistingruns:
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.dataset = cs.dataset
+        self.id = uuid.uuid4()
 
     def params(self):
         return []
@@ -36,7 +38,7 @@ class byexistingruns:
             raise StopIteration
 
         run_number = "%d.%04d" % (md["runs"][0][0], md["runs"][0][1])
-        new = self.cs.dataset + "_slice_%i_run_%s" % (self.cs.cs_last_split, run_number)
+        new = self.cs.dataset + "_%s_slice_%i_run_%s" % (str(self.id), self.cs.cs_last_split, run_number)
 
         self.samhandle.create_definition(
             self.cs.experiment, new, "defname: %s  %s and run_number %s " % (self.cs.dataset, snapshotbit, run_number)

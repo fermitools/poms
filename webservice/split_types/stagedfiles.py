@@ -1,5 +1,5 @@
-import poms.webservice.logit as logit
 import time
+import uuid
 
 
 class stagedfiles:
@@ -15,6 +15,7 @@ class stagedfiles:
         self.dbhandle = dbhandle
         self.stage_project = cs.dataset
         self.n = int(cs.cs_split_type[12:].strip(")"))
+        self.id = uuid.uuid4()
 
     def params(self):
         return []
@@ -26,7 +27,7 @@ class stagedfiles:
         else:
             snapshotbit = "minus snapshot_id %d" % self.cs.cs_last_split
 
-        new = self.cs.dataset + "_slice_%d_stage_%d" % (self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_%s_slice_%d_stage_%d" % (str(self.id), self.cs.cs_last_split, self.n)
         self.samhandle.create_definition(
             self.cs.experiment,
             new,
@@ -50,8 +51,7 @@ class stagedfiles:
         else:
             snap = snap1
 
-        logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
-
+        
         self.cs.cs_last_split = snap
         return res
 
