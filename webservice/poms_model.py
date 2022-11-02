@@ -5,6 +5,7 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, T
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.mutable import MutableDict
 
 
 Base = declarative_base()
@@ -203,7 +204,7 @@ class Submission(Base):
     )
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    submission_params = Column(JSON)
+    submission_params = Column(MutableDict.as_mutable(JSON))
     depends_on = Column(ForeignKey("submissions.submission_id"), index=True)
     depend_threshold = Column(Integer)
     updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)

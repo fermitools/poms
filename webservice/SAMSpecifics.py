@@ -1,6 +1,9 @@
+from datetime import datetime
 from . import logit
 from .poms_model import CampaignDependency, Submission
 from sqlalchemy import func
+from sqlalchemy.orm.attributes import flag_modified
+
 
 
 class sam_specifics:
@@ -117,8 +120,10 @@ class sam_specifics:
             )
 
         try:
+
             logit.log("counting files dims %s" % recovery_dims)
             nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=self.ctx.db)
+           
         except BaseException as be:
             logit.log("exception %s counting files" % be)
             # if we can's count it, just assume there may be a few for
@@ -126,8 +131,8 @@ class sam_specifics:
             nfiles = 1
 
         s.recovery_position = s.recovery_position + 1
-        self.ctx.db.add(s)
-        self.ctx.db.commit()
+        
+       
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
@@ -141,7 +146,22 @@ class sam_specifics:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
         else:
             rname = None
-
+        
+        recovery = {}
+        recovery["name"] = rname
+        recovery["timestamp"] = datetime.now().isoformat()
+        recovery["count"] = nfiles
+        recovery["exp"] = s.campaign_stage_snapshot_obj.experiment
+        recovery["dims"] = recovery_dims
+        workflow = s.submission_params.get("workflow", {})
+        recoveries = workflow.get("recoveries", [])
+        recoveries.append(recovery)
+        workflow["recoveries"] = recoveries
+        s.submission_params["workflow"] = workflow
+        s.submission_params = s.submission_params
+        flag_modified(s, 'submission_params')
+        self.ctx.db.add(s)
+        self.ctx.db.commit()
         return nfiles, rname
 
     def dependency_definition(self, s, jobtype, i):
@@ -209,6 +229,24 @@ class sam_specifics:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
         except:
             logit.log("ignoring definition error")
+        
+        dependency = {}
+        dependency["name"] = dname
+        dependency["timestamp"] = datetime.now().isoformat()
+        dependency["current_count"] = cur_dname_nfiles
+        dependency["new_count"] = new_dname_nfiles
+        dependency["exp"] = s.campaign_stage_snapshot_obj.experiment
+        dependency["dims"] = dims
+        workflow = s.submission_params.get("workflow", {})
+        deps = workflow.get("dependencies", [])
+        deps.append(dependency)
+        workflow["dependencies"] = deps
+        s.submission_params["workflow"] = workflow
+        s.submission_params = s.submission_params
+        flag_modified(s, 'submission_params')
+        self.ctx.db.add(s)
+        self.ctx.db.commit()
+
         return dname
 
     def get_file_stats_for_submissions(self, submission_list, experiment, just_output=False):

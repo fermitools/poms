@@ -17,6 +17,12 @@
 	   }
 	}
 </script>
+<style>
+	th {
+		position: sticky;
+		top: 0px;;  /* 0px if you don't have a navbar, but something is required */
+	}
+</style>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
 {%endblock%}
 
@@ -106,6 +112,41 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		{% for tag in s.tags %}
 			{{tag.tag_name}}
 		{% endfor %}
+	</div>
+</div>
+<div class="ui horizontal segments" style="max-height: 500px;">
+	<div class="ui segment raised">
+		<h3>Campaign Stage Submissions</h3>
+		<div style="overflow-y: scroll; max-height: 400px;">
+			<table class="ui celled table">
+				<thead>
+					<tr>
+						<th>Submission ID</th>
+						<th>Campaign Stage</th>
+						<th>Created</th>
+						<th>Submission Params</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for sub in slist %}
+					<tr>
+						<td>
+							<a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{sub[1].submission_id}}" target='_blank'>{{sub[1].submission_id}}</a>
+						</td>
+						<td>
+							<a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{sub[1].campaign_stage_id}}" target='_blank'>{{sub[0]}}</a>
+						</td>
+						<td>
+							{{sub[1].created}}
+						</td>
+						<td>
+							{{sub[1].submission_params}}
+						</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
 	</div>
 </div>
 		

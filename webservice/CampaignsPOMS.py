@@ -205,9 +205,12 @@ class CampaignsPOMS:
                 total += count
         logit.log("campaign_overview: total: %d" % total)
         sp_list = (
-            ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
+            ctx.db.query(Campaign.campaign_id, CampaignStage, Submission)
+            .filter(CampaignStage.campaign_id == campaign_id, Campaign.campaign_id == campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .order_by(CampaignStage.campaign_stage_id, Submission.submission_id)
+            .all()
         )
-
+        sp_list = [[x[1].name, x[2]] for x in sp_list if x[2]]
         counts = (
             ctx.db.query(
                 CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
@@ -222,6 +225,7 @@ class CampaignsPOMS:
             consumed_map[r[0]] = r[1]
             generated_map[r[0]] = r[2]
 
+        logit.log("campaign_overview: sub_list: %s" % repr(sp_list))
         logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map))
         logit.log("campaign_overview: generated_map: %s" % repr(generated_map))
 
@@ -324,7 +328,7 @@ class CampaignsPOMS:
         )
         res.append("</script>")
 
-        return campaign, "\n".join(res)
+        return campaign, "\n".join(res), sp_list
 
     # h3. launch_campaign
     def launch_campaign(
