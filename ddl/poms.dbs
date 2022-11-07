@@ -285,6 +285,23 @@
 				<fk_column name="experimenter_id" pk="experimenter_id" />
 			</fk>
 		</table>
+		<table name="experimenters_watching" >
+			<column name="experimenters_watching_id" type="uuid" length="10" decimal="0" jt="12" mandatory="y" autoincrement="y" />
+			<column name="experimenter_id" type="integer" jt="4" mandatory="y" />
+			<column name="campaign_id" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" length="35" decimal="6" jt="93" mandatory="y" >
+				<defo>now()</defo>
+			</column>
+			<index name="pk_experimenters_watching" unique="PRIMARY_KEY" >
+				<column name="experimenters_watching_id" />
+			</index>
+			<fk name="fk_campaign_id" to_schema="public" to_table="campaigns" >
+				<fk_column name="campaign_id" pk="campaign_id" />
+			</fk>
+			<fk name="fk_experimenter_id" to_schema="public" to_table="experimenters" >
+				<fk_column name="experimenter_id" pk="experimenter_id" />
+			</fk>
+		</table>
 		<table name="faulty_requests" >
 			<column name="url" type="text" decimal="0" jt="12" mandatory="y" />
 			<column name="last_seen" type="timestamptz" length="35" decimal="6" jt="93" mandatory="y" >

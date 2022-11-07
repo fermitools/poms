@@ -310,6 +310,13 @@ class PomsService:
         c, d, sl = self.campaignsPOMS.campaign_overview(**kwargs)
         return {"s": c, "svgdata": d, "slist": sl}
 
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="CampaignDepsHelp"
+    )
+    def show_watching(self, **kwargs):
+        d, c = self.campaignsPOMS.show_watching(**kwargs)
+        return {"svgdata": d, "campaigns": c}
+
     # h4. job_type_rm
     @poms_method(rtype="json")
     def job_type_rm(self, **kwargs):
@@ -1033,6 +1040,26 @@ class PomsService:
     @poms_method(rtype="json")
     def save_campaign(self, *args, **kwargs):
         return self.campaignsPOMS.save_campaign(*args, **kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#watch_campaign&
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        t="show_campaigns.html",
+        u=["tl", "last_activity", "msg", "data"],
+        need_er=True,
+    )
+    def watch_campaign(self, **kwargs):
+        return self.campaignsPOMS.watch_campaign(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#stop_watching&
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        t="show_watching.html",
+        u=["tl", "last_activity", "msg", "data"],
+        need_er=True,
+    )
+    def stop_watching(self, **kwargs):
+        return self.campaignsPOMS.watch_campaign(**kwargs)
 
     # see &l=webservice/CampaignsPOMS.py#save_campaign&
 

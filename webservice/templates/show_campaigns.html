@@ -26,6 +26,11 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
         background-color: yellow;
     }
 
+    .yellow{
+        -webkit-text-stroke-width: 1px;
+        -webkit-text-stroke-color: black;
+    }
+
 </style>
 
 <script>
@@ -95,6 +100,7 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
                 <th>Tags</th>
                 <th>Creator</th>
+                <th>Watch</th>
             </tr>
         </thead>
         <tbody id="campaign_table_body">
@@ -192,6 +198,23 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
                     {{s.experimenter_creator_obj.username}}
                 </td>
                 <td id="c_name_{{loop.index}}" style="display:none">{{s.name}}</td>
+                <td>
+                    {%if data.authorized[loop.index0] %}
+                    {%if s.campaign_id in data.watching %}
+                        <button class="button" onclick="watch_campaign(this,'{{s.campaign_id}}');">
+                            <i class="star yellow icon"></i>
+                        </button>
+                    {%else%}
+                        <button class="button" onclick="watch_campaign(this,'{{s.campaign_id}}');">
+                            <i class="star grey icon"></i>
+                        </button>
+                    {%endif%}
+                    {%else%}
+                        <button class="button disabled">
+                            <i class="star icon disabled"></i>
+                        </button>
+                    {%endif%}
+                </td>
             </tr>
 
         {% endfor %}
@@ -455,6 +478,34 @@ function delete_campaign(del_campaign_name, del_campaign_id) {
     $("#del_campaign_name").val(del_campaign_name);
     $("#del_campaign_id").val(del_campaign_id);
     $("#delete_campaign_modal").modal({}).modal('show');
+}
+
+function watch_campaign(elem, campaign_id) {
+    var selected = false;
+    if($(elem).find('i').hasClass("grey")){
+        $(elem).find('i').removeClass("grey");
+        $(elem).find('i').addClass("yellow");
+        selected = true;
+    }
+    else{
+        $(elem).find('i').removeClass("yellow");
+        $(elem).find('i').addClass("grey");
+    }
+
+    var formdata = {'campaign_id': campaign_id, "selected": selected};
+    $.ajax({
+        url: "{{pomspath}}/watch_campaign/{{session_experiment}}/{{session_role}}",
+        type: 'GET',
+        data: formdata,
+        success: function(data){
+            data = JSON.parse(data);
+            if (data.message != "ok") {
+                
+            } else {
+                
+            }
+        }
+    });
 }
 
 $('#template_clone_form')

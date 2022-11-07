@@ -6,7 +6,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
-
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -144,6 +145,16 @@ class Experiment(Base):
     snow_url = Column(Text, nullable=True)
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
     active = Column(Boolean, nullable=False, server_default=text("true"))
+
+class ExperimentersWatching(Base):
+    __tablename__ = "experimenters_watching"
+
+    experimenters_watching_id = Column(experimenters_watching_id = UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    experimenter_id = Column(ForeignKey("experimenters.experimenter_id"),nullable=False, index=True)
+    campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=False, index=True)
+    created = Column(DateTime(True), nullable=False)
+    experimenter_obj = relationship(Experimenter, backref="exp_watch")
+    campaign_obj = relationship(Campaign, backref="exp_watch")
 
 
 class LoginSetup(Base):
