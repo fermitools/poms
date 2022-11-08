@@ -341,7 +341,7 @@ class sam_specifics:
         subs = set([x.submission_id for x in submission_list])
         existing = self.ctx.db.query(Submission).filter(Submission.submission_id.in_(subs)).all()
         logit.log("existing, got s: %s" % repr(existing))
-        if existing:
+        if existing and summary_list:
             for i in range(0,len(submission_list)):
                 logit.log("sub_%d: %s" % (i, submission_list[i]))
                 s = [p for p in existing if p.submission_id == submission_list[i].submission_id]
