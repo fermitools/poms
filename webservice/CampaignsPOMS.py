@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
-
+from __future__ import division
 import glob
 import importlib
 import json
@@ -198,12 +198,7 @@ class CampaignsPOMS:
 
         # we start total very small so we don't divide by zero later if
         # there arent any..
-        total = 0.001
-        for ds in dslist:
-            count = ctx.sam.count_files(exp, "defname:%s" % ds)
-            if count > 0:
-                total += count
-        logit.log("campaign_overview: total: %d" % total)
+       
         sp_list = (
             ctx.db.query(Campaign.campaign_id, CampaignStage, Submission)
             .filter(CampaignStage.campaign_id == campaign_id, Campaign.campaign_id == campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
@@ -211,6 +206,34 @@ class CampaignsPOMS:
             .all()
         )
         sp_list = [[x[1].name, x[2]] for x in sp_list if x[2]]
+        
+        total = 0.0
+        for ds in dslist:
+            count = ctx.sam.count_files(exp, "defname:%s" % ds)
+            if count > 0:
+                total += count
+        if total == 0:
+            subs = [x[1] for x in sp_list if x[1]]
+            for sub in subs:
+                if sub.files_generated:
+                    total += sub.files_generated
+        logit.log("campaign_overview: total: %d" % total)
+        """
+        
+        listfiles = "../../../show_dimension_files/%s/%s?dims=%%s" % (ctx.experiment, ctx.role)
+        (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        ) = sam_specifics(ctx).get_file_stats_for_submissions(subs, ctx.experiment)
+        """
         counts = (
             ctx.db.query(
                 CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
@@ -221,11 +244,21 @@ class CampaignsPOMS:
         )
         consumed_map = {}
         generated_map = {}
+        """
+        for i in range(0, len(subs)):
+            if subs[i].campaign_stage_id not in consumed_map.items():
+                consumed_map[subs[i].campaign_stage_id] = 0
+            if subs[i].campaign_stage_id not in generated_map.items():
+                generated_map[subs[i].campaign_stage_id] = 0
+            consumed_map[subs[i].campaign_stage_id] += summary_list[i].get("tot_consumed", 0)
+            generated_map[subs[i].campaign_stage_id] += output_list[i]
+            total += output_list[i]
+        """
         for r in counts:
             consumed_map[r[0]] = r[1]
             generated_map[r[0]] = r[2]
 
-        logit.log("campaign_overview: sub_list: %s" % repr(sp_list))
+       
         logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map))
         logit.log("campaign_overview: generated_map: %s" % repr(generated_map))
 
@@ -284,16 +317,22 @@ class CampaignsPOMS:
 
         # first an edge from the dataset to the first stage
         if len(stages) > 0:
-            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d', length:100 }," % (0, stages[0], int(total)))
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d file(s) submitted', length:100 }," % (0, stages[0], int(total)))
 
         # then all the actual dependencies
+        total_consumed = 0.0
         for c_d in c_dl:
             if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
                 consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
+                generated = generated_map.get(c_d.needs_campaign_stage_id, 0.0)
                 if consumed:
+                    total_consumed += consumed
+                    pct = 0.0
+                    if total > 0:
+                        pct = consumed/total
                     res.append(
-                        "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
-                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
+                        "  {from: %d, to: %d, arrows: 'to', label: '%d gen, %d file(s) consumed - %3.2f%s'},"
+                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, generated ,consumed, (pct*100), "%")
                     )
                 else:
                     res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
@@ -324,8 +363,9 @@ class CampaignsPOMS:
             )
         res.append("};")
         res.append(
-            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
+            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];});"
         )
+        res.append("setTimeout(() => {$('#tot_consumed').html('Total Consumed: %d');$('#consumed_pct').html('Consumed pct: %3.2f%s');}, 500);" % (total_consumed, ((total_consumed/total) * 100) if total != 0 else 0, "%"))
         res.append("</script>")
 
         return campaign, "\n".join(res), sp_list
