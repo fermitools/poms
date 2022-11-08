@@ -53,7 +53,7 @@
 			<column name="completion_type" type="text" jt="12" mandatory="y" >
 				<defo>&#039;located&#039;::text</defo>
 			</column>
-			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+			<column name="completion_pct" type="real" jt="4" mandatory="y" >
 				<defo>95</defo>
 			</column>
 			<column name="param_overrides" type="json" jt="2000" />
@@ -90,7 +90,7 @@
 			<column name="completion_type" type="text" jt="12" mandatory="y" >
 				<defo>&#039;located&#039;::text</defo>
 			</column>
-			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+			<column name="completion_pct" type="real" jt="4" mandatory="y" >
 				<defo>95</defo>
 			</column>
 			<column name="campaign_stage_type" type="text" jt="12" mandatory="y" />

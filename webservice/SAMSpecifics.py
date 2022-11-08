@@ -3,6 +3,7 @@ from . import logit
 from .poms_model import CampaignDependency, Submission
 from sqlalchemy import func
 from sqlalchemy.orm.attributes import flag_modified
+import uuid
 
 
 
@@ -39,9 +40,9 @@ class sam_specifics:
         )
         for i in range(1, ndeps[0] + 1):
             if cs.creator_role == "analysis":
-                dname = "poms_%s_depends_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, s.submission_id, i)
+                dname = "poms_%s_depends_%s_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, str(uuid.uuid4()),s.submission_id, i)
             else:
-                dname = "poms_depends_%d_%d" % (s.submission_id, i)
+                dname = "poms_depends_%s_%d_%d" % (str(uuid.uuid4()),s.submission_id, i)
 
             logit.log(
                 "declare_approval_transfer_datasets: creating definition %s defname:%s" % (dname, s.submission_params["dataset"])
@@ -63,7 +64,7 @@ class sam_specifics:
                 s.project,
                 s.project,
             )
-        elif rtype.name == "proj_status":
+        elif rtype.name == "process_status":
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
@@ -136,7 +137,7 @@ class sam_specifics:
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
-            rname = "poms_recover_%d_%d" % (s.submission_id, s.recovery_position)
+            rname = "poms_recover_%s_%d_%d" % (str(uuid.uuid4()), s.submission_id, s.recovery_position)
 
             logit.log(
                 "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s"
@@ -170,9 +171,9 @@ class sam_specifics:
         # so they can define them in the job, we have to follow the same
         # rule here...
         if s.campaign_stage_obj.creator_role == "analysis":
-            dname = "poms_%s_depends_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, s.submission_id, i)
+            dname = "poms_%s_depends_%s_%d_%d" % (s.campaign_stage_obj.experimenter_creator_obj.username, str(uuid.uuid4()), s.submission_id, i)
         else:
-            dname = "poms_depends_%d_%d" % (s.submission_id, i)
+            dname = "poms_depends_%s_%d_%d" % (str(uuid.uuid4()),s.submission_id, i)
 
         isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
         ischildof = "ischildof:( " * s.campaign_stage_obj.output_ancestor_depth
@@ -444,14 +445,15 @@ class sam_project_checker:
 
     def add_non_project_submission(self, submission):
         # it's located but there's no project, so assume they are
-        # defining the poms_depends_%(submission_id)s_1 dataset..
+        # defining the poms_depends_%(uuid)_%(submission_id)s_1 dataset..
         if submission.campaign_stage_obj.creator_role == "analysis":
-            allkiddims = "defname:poms_%s_depends_%s_1" % (
+            allkiddims = "defname:poms_%s_depends_%s_%s_1" % (
                 submission.campaign_stage_obj.experimenter_creator_obj.username,
+                str(uuid.uuid4()),
                 submission.submission_id,
             )
         else:
-            allkiddims = "defname:poms_depends_%s_1" % submission.submission_id
+            allkiddims = "defname:poms_depends_%s_%s_1" % (str(uuid.uuid4()),submission.submission_id)
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)

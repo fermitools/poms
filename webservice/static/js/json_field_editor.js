@@ -16,7 +16,7 @@ json_field_editor.recovery_start = function (id) {
         'consumed_status': 'Include files from the total dataset which were not flagged "consumed" by the original job',
         'delivered_not_consumed': 'Include only delivered files which were not "consumed" by the original job',
         'pending_files': 'Include files from total dataset which do not have suitable children declared for this version of software',
-        'proj_status': 'Like consumed status, but also include files from that were processed by jobs that say they failed'
+        'process_status': 'Like consumed status, but also include files from that were processed by jobs that say they failed'
     }
     e = document.getElementById(id);
     e_text = document.getElementById(id + '_text');
