@@ -17,4 +17,11 @@ CREATE TABLE experimenters_watching (
  );
 
 alter table experimenters_watching OWNER TO pomsdev;
+
+
+update recovery_types set name = 'process_status' where name = 'proj_status';
+
+alter table campaign_stages alter column completion_pct type real;
+alter table campaign_stage_snapshots alter column completion_pct type real;
+
 \i grants.sql

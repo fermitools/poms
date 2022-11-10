@@ -878,8 +878,11 @@ class SubmissionsPOMS:
 
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
+        current_s = s
         if s.parent_obj:
             s = s.parent_obj
+        logit.log("launch_recovery_if_needed: current_s: %s" %repr(current_s))
+        logit.log("launch_recovery_if_needed: s: %s" %repr(s))
 
         if s.recovery_position is None:
             s.recovery_position = 0
@@ -908,7 +911,14 @@ class SubmissionsPOMS:
             rtype = rlist[s.recovery_position].recovery_type
             param_overrides = rlist[s.recovery_position].param_overrides
 
-            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            # if this is the first recovery, we use s (which may be the parent submission)
+            # else we use the current submission as the project because we don't want to re-submit the same files
+            # May want to add a secondary condition in the future to make sure that the recovery type is the same 
+            # as the previous submission if choosing current_s rather than s
+            if s.recovery_position == 0:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            else:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
 
             s.recovery_position = s.recovery_position + 1
 

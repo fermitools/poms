@@ -956,9 +956,9 @@ class StagesPOMS:
             pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
             slist.append(tup.Submission)
-            m = re.match(r"poms_(depends|recover)_(.*)_[0-9]", pd)
+            m = re.match(r"poms_(depends|recover)_([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})_(.*)_[0-9]", pd)
             if m:
-                depends[sid] = int(m.group(2))
+                depends[sid] = int(m.group(3))
                 darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
             else:
                 depends[sid] = None
