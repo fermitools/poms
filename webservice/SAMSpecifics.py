@@ -338,6 +338,20 @@ class sam_specifics:
             some_kids_list = self.ctx.sam.count_files_list(experiment, some_kids_needed)
             some_kids_decl_list = self.ctx.sam.count_files_list(experiment, some_kids_decl_needed)
             all_kids_decl_list = self.ctx.sam.count_files_list(experiment, all_kids_decl_needed)
+        subs = set([x.submission_id for x in submission_list])
+        existing = self.ctx.db.query(Submission).filter(Submission.submission_id.in_(subs)).all()
+        logit.log("existing, got s: %s" % repr(existing))
+        if existing and summary_list:
+            for i in range(0,len(submission_list)):
+                logit.log("sub_%d: %s" % (i, submission_list[i]))
+                s = [p for p in existing if p.submission_id == submission_list[i].submission_id]
+                logit.log("sub_%d, got s: %s" % (i,repr(s)))
+                if s:
+                    s[0].files_consumed = summary_list[i].get("tot_consumed", 0)
+                    s[0].files_generated = summary_list[i].get("files_in_snapshot", 0)
+                    self.ctx.db.add(s[0])
+                   
+        self.ctx.db.commit()
         return (
             summary_list,
             some_kids_decl_needed,

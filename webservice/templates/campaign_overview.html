@@ -16,8 +16,18 @@
 		   location.assign(url)
 	   }
 	}
+	setTimeout(() => {
+		$("#tot_consumed").html();
+		$("#consumed_pct").html();
+	}, 500);
+	
 </script>
 <style>
+	.final_out{
+		float: right;
+		margin-top: -50px;
+		color: black;
+	}
 	th {
 		position: sticky;
 		top: 0px;;  /* 0px if you don't have a navbar, but something is required */
@@ -44,6 +54,13 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		<br/>
 		<hrule>
 			{{svgdata|safe}}
+		<a class="final_out">
+			<h3>Final Output:</h3>
+			<span id="tot_consumed"></span><br>
+			<span id="consumed_pct"></span>
+		</a>
+		
+		
 	</div>
 </div>
 <div class="ui horizontal segments">
