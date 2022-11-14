@@ -16,10 +16,6 @@
 		   location.assign(url)
 	   }
 	}
-	setTimeout(() => {
-		$("#tot_consumed").html();
-		$("#consumed_pct").html();
-	}, 500);
 	
 </script>
 <style>
@@ -55,9 +51,10 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		<hrule>
 			{{svgdata|safe}}
 		<a class="final_out">
-			<h3>Final Output:</h3>
+			<h3>Status:</h3>
 			<span id="tot_consumed"></span><br>
-			<span id="consumed_pct"></span>
+			<span id="consumed_pct"></span><br>
+			<span id="pct_complete"></span>
 		</a>
 		
 		
@@ -129,41 +126,6 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		{% for tag in s.tags %}
 			{{tag.tag_name}}
 		{% endfor %}
-	</div>
-</div>
-<div class="ui horizontal segments" style="max-height: 500px;">
-	<div class="ui segment raised">
-		<h3>Campaign Stage Submissions</h3>
-		<div style="overflow-y: scroll; max-height: 400px;">
-			<table class="ui celled table">
-				<thead>
-					<tr>
-						<th>Submission ID</th>
-						<th>Campaign Stage</th>
-						<th>Created</th>
-						<th>Submission Params</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for sub in slist %}
-					<tr>
-						<td>
-							<a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{sub[1].submission_id}}" target='_blank'>{{sub[1].submission_id}}</a>
-						</td>
-						<td>
-							<a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{sub[1].campaign_stage_id}}" target='_blank'>{{sub[0]}}</a>
-						</td>
-						<td>
-							{{sub[1].created}}
-						</td>
-						<td>
-							{{sub[1].submission_params}}
-						</td>
-					</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
 	</div>
 </div>
 		

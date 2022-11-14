@@ -273,9 +273,13 @@ class CampaignsPOMS:
 
         csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
 
+        pct_complete = 0.0
         c_ids = deque()
         for c_s in csl:
             c_ids.append(c_s.campaign_stage_id)
+            pct_complete += c_s.completion_pct
+        if len(csl) > 0:
+            pct_complete = pct_complete/len(csl)
 
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
@@ -333,8 +337,8 @@ class CampaignsPOMS:
                     if total > 0:
                         pct = consumed/total
                     res.append(
-                        "  {from: %d, to: %d, arrows: 'to', label: '%d gen, %d file(s) consumed - %3.2f%s'},"
-                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, generated ,consumed, (pct*100), "%")
+                        "  {from: %d, to: %d, arrows: 'to', label: '%d file(s) consumed - %3.2f%s'},"
+                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id ,consumed, (pct*100), "%")
                     )
                 else:
                     res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
@@ -367,7 +371,7 @@ class CampaignsPOMS:
         res.append(
             "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];});"
         )
-        res.append("setTimeout(() => {$('#tot_consumed').html('Total Consumed: %d');$('#consumed_pct').html('Consumed pct: %3.2f%s');}, 500);" % (total_consumed, ((total_consumed/total) * 100) if total != 0 else 0, "%"))
+        res.append("setTimeout(() => {$('#tot_consumed').html('Total Consumed: %d');$('#consumed_pct').html('Consumed pct: %3.2f%s');$('#pct_complete').html('Pct Complete: %3.2f%s');}, 100);" % (total_consumed, ((total_consumed/total) * 100) if total != 0 else 0, "%", pct_complete, "%"))
         res.append("</script>")
 
         return campaign, "\n".join(res), sp_list
@@ -422,21 +426,34 @@ class CampaignsPOMS:
             else:
                 dslist = []
 
-            # we start total very small so we don't divide by zero later if
-            # there arent any..
-            total = 0.001
-            for ds in dslist:
-                count = ctx.sam.count_files(exp, "defname:%s" % ds)
-                if count > 0:
-                    total += count
-            logit.log("campaign_overview: total: %d" % total)
             sp_list = (
                 ctx.db.query(Campaign.campaign_id, CampaignStage, Submission)
                 .filter(CampaignStage.campaign_id == campaign.campaign_id, Campaign.campaign_id ==  campaign.campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                 .order_by(CampaignStage.campaign_stage_id, Submission.submission_id)
                 .all()
             )
+            
             sp_list = [[x[1].name, x[2]] for x in sp_list if x[2]]
+
+            # we start total very small so we don't divide by zero later if
+            # there arent any..
+            total = 0.0
+           
+            for ds in dslist:
+                count = ctx.sam.count_files(exp, "defname:%s" % ds)
+                if count > 0:
+                    total += count
+            if total == 0:
+                subs = [x[1] for x in sp_list if x[1]]
+                for sub in subs:
+                    if sub.files_generated:
+                        total += sub.files_generated
+        
+
+            logit.log("campaign_overview: total: %d" % total)
+
+           
+
             counts = (
                 ctx.db.query(
                     CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
@@ -447,6 +464,7 @@ class CampaignsPOMS:
             )
             consumed_map = {}
             generated_map = {}
+
             for r in counts:
                 consumed_map[r[0]] = r[1]
                 generated_map[r[0]] = r[2]
@@ -459,9 +477,13 @@ class CampaignsPOMS:
             #csl = campaign.stages
             csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
 
+            pct_complete = 0.0
             c_ids = deque()
             for c_s in csl:
                 c_ids.append(c_s.campaign_stage_id)
+                pct_complete += c_s.completion_pct
+            if len(csl) > 0:
+                pct_complete = pct_complete/len(csl)
 
             
             res = []
@@ -504,16 +526,21 @@ class CampaignsPOMS:
 
             # first an edge from the dataset to the first stage
             if len(stages) > 0:
-                res.append("  {from: %d, to: %d, arrows: 'to', label: '%d', length:100 }," % (0, stages[0], int(total)))
+                res.append("  {from: %d, to: %d, arrows: 'to', label: '%d file(s) submitted', length:100 }," % (0, stages[0], int(total)))
 
             # then all the actual dependencies
+            total_consumed = 0.0
             for c_d in c_dl:
                 if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
                     consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
                     if consumed:
+                        total_consumed += consumed
+                        pct = 0.0
+                        if total > 0:
+                            pct = consumed/total
                         res.append(
-                            "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
-                            % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
+                            "  {from: %d, to: %d, arrows: 'to', label: '%d file(s) consumed - %3.2f%s'},"
+                            % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, consumed, (pct * 100), "%")
                         )
                     else:
                         res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
@@ -546,6 +573,7 @@ class CampaignsPOMS:
             res.append(
                 "network_"+ str(i) +".on('click', function(params) {if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; window.open(dests_"+ str(i) +"[params['nodes'][0]], '_blank').focus(); })"
             )
+            res.append("setTimeout(() => {$('#tot_consumed_%s').html('Total Consumed: %d');$('#consumed_pct_%s').html('Consumed pct: %3.2f%s'); $('#pct_complete_%s').html('Pct Complete: %3.2f%s');}, 100);" % (str(i),total_consumed, str(i), ((total_consumed/total) * 100) if total != 0 else 0, "%",  str(i), pct_complete, "%"))
             res.append("</script>")
             i += 1
             res_list.append("\n".join(res))

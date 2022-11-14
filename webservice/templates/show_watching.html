@@ -29,6 +29,11 @@
     }
 </script>
 <style>
+    .final_out{
+		float: right;
+		margin-top: -50px;
+		color: black;
+	}
 	th {
 		position: sticky;
 		top: 0px;;  /* 0px if you don't have a navbar, but something is required */
@@ -67,6 +72,12 @@
                 <br/>
                 <hrule>
                     {{svgdata[i]|safe}}
+                <a class="final_out">
+                    <h3>Status:</h3>
+                    <span id="tot_consumed_{{i}}"></span><br>
+                    <span id="consumed_pct_{{i}}"></span><br>
+                    <span id="pct_complete_{{i}}"></span>
+                </a>
             </div>
 
         {% if (i+1)%2 == 0 and i!=0 %}
