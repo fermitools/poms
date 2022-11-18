@@ -14,6 +14,7 @@ import select
 import subprocess
 import time
 import uuid
+import cherrypy
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -658,7 +659,7 @@ class SubmissionsPOMS:
        
         statuses = []
         cs = submission.campaign_stage_snapshot_obj.campaign_stage
-        listfiles = "../../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
+        listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
         (
             summary_list,
             some_kids_decl_needed,
