@@ -1203,7 +1203,7 @@ class SubmissionsPOMS:
             # jobsub_lite and tokens.  This needs a flag on
             # the campaigns and/or experiments instead.
             do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
-
+            do_tokens = True
             # if we're launching jobs, the campaign must now be active
             if not cs.campaign_obj.active:
                 cs.campaign_obj.active = True
@@ -1427,7 +1427,7 @@ class SubmissionsPOMS:
             if do_tokens
             else "export X509_USER_PROXY=%s" % proxyfile,
            
-            "htgettoken --nokerberos --nooidc %s -i %s -a fermicloud543.fnal.gov " % (htgettokenopts, group)
+            "htgettoken %s -i %s -a htvaultprod.fnal.gov " % (htgettokenopts, group)
             if do_tokens
             else
             # proxy file has to belong to us, apparently, so...
