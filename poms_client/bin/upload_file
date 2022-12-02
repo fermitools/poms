@@ -50,7 +50,10 @@ try:
              except:
                  pass
              # assume jobsub_lite/condor RPM install
-             os.system('/usr/bin/condor_vault_storer %s' % options.experiment)
+             vo = options.experiment
+             if vo == 'samdev':
+                 vo = 'fermilab'
+             os.system('/usr/bin/condor_vault_storer %s 2>/dev/null' % vo)
              os.system("cp /tmp/vt_u%d %s" % (os.getuid(), vaultfile))
         args.append(vaultfile)
 except SystemExit:
