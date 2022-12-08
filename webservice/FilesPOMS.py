@@ -280,7 +280,7 @@ class FilesStatus:
 
         uploads = self.get_file_upload_path(ctx, "")
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-        sandbox = "%s/sandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
+        sandbox = "%ssandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
         os.makedirs(sandbox, exist_ok=False)
         upload_path = self.get_file_upload_path(ctx, "*")
         logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))

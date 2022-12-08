@@ -1,0 +1,24 @@
+{%extends "layout.html" %}
+
+{%block header%}
+<h1 class="ui header">
+          Awaiting Authorization
+</h1>
+{%endblock%}
+{%block subheader%}
+If you haven't been automatically redirected, please complete the authentication at: <span><a id="url" href="{{oidc_data['auth_url']}}" target="_blank">{{oidc_data['auth_url']}}</a></span>.
+<i>This page will automatically close once complete.</i>
+<input id="data" hidden value="{{oidc_data}}">
+<script type="text/javascript">
+    window.open($("#url").text(),'_blank');
+    var formdata = {'data': $("#data").val()};
+    $.ajax({
+        url: "{{pomspath}}/poll_oidc_status/{{session_experiment}}/{{session_role}}",
+        type: 'GET',
+        data: formdata,
+        success: function(data){
+            window.close();
+        }
+    });
+</script>
+{%endblock%}

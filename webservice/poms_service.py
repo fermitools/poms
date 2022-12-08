@@ -711,6 +711,8 @@ class PomsService:
             self.permissions.can_modify(kwargs["ctx"], t="CampaignStage", item_id=cid)
         return self.stagesPOMS.mark_campaign_hold(**kwargs)
 
+        
+
     # see &l=webservice/StagesPOMS.py#mark_campaign_hold&
 
     # h4. make_stale_campaigns_inactive
@@ -1175,6 +1177,22 @@ class PomsService:
     )
     def held_launches_remove(self, **kwargs):
         return self.miscPOMS.held_launches_remove(**kwargs)
+
+    # see &l=webservice/SubmissionsPOMS.py#get_oidc_url&
+    @poms_method(
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}], t="auth.html", help_page="OidcAuth"
+    )
+    def auth(self, ctx, **kwargs):
+        data = self.utilsPOMS.get_oidc_url(ctx)
+        return {"oidc_data": data}
+    
+    # see &l=webservice/SubmissionsPOMS.py#poll_oidc_url&
+    @poms_method(
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll"
+    )
+    def poll_oidc_status(self, **kwargs):
+        data =  self.utilsPOMS.poll_oidc_url(**kwargs)
+        return {"oidc_data": data}
 
     @poms_method()
     def clear_cache(self, *args, **kwargs):

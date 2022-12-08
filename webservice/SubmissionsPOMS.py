@@ -15,6 +15,7 @@ import subprocess
 import time
 import uuid
 import cherrypy
+
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
@@ -90,6 +91,7 @@ class SubmissionsPOMS:
         self.status_Located = None
         self.status_Completed = None
         self.status_New = None
+        
 
     # h3. init_statuses
     def init_statuses(self, ctx):
@@ -1278,19 +1280,26 @@ class SubmissionsPOMS:
 
         if ctx.role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
+            #sandbox = "$HOME"
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
-            htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
+            if do_tokens:
+                if ctx.experiment != "samdev":
+                    htgettokenopts = "-a htvaultprod.fnal.gov -r default --nokerberos --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % (exp, ctx.role.lower(),os.geteuid())
+                else:
+                    htgettokenopts = "-a htvaultprod.fnal.gov -r default --nossh --nokerberos --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % ("fermilab", ctx.role.lower(),os.geteuid())
+            else:
+                htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-            htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (ctx.role, exp)
+            htgettokenopts = "-r %s --nokerberos --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov  --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % (ctx.role, exp, exp, ctx.role.lower(),os.geteuid())
             # samdev doesn't really have a managed token...
             if lt.launch_account == "samdevpro":
                 htgettokenopts = "-r default"
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
-        proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile)
+        proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile) and not do_tokens
         if allheld or csheld or proxyheld:
 
             errnum = 423
@@ -1384,7 +1393,16 @@ class SubmissionsPOMS:
         ctx.db.commit()
 
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-
+            
+        if do_tokens:
+            if ctx.experiment != "samdev":
+                tok_command = "export BEARER_TOKEN_FILE=/run/user/%d/%s_%s_bt_u%d; " % (os.getuid(), exp, ctx.role.lower(), os.getuid()) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+            else:
+                tok_command = "export BEARER_TOKEN_FILE=/run/user/%d/%s_%s_bt_u%d; " % (os.getuid(), "fermilab", ctx.role.lower(), os.geteuid()) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+        else:
+            tok_command = "export X509_USER_PROXY=%s" % proxyfile
+        if not os.environ.get('PATH','unknown').__contains__(":/usr/sbin"):
+            os.environ["PATH"] = "%s:/usr/sbin" % os.environ.get('PATH','unknown') 
         cmdl = [
             "exec 2>&1",
             "set -x",
@@ -1423,16 +1441,16 @@ class SubmissionsPOMS:
             #  * the production proxy service for production proxies and
             #  * by the analysis user uploading their vault token...
             #
-            "export BEARER_TOKEN_FILE=/tmp/token_%s; " % uu + "export _condor_SEC_CREDENTIAL_STORER=/bin/true"
-            if do_tokens
-            else "export X509_USER_PROXY=%s" % proxyfile,
-           
-            "htgettoken %s -i %s -a htvaultprod.fnal.gov " % (htgettokenopts, group)
+            
+            
+            tok_command,
+            "htgettoken %s -i %s " % (htgettokenopts, group)
             if do_tokens
             else
             # proxy file has to belong to us, apparently, so...
             "cp $X509_USER_PROXY /tmp/proxy%s && export X509_USER_PROXY=/tmp/proxy%s && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
             % (uu, uu),
+
             
             "source /grid/fermiapp/products/common/etc/setups",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc_config v2_6_6; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0"
@@ -1552,5 +1570,15 @@ class SubmissionsPOMS:
         lf.close()
         dn.close()
         pp.wait()
-
+        logit.log("started launch ssh")
+   
+        
+        #data = self.get_oidc_url(ctx)
+        
+        #logit.log("TRYING OIDC: " + repr(data))
         return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
+
+    def get_file_upload_path(self, ctx, filename):
+        return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)
+
+    
