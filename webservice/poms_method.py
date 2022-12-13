@@ -18,7 +18,7 @@ import logging
 # mostly so we can pass them to page templates...
 import datetime
 import time
-
+import os
 from collections import deque
 
 # h3. locals
@@ -191,6 +191,7 @@ def poms_method(
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
+
             for k in cargs:
                 if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
@@ -229,6 +230,7 @@ def poms_method(
                 values = func(self, *args)
             else:
                 values = func(self, **kwargs)
+
             # unpack values into dictionary
             if u:
                 vdict = {}
@@ -247,6 +249,52 @@ def poms_method(
 
             # stop Chrome from offering to translate half our pages..
             cherrypy.response.headers["Content-Language"] = "en"
+
+            # verify analysis users have tokens
+            if help_page == "launch_campaign" or help_page=="launch_jobs":
+                auth_page = "%(poms_path)s/auth/%(experiment)s/%(role)s?redir=%(redirect)s"
+                logit.log("current-url: %s" %repr(os.environ))
+                if ctx.experiment != "samdev" and ctx.role == "analysis":
+                    if not os.path.isfile("/run/user/%d/bt_u%d-%s" % (os.geteuid(),os.geteuid(),ctx.experiment)):
+                        if isinstance(values, dict):
+                            redict = values
+                        else:
+                            redict = kwargs
+                        redict["poms_path"] = self.path
+                        redict["experiment"] = ctx.experiment
+                        redict["role"] = ctx.role
+                        redirect_path =ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+                        redict['redirect'] = redirect_path
+                        path = auth_page % redict
+                        try:
+                            redir = cherrypy.request.headers['X-Auth-Redirect']
+                            if not redir or redir != path:
+                                cherrypy.request.headers["X-Auth-Redirect"] = path
+                                raise cherrypy.HTTPRedirect(path)
+                        except KeyError:
+                            cherrypy.request.headers["X-Auth-Redirect"] = path
+                            raise cherrypy.HTTPRedirect(path)
+                else:
+                    if (ctx.role == "analysis" and not os.path.isfile("/run/user/%d/bt_u%d-%s" % (os.geteuid(),os.geteuid(),"fermilab"))) or (ctx.role == "production" and not os.path.isfile("/run/user/%d/bt_u%d-%s_production" % (os.geteuid(),os.geteuid(),"fermilab"))):
+                        if isinstance(values, dict):
+                            redict = values
+                        else:
+                            redict = kwargs
+                        redict["poms_path"] = self.path
+                        redict["experiment"] = ctx.experiment
+                        redict["role"] = ctx.role
+                        redirect_path =ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+                        redict['redirect'] = redirect_path
+                        path = auth_page % redict
+                        try:
+                            redir = cherrypy.request.headers['X-Auth-Redirect']
+                            if not redir or redir != path:
+                                cherrypy.request.headers["X-Auth-Redirect"] = path
+                                raise cherrypy.HTTPRedirect(path)
+                        except KeyError:
+                            cherrypy.request.headers["X-Auth-Redirect"] = path
+                            raise cherrypy.HTTPRedirect(path)
+                            
 
             if fmtflag == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
@@ -274,6 +322,9 @@ def poms_method(
                 templ = t or values["template"]
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
+                logit.log("values: %s" % repr(values))
+                if not values:
+                    values = kwargs
                 values["help_page"] = help_page
                 # a few templates want to format times, etc.
                 values["datetime"] = datetime

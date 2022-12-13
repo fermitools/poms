@@ -885,15 +885,15 @@ class PomsService:
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
-    )
+        help_page="launch_campaign",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s" 
+        ) 
     def launch_campaign(self, ctx, **kwargs):
         if ctx.username != "poms" or kwargs.get("launcher", "") == "":
             launch_user = ctx.username
         else:
             launch_user = kwargs.get("launcher", "")
-
-        return self.campaignsPOMS.launch_campaign(ctx, **kwargs)
+        return self.campaignsPOMS.launch_campaign(ctx,**kwargs)
 
     # see &l=webservice/CampaignsPOMS.py#launch_campaign&
 
@@ -903,6 +903,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
+        help_page="launch_jobs",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, **kwargs):
@@ -1180,15 +1181,16 @@ class PomsService:
 
     # see &l=webservice/SubmissionsPOMS.py#get_oidc_url&
     @poms_method(
-        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}], t="auth.html", help_page="OidcAuth"
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}],t="auth.html", help_page="OidcAuth"
     )
     def auth(self, ctx, **kwargs):
-        data = self.utilsPOMS.get_oidc_url(ctx)
+        logit.log("referer: %s" % ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
+        data = self.utilsPOMS.get_oidc_url(ctx, referer=ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
         return {"oidc_data": data}
     
     # see &l=webservice/SubmissionsPOMS.py#poll_oidc_url&
     @poms_method(
-        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll"
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll",rtype="json"
     )
     def poll_oidc_status(self, **kwargs):
         data =  self.utilsPOMS.poll_oidc_url(**kwargs)

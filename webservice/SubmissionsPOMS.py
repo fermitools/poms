@@ -1149,6 +1149,7 @@ class SubmissionsPOMS:
         ds = launch_time.strftime("%Y%m%d_%H%M%S")
         e = ctx.get_experimenter()
         role = ctx.role
+        
 
         # at the moment we're inconsistent about whether we pass
         # launcher as ausername or experimenter_id or if its a string
@@ -1277,25 +1278,21 @@ class SubmissionsPOMS:
             raise AssertionError(output)
 
         experimenter_login = ctx.username
-
         if ctx.role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
-            #sandbox = "$HOME"
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
-            if do_tokens:
-                if ctx.experiment != "samdev":
-                    htgettokenopts = "-a htvaultprod.fnal.gov -r default --nokerberos --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % (exp, ctx.role.lower(),os.geteuid())
-                else:
-                    htgettokenopts = "-a htvaultprod.fnal.gov -r default --nossh --nokerberos --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % ("fermilab", ctx.role.lower(),os.geteuid())
+            
+            if ctx.experiment != "samdev":
+                htgettokenopts = "-a htvaultprod.fnal.gov -r default --vaulttokeninfile=/tmp/vt_u%d-%s --credkey=%s" % (os.geteuid(), exp, experimenter_login)
             else:
-                htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
+                htgettokenopts = "-a htvaultprod.fnal.gov -r default  --vaulttokeninfile=/tmp/vt_u%d-%s --credkey=%s" % (os.geteuid(), "fermilab", experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-            htgettokenopts = "-r %s --nokerberos --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov  --vaulttokeninfile=/tmp/%s_%s_vt_u%d" % (ctx.role, exp, exp, ctx.role.lower(),os.geteuid())
+            htgettokenopts = "-a htvaultprod.fnal.gov -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (ctx.role, exp)
             # samdev doesn't really have a managed token...
             if lt.launch_account == "samdevpro":
-                htgettokenopts = "-r default"
+                htgettokenopts = "-a htvaultprod.fnal.gov -r default  --vaulttokeninfile=/tmp/vt_u%d-%s_production --credkey=%s" % (os.geteuid(), "fermilab", experimenter_login)
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1393,14 +1390,23 @@ class SubmissionsPOMS:
         ctx.db.commit()
 
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-            
-        if do_tokens:
+        if ctx.role == "analysis":
             if ctx.experiment != "samdev":
-                tok_command = "export BEARER_TOKEN_FILE=/run/user/%d/%s_%s_bt_u%d; " % (os.getuid(), exp, ctx.role.lower(), os.getuid()) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+                os.system("chmod +rw /tmp/vt_u%d-%s" %(os.geteuid(), exp))
             else:
-                tok_command = "export BEARER_TOKEN_FILE=/run/user/%d/%s_%s_bt_u%d; " % (os.getuid(), "fermilab", ctx.role.lower(), os.geteuid()) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+                os.system("chmod +rw /tmp/vt_u%d-%s" %(os.geteuid(), "fermilab"))
         else:
-            tok_command = "export X509_USER_PROXY=%s" % proxyfile
+            if ctx.experiment == "samdev":
+                os.system("scp /tmp/vt_u%d-%s_production %s@%s:/tmp/"  % (os.geteuid(), "fermilab",lt.launch_account, lt.launch_host))
+                os.system("chmod +rw /tmp/vt_u%d-%s_production" %(os.geteuid(), "fermilab"))
+        os.system("chmod -R +rw /tmp")
+        if do_tokens:
+            if ctx.role != "analysis" and ctx.experiment == "samdev":
+                tok_command = "export BEARER_TOKEN_FILE=/tmp/token_%s; " % (uu) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+                tok_command = tok_command + " chmod +rw $BEARER_TOKEN_FILE && chmod +rw /tmp/vt_u%d-%s_production && ls -l $BEARER_TOKEN_FILE;" % (os.geteuid(), "fermilab")
+            else:
+                tok_command = "export BEARER_TOKEN_FILE=/tmp/token_%s; " % (uu) + "export _condor_SEC_CREDENTIAL_STORER=/bin/true;"
+        
         if not os.environ.get('PATH','unknown').__contains__(":/usr/sbin"):
             os.environ["PATH"] = "%s:/usr/sbin" % os.environ.get('PATH','unknown') 
         cmdl = [
@@ -1408,6 +1414,7 @@ class SubmissionsPOMS:
             "set -x",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
+            "scp /tmp/vt_u%d-%s_production %s@%s:/tmp/" % (os.geteuid(), "fermilab",lt.launch_account, lt.launch_host) if ctx.role == "production" and ctx.experiment == "samdev" else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
             % {
                 "dataset": dataset,
@@ -1442,11 +1449,12 @@ class SubmissionsPOMS:
             #  * by the analysis user uploading their vault token...
             #
             
-            
-            tok_command,
-            "htgettoken %s -i %s " % (htgettokenopts, group)
-            if do_tokens
+            "%s htgettoken %s -i %s " % (tok_command, htgettokenopts, group)
+            if ctx.role != "analysis" or (ctx.role == "analysis" and ctx.experiment == "samdev")
             else
+            "htgettoken %s -i %s" % (htgettokenopts, group),
+        
+            "export X509_USER_PROXY=%s" % proxyfile,
             # proxy file has to belong to us, apparently, so...
             "cp $X509_USER_PROXY /tmp/proxy%s && export X509_USER_PROXY=/tmp/proxy%s && chmod 0400 $X509_USER_PROXY && ls -l $X509_USER_PROXY"
             % (uu, uu),
@@ -1493,7 +1501,7 @@ class SubmissionsPOMS:
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            "rm -f /tmp/proxy%s /tmp/token_%s" % (uu, uu)
+            "rm -f /tmp/proxy%s; rm -f /tmp/token_%s;" % (uu, uu)
         ]
 
         if definition_parameters:

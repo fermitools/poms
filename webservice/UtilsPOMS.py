@@ -139,13 +139,14 @@ class UtilsPOMS:
 
         ctx.db.commit()
 
-    def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", debug = True):
+    def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True):
         logit.log("Attempting OIDC authentication")
         role = "default"
         if ctx.experiment != "samdev":
             oidcpath = oidcpath.replace("fermilab", ctx.experiment)
             if ctx.role != "analysis":
                 role = "%spro" % ctx.experiment
+        
         path = '/v1/' + oidcpath + '/auth_url'
         url = vaultserver + path
         nonce = secrets.token_urlsafe()
@@ -176,12 +177,14 @@ class UtilsPOMS:
         except Exception as e:
             logit.log("decoding response from %s failed" % vaultserver, e)
 
+        data = {}
         if 'data' not in response:
             logit.log("no 'data' in response from %s" % vaultserver)
-        data = response['data']
+        else:
+            data = response['data']
         if 'auth_url' not in data:
             logit.log("no 'auth_url' in data from %s" % vaultserver)
-        auth_url = data['auth_url']
+        auth_url = data.get("auth_url", referer)
         #del data['auth_url'] 
         if auth_url == "":
             logit.log("'auth_url' is empty in data from %s" % vaultserver)
@@ -195,6 +198,8 @@ class UtilsPOMS:
         data['debug'] = str(debug)
         data['issuer'] = "fermilab" if ctx.experiment == "samdev" else ctx.experiment
         data['env'] = ctx.role.lower()
+        if referer:
+            data['referer'] = referer
         return data
          
 
@@ -208,6 +213,9 @@ class UtilsPOMS:
         role = data['role']
         vaultserver = data['vaultserver']
         debug = data['debug'] == "True"
+        redir = kwargs.get("redir", None)
+
+        logit.log("redir: %s" % redir)
 
         datastr = ''
         if 'state' in data:
@@ -281,7 +289,11 @@ class UtilsPOMS:
         vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
 
 
-        self.writeTokenSafely("vault", vaulttoken, "/tmp/%s_%s_vt_u%d" % (data['issuer'], data['env'], os.geteuid()))
+        if data['env'] == 'analysis':
+            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s" % (os.geteuid(), data['issuer']))
+        else:
+            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s_production" % (os.geteuid(), data['issuer']))
+
         auth = response['auth']
 
         if 'metadata' not in auth:
@@ -334,7 +346,10 @@ class UtilsPOMS:
             logit.log("Failure getting token from " + vaultserver)
 
         # Write bearer token to outfile
-        self.writeTokenSafely("bearer", bearertoken, "/run/user/%d/%s_%s_bt_u%d" % (os.geteuid(),data['issuer'], data['env'], os.geteuid()))
+        if data['env'] == 'analysis':
+            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s" % (os.geteuid(),os.geteuid(), data['issuer']))
+        else:
+            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s_production" % (os.geteuid(),os.geteuid(), data['issuer']))
 
         return data
         
