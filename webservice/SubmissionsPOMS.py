@@ -1167,6 +1167,7 @@ class SubmissionsPOMS:
             definition_parameters = []
             exp = ctx.experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
+            do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
 
         else:
             if str(campaign_stage_id)[0] in "0123456789":

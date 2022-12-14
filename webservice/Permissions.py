@@ -250,6 +250,8 @@ class Permissions:
         if exp and exp != ctx.experiment and not self.is_superuser(ctx):
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
+        logit.log("can_modify_test: %s cur: %s, %s, %s; item: %s, %s, %s" % (role, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
+	
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be role %s to change this" % role)
