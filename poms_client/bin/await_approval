@@ -33,7 +33,7 @@ if options.dataset:
        samweb = SAMWebClient(experiment=options.experiment, cert=os.environ['X509_USER_PROXY'])
        dims = 'defname:%s' % options.dataset
        for i in range(5):
-           name = "poms_depends_%s_%s_%d" %(str(uuid.uuid4()), options.submission_id, i)
+           name = "poms_depends_%s_%d" %(options.submission_id, i)
            samweb.createDefinition(name, dims)
 
 update_submission(options.submission_id,'Awaiting Approval', jobsub_job_id = "%d@fakebatch.fnal.gov"%time.time(), test=options.test_client)

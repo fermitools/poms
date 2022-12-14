@@ -627,6 +627,7 @@ class SubmissionsPOMS:
             dataset = sam_specifics(ctx).get_dataset_from_project(submission)
         else:
             dataset = None
+        
 
         ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
         ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
