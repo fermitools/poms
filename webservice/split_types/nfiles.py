@@ -1,3 +1,4 @@
+import uuid
 class nfiles:
     """
        This type, when filled out as nfiles(n) or nfiles_n for some integer
@@ -11,6 +12,7 @@ class nfiles:
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.ds = cs.dataset
+        self.id = uuid.uuid4()
         try:
             self.n = int(cs.cs_split_type[7:].strip(")"))
         except:
@@ -23,7 +25,7 @@ class nfiles:
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
 
-        new = self.cs.dataset + "_slice%d_files%d" % (self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_%s_slice%d_files%d" % (str(self.id), self.cs.cs_last_split, self.n)
         self.samhandle.create_definition(
             self.cs.experiment,
             new,

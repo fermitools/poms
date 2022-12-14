@@ -58,6 +58,9 @@
   <div class="item">
     <div class="header">User Data</div>
     <div class="menu">
+      <a class="item" href="{{pomspath}}/show_watching/{{session_experiment}}/{{session_role}}">
+        Watching
+      </a>
   {%if session_role == 'analysis' or session_role == 'superuser' %}
       <a class="item" href="{{pomspath}}/file_uploads/{{session_experiment}}/{{session_role}}/{{username}}">
         Uploaded Files

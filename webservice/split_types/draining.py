@@ -1,3 +1,4 @@
+import uuid
 class draining:
     """
        This type just always returns the same dataset name forever
@@ -7,12 +8,13 @@ class draining:
 
     def __init__(self, cs, samhandle, dbhandle):
         self.only = cs.dataset
+        self.id = uuid.uuid4()
 
     def params(self):
         return []
 
     def peek(self):
-        return self.only
+        return "%s" % (self.only)
 
     def next(self):
         res = self.peek()

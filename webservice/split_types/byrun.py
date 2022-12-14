@@ -1,3 +1,4 @@
+import uuid
 class byrun:
     """
        This type, when filled out as byrun(low=2,high=4) will 
@@ -10,6 +11,7 @@ class byrun:
         self.ds = cs.dataset
         self.low = 1
         self.high = 999999
+        self.id = uuid.uuid4()
         parms = cs.cs_split_type[6:].split(",")
         low = 1
         for p in parms:
@@ -31,7 +33,7 @@ class byrun:
         if self.cs.cs_last_split >= self.high:
             raise StopIteration
 
-        new = self.cs.dataset + "_run_%d" % (self.cs.cs_last_split)
+        new = self.cs.dataset + "_%s_run_%d" % (str(self.id),self.cs.cs_last_split)
         self.samhandle.create_definition(
             self.cs.job_type_obj.experiment, new, "defname: %s and run_number %d" % (self.ds, self.cs.cs_last_split)
         )

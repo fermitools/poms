@@ -1,3 +1,5 @@
+import uuid
+
 class mod:
     """
        This type, when filled out as mod(n) or mod_n for some integer
@@ -10,6 +12,7 @@ class mod:
         self.ds = cs.dataset
         self.m = int(cs.cs_split_type[4:].strip(")"))
         self.samhandle = samhandle
+        self.id = uuid.uuid4()
 
     def params(self):
         return ["modulus"]
@@ -20,7 +23,7 @@ class mod:
         if self.cs.cs_last_split >= self.m:
             raise StopIteration
 
-        new = self.ds + "_slice%d_of_%d" % (self.cs.cs_last_split, self.m)
+        new = self.ds + "_%s_slice%d_of_%d" % (str(self.id), self.cs.cs_last_split, self.m)
         self.samhandle.create_definition(
             self.cs.job_type_obj.experiment,
             new,

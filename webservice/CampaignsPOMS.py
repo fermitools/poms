@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
-
+from __future__ import division
 import glob
 import importlib
 import json
@@ -18,6 +18,8 @@ import traceback
 from collections import OrderedDict, deque, defaultdict
 from datetime import datetime, timedelta
 import re
+from unicodedata import name
+import uuid
 
 import cherrypy
 from crontab import CronTab
@@ -36,6 +38,7 @@ from .poms_model import (
     CampaignStageSnapshot,
     Experiment,
     Experimenter,
+    ExperimentersWatching,
     LoginSetup,
     RecoveryType,
     Submission,
@@ -96,6 +99,7 @@ class CampaignsPOMS:
                 completion_pct="95",
                 completion_type="complete",
                 cs_split_type="None",
+                default_clear_cronjob = True,
                 dataset="from_parent",
                 job_type_id=(
                     ctx.db.query(JobType.job_type_id)
@@ -171,7 +175,10 @@ class CampaignsPOMS:
 
         logit.log(logit.INFO, "leading stages: %s" % repr(stages))
 
-        lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        if len(stages) > 0:
+            lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+        else:
+            lead = None
 
         exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
 
@@ -179,27 +186,56 @@ class CampaignsPOMS:
         # for now we're skipping multiparam datasets
         # and stagedfiles ones; they are expandable though...
         #
-        dslist = (
-            ctx.db.query(distinct(CampaignStageSnapshot.dataset))
-            .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
-            .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
-            .all()
-        )
+        if lead:
+            dslist = (
+                ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+                .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
+                .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
+                .all()
+            )
 
-        dslist = [x[0] for x in dslist if x[0]]
+            dslist = [x[0] for x in dslist if x[0]]
+        else:
+            dslist = []
 
         # we start total very small so we don't divide by zero later if
         # there arent any..
-        total = 0.001
+       
+        sp_list = (
+            ctx.db.query(Campaign.campaign_id, CampaignStage, Submission)
+            .filter(CampaignStage.campaign_id == campaign_id, Campaign.campaign_id == campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .order_by(CampaignStage.campaign_stage_id, Submission.submission_id)
+            .all()
+        )
+        sp_list = [[x[1].name, x[2]] for x in sp_list if x[2]]
+        
+        total = 0.0
         for ds in dslist:
             count = ctx.sam.count_files(exp, "defname:%s" % ds)
             if count > 0:
                 total += count
-
-        sp_list = (
-            ctx.db.query(CampaignStage.campaign_id, Submission.project).filter(CampaignStage.campaign_id == campaign_id).all()
-        )
-
+        if total == 0:
+            subs = [x[1] for x in sp_list if x[1]]
+            for sub in subs:
+                if sub.files_generated:
+                    total += sub.files_generated
+        logit.log("campaign_overview: total: %d" % total)
+        """
+        
+        listfiles = "../../../show_dimension_files/%s/%s?dims=%%s" % (ctx.experiment, ctx.role)
+        (
+            summary_list,
+            some_kids_decl_needed,
+            some_kids_needed,
+            base_dim_list,
+            output_files,
+            output_list,
+            all_kids_decl_needed,
+            some_kids_list,
+            some_kids_decl_list,
+            all_kids_decl_list,
+        ) = sam_specifics(ctx).get_file_stats_for_submissions(subs, ctx.experiment)
+        """
         counts = (
             ctx.db.query(
                 CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
@@ -210,10 +246,21 @@ class CampaignsPOMS:
         )
         consumed_map = {}
         generated_map = {}
+        """
+        for i in range(0, len(subs)):
+            if subs[i].campaign_stage_id not in consumed_map.items():
+                consumed_map[subs[i].campaign_stage_id] = 0
+            if subs[i].campaign_stage_id not in generated_map.items():
+                generated_map[subs[i].campaign_stage_id] = 0
+            consumed_map[subs[i].campaign_stage_id] += summary_list[i].get("tot_consumed", 0)
+            generated_map[subs[i].campaign_stage_id] += output_list[i]
+            total += output_list[i]
+        """
         for r in counts:
             consumed_map[r[0]] = r[1]
             generated_map[r[0]] = r[2]
 
+       
         logit.log("campaign_overview: consumed_map: %s" % repr(consumed_map))
         logit.log("campaign_overview: generated_map: %s" % repr(generated_map))
 
@@ -226,17 +273,21 @@ class CampaignsPOMS:
 
         csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
 
+        pct_complete = 0.0
         c_ids = deque()
         for c_s in csl:
             c_ids.append(c_s.campaign_stage_id)
+            pct_complete += c_s.completion_pct
+        if len(csl) > 0:
+            pct_complete = pct_complete/len(csl)
 
         logit.log(logit.INFO, "campaign_deps: c_ids=%s" % repr(c_ids))
 
         res = []
-        res.append('<div id="dependencies" style="font-size: larger;"></div>')
+        res.append('<div id="overview" style="font-size: larger;"></div>')
         res.append('<script type="text/javascript">')
 
-        res.append('var container = document.getElementById("dependencies");')
+        res.append('var container = document.getElementById("overview");')
         res.append("var fss = window.getComputedStyle(container, null).getPropertyValue('font-size');")
         res.append("var fs = parseFloat(fss);")
         res.append("var nodes = new vis.DataSet([")
@@ -251,12 +302,12 @@ class CampaignsPOMS:
         dstxt = "\\n".join(dslist).replace('"', "'")
 
         res.append(
-            '  {id: %d, label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
-            % (0, campaign.name, dstxt, int(total), pos["x"] - 300, pos["y"])
+            '  {id: %d, shape: "box", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs}},'
+            % (0, campaign.name, dstxt, int(total), pos["x"] - 500, pos["y"])
         )
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults.get("positions", {}).get(c_s.name, None):
+            if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
@@ -271,28 +322,40 @@ class CampaignsPOMS:
         c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
 
         # first an edge from the dataset to the first stage
-        res.append("  {from: %d, to: %d, arrows: 'to', label: '%d' }," % (0, stages[0], int(total)))
+        if len(stages) > 0:
+            res.append("  {from: %d, to: %d, arrows: 'to', label: '%d file(s) submitted', length:100 }," % (0, stages[0], int(total)))
 
         # then all the actual dependencies
+        total_consumed = 0.0
         for c_d in c_dl:
             if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
                 consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
+                generated = generated_map.get(c_d.needs_campaign_stage_id, 0.0)
                 if consumed:
+                    total_consumed += consumed
+                    pct = 0.0
+                    if total > 0:
+                        pct = consumed/total
                     res.append(
-                        "  {from: %d, to: %d, arrows: 'to', label: '%3.0f'},"
-                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, (100.0 * consumed) / total)
+                        "  {from: %d, to: %d, arrows: 'to', label: '%d file(s) consumed - %3.2f%s'},"
+                        % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id ,consumed, (pct*100), "%")
                     )
+                else:
+                    res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
 
         res.append("]);")
         res.append("var data = {nodes: nodes, edges: edges};")
         res.append("var options = {")
         res.append("  manipulation: { enabled: false },")
-        res.append("  height: '%dpx'," % (200 + 50 * len(c_ids))),
+        res.append("  height: '450px',"),
         res.append("  interaction: { zoomView: false },")
         res.append("  layout: {")
         res.append("      hierarchical: {")
         res.append("         direction: 'LR',")
-        res.append("         sortMethod: 'directed'")
+        res.append("         sortMethod: 'directed',")
+        res.append("         nodeSpacing: 150,")
+        res.append("         parentCentralization: false")
         res.append("      }")
         res.append("   }")
         res.append("};")
@@ -306,11 +369,215 @@ class CampaignsPOMS:
             )
         res.append("};")
         res.append(
-            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];})"
+            "network.on('click', function(params) { if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; document.location = dests[params['nodes'][0]];});"
         )
+        res.append("setTimeout(() => {$('#tot_consumed').html('Total Consumed: %d');$('#consumed_pct').html('Consumed pct: %3.2f%s');$('#pct_complete').html('Pct Complete: %3.2f%s');}, 100);" % (total_consumed, ((total_consumed/total) * 100) if total != 0 else 0, "%", pct_complete, "%"))
         res.append("</script>")
 
-        return campaign, "\n".join(res)
+        return campaign, "\n".join(res), sp_list
+
+    def show_watching(self, ctx):
+
+        experimenter_id = ctx.get_experimenter().experimenter_id
+
+        logit.log(logit.INFO, "entering show_watching: %s" % experimenter_id)
+
+        
+        watching = ctx.db.query(ExperimentersWatching.campaign_obj, Campaign).filter(
+            ExperimentersWatching.experimenter_id == experimenter_id, 
+            Campaign.experiment == ctx.experiment,
+            Campaign.creator_role == ctx.role
+        ).all()
+
+        watching = [x[1] for x in watching if x[0]]
+
+        res_list = []
+        res_scripts = []
+        i = 0
+        logit.log("watching_vals: " + repr(watching))
+        for campaign in watching:
+
+            logit.log(logit.INFO, "entering show_watching_"+str(i)+": %s" % campaign.campaign_id)
+
+            stages = self.get_leading_stages(ctx, campaign.campaign_id)
+
+            logit.log(logit.INFO, "leading stages: %s" % repr(stages))
+
+            if len(stages) > 0:
+                lead = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == stages[0]).first()
+            else:
+                lead = None
+
+            exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign.campaign_id).first()
+
+            #
+            # for now we're skipping multiparam datasets
+            # and stagedfiles ones; they are expandable though...
+            #
+            if lead:
+                dslist = (
+                    ctx.db.query(distinct(CampaignStageSnapshot.dataset))
+                    .filter(CampaignStageSnapshot.campaign_stage_id == lead.campaign_stage_id)
+                    .filter(CampaignStageSnapshot.cs_split_type != "multiparam")
+                    .all()
+                )
+
+                dslist = [x[0] for x in dslist if x[0]]
+            else:
+                dslist = []
+
+            sp_list = (
+                ctx.db.query(Campaign.campaign_id, CampaignStage, Submission)
+                .filter(CampaignStage.campaign_id == campaign.campaign_id, Campaign.campaign_id ==  campaign.campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .order_by(CampaignStage.campaign_stage_id, Submission.submission_id)
+                .all()
+            )
+            
+            sp_list = [[x[1].name, x[2]] for x in sp_list if x[2]]
+
+            # we start total very small so we don't divide by zero later if
+            # there arent any..
+            total = 0.0
+           
+            for ds in dslist:
+                count = ctx.sam.count_files(exp, "defname:%s" % ds)
+                if count > 0:
+                    total += count
+            if total == 0:
+                subs = [x[1] for x in sp_list if x[1]]
+                for sub in subs:
+                    if sub.files_generated:
+                        total += sub.files_generated
+        
+
+            logit.log("campaign_overview: total: %d" % total)
+
+           
+
+            counts = (
+                ctx.db.query(
+                    CampaignStage.campaign_stage_id, func.sum(Submission.files_consumed), func.sum(Submission.files_generated)
+                )
+                .filter(CampaignStage.campaign_id == campaign.campaign_id, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+                .group_by(CampaignStage.campaign_stage_id)
+                .all()
+            )
+            consumed_map = {}
+            generated_map = {}
+
+            for r in counts:
+                consumed_map[r[0]] = r[1]
+                generated_map[r[0]] = r[2]
+
+            logit.log("show_watching: sub_list: %s" % repr(sp_list))
+            logit.log("show_watching: consumed_map: %s" % repr(consumed_map))
+            logit.log("show_watching: generated_map: %s" % repr(generated_map))
+
+
+            #csl = campaign.stages
+            csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
+
+            pct_complete = 0.0
+            c_ids = deque()
+            for c_s in csl:
+                c_ids.append(c_s.campaign_stage_id)
+                pct_complete += c_s.completion_pct
+            if len(csl) > 0:
+                pct_complete = pct_complete/len(csl)
+
+            
+            res = []
+            res.append('<div id="watching_'+ str(i) +'" style="font-size: larger;"></div>')
+            res.append('<script type="text/javascript">')
+
+            res.append('var container_'+ str(i) +' = document.getElementById("watching_' + str(i) + '");')
+            res.append("var fss_"+ str(i) +" = window.getComputedStyle(container_"+ str(i) +", null).getPropertyValue('font-size');")
+            res.append("var fs_"+ str(i) +" = parseFloat(fss_"+ str(i) +");")
+            res.append("var nodes_"+str(i)+" = new vis.DataSet([")
+
+            # put a dataset object (id==0) left of the lead campaign stage
+
+            try:
+                pos = campaign.defaults["positions"][csl[0]]
+            except:
+                pos = {"x": 100, "y": 100}
+
+            dstxt = "\\n".join(dslist).replace('"', "'")
+
+            res.append(
+                '  {id: %d, shape: "box", label: "%s:\\n%s\\n%d files", x: %d, y: %d, font: {size: fs_%d}},'
+                % (0, campaign.name, dstxt, int(total), pos["x"] - 500, pos["y"], i)
+            )
+
+            for c_s in csl:
+                if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
+                    pos = campaign.defaults["positions"][c_s.name]
+                    res.append(
+                        '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs_%d}},'
+                        % (c_s.campaign_stage_id, c_s.name, pos["x"], pos["y"],i)
+                    )
+                else:
+                    res.append('  {id: %d, label: "%s", font: {size: fs_%d}},' % (c_s.campaign_stage_id, c_s.name, i))
+            res.append("]);")
+
+            res.append("var edges_"+ str(i) +" = new vis.DataSet([")
+
+            c_dl = ctx.db.query(CampaignDependency).filter(CampaignDependency.needs_campaign_stage_id.in_(c_ids)).all()
+
+            # first an edge from the dataset to the first stage
+            if len(stages) > 0:
+                res.append("  {from: %d, to: %d, arrows: 'to', label: '%d file(s) submitted', length:100 }," % (0, stages[0], int(total)))
+
+            # then all the actual dependencies
+            total_consumed = 0.0
+            for c_d in c_dl:
+                if c_d.needs_campaign_stage_id and c_d.provides_campaign_stage_id:
+                    consumed = consumed_map.get(c_d.needs_campaign_stage_id, 0.0)
+                    if consumed:
+                        total_consumed += consumed
+                        pct = 0.0
+                        if total > 0:
+                            pct = consumed/total
+                        res.append(
+                            "  {from: %d, to: %d, arrows: 'to', label: '%d file(s) consumed - %3.2f%s'},"
+                            % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id, consumed, (pct * 100), "%")
+                        )
+                    else:
+                        res.append("  {from: %d, to: %d, arrows: 'to'}," % (c_d.needs_campaign_stage_id, c_d.provides_campaign_stage_id))
+
+
+            res.append("]);")
+            res.append("var data_"+ str(i) +" = {nodes: nodes_"+ str(i) +", edges: edges_"+ str(i) +"};")
+            res.append("var options_"+ str(i) +" = {")
+            res.append("  manipulation: { enabled: false },")
+            res.append("  height: '300px',"),
+            res.append("  interaction: { zoomView: false },")
+            res.append("  layout: {")
+            res.append("      hierarchical: {")
+            res.append("         direction: 'LR',")
+            res.append("         sortMethod: 'directed',")
+            res.append("         nodeSpacing: 150,")
+            res.append("         parentCentralization: false")
+            res.append("      }")
+            res.append("   }")
+            res.append("};")
+            res.append("var network_"+ str(i) +" = new vis.Network(container_"+ str(i) +", data_"+ str(i) +", options_"+ str(i) +");")
+            res.append("var dests_"+ str(i) +"={")
+            res.append("%s: '', " % 0)
+            for c_s in csl:
+                res.append(
+                    "%s:  '%s/campaign_stage_info/%s/%s?campaign_stage_id=%s',"
+                    % (c_s.campaign_stage_id, self.poms_service.path, ctx.experiment, ctx.role, c_s.campaign_stage_id)
+                )
+            res.append("};")
+            res.append(
+                "network_"+ str(i) +".on('click', function(params) {if (!params || !params['nodes']||!params['nodes'][0]){ return; } ; window.open(dests_"+ str(i) +"[params['nodes'][0]], '_blank').focus(); })"
+            )
+            res.append("setTimeout(() => {$('#tot_consumed_%s').html('Total Consumed: %d');$('#consumed_pct_%s').html('Consumed pct: %3.2f%s'); $('#pct_complete_%s').html('Pct Complete: %3.2f%s');}, 100);" % (str(i),total_consumed, str(i), ((total_consumed/total) * 100) if total != 0 else 0, "%",  str(i), pct_complete, "%"))
+            res.append("</script>")
+            i += 1
+            res_list.append("\n".join(res))
+        return res_list, watching
 
     # h3. launch_campaign
     def launch_campaign(
@@ -470,7 +737,6 @@ class CampaignsPOMS:
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
             )
-
             res.append("campaign_stage_list=%s" % ",".join(map(cnames.get, cidl)))
             res.append("")
 
@@ -490,6 +756,7 @@ class CampaignsPOMS:
                     res.append("software_version=%s" % defaults.get("software_version"))
                     res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("default_clear_cronjob=%s" % "True")
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
                     res.append("param_overrides=%s" % (defaults.get("param_overrides") or "[]"))
@@ -537,6 +804,7 @@ class CampaignsPOMS:
                 res.append("job_type=%s" % c_s.job_type_obj.name)
             res.append("merge_overrides=%s" % c_s.merge_overrides)
             res.append("stage_type=%s" % c_s.campaign_stage_type)
+            res.append("default_clear_cronjob=%s" % str(c_s.default_clear_cronjob))
             jts.add(c_s.job_type_obj)
             lts.add(c_s.login_setup_obj)
             res.append("")
@@ -626,7 +894,7 @@ class CampaignsPOMS:
         res.append("var nodes = new vis.DataSet([")
 
         for c_s in csl:
-            if campaign and campaign.defaults and campaign.defaults['positions'] and campaign.defaults.get("positions", {}).get(c_s.name, None):
+            if campaign and campaign.defaults and 'positions' in campaign.defaults.values() and campaign.defaults.get("positions", {}).get(c_s.name, None):
                 pos = campaign.defaults["positions"][c_s.name]
                 res.append(
                     '  {id: %d, label: "%s", x: %d, y: %d, font: {size: fs}},'
@@ -734,6 +1002,13 @@ class CampaignsPOMS:
             .filter(Campaign.experiment == ctx.experiment)
             .order_by(Campaign.name)
         )
+        watching = (
+            ctx.db.query(ExperimentersWatching)
+            .filter(ExperimentersWatching.experimenter_id == experimenter.experimenter_id )
+            .all()
+        )
+
+        data["watching"] = [x.campaign_id for x in watching]
 
         if kwargs.get("update_view", None) is None:
             # view flags not specified, use defaults
@@ -828,6 +1103,41 @@ class CampaignsPOMS:
 
         ctx.db.commit()
         return []
+
+    def watch_campaign(self, ctx, **kwargs):
+        data = {}
+        experimenter_id = ctx.get_experimenter().experimenter_id
+        selected = kwargs.get("selected", False) in ["true", "True"]
+        campaign_id = kwargs.get("campaign_id", None)
+        logit.log("watch_campaign: selected = %s" % str(selected))
+        try:
+            if(selected):
+                experimenter_watching = ExperimentersWatching(
+                    experimenters_watching_id = uuid.uuid4(),
+                    experimenter_id = experimenter_id, 
+                    campaign_id = campaign_id,
+                    created=datetime.now(utc)
+                    )
+                ctx.db.add(experimenter_watching)
+                ctx.db.commit()
+            else: 
+                watching = ctx.db.query(ExperimentersWatching).filter(
+                    ExperimentersWatching.campaign_id == campaign_id, 
+                    ExperimentersWatching.experimenter_id == experimenter_id).first()
+                if watching:
+                    ctx.db.delete(watching)
+                    ctx.db.commit()
+
+
+            data["message"] = "Success"
+        except SQLAlchemyError as exc:
+            data["message"] = "SQLAlchemyError: " "Please report this to the administrator. " "Message: %s" % " ".join(exc.args)
+            logit.log(" ".join(exc.args))
+            ctx.db.rollback()
+        else:
+            ctx.db.commit()
+        return json.dumps(data)
+        
 
     # h3. save_campaign
     def save_campaign(self, ctx, replace=False, pcl_call=0, *args, **kwargs):
@@ -1002,6 +1312,7 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
+            default_clear_cronjob = form.pop("default_clear_cronjob", True)
             dataset = form.pop("dataset_or_split_data")
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
@@ -1069,6 +1380,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
+                    obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
@@ -1095,6 +1407,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
+                    default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,

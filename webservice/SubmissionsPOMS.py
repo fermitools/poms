@@ -5,7 +5,7 @@ List of methods: wrapup_tasks,
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 """
-
+import configparser
 import glob
 import json
 import os
@@ -347,18 +347,15 @@ class SubmissionsPOMS:
         # try to extract the project name from the launch command...
         #
         project = None
-        for projre in (
-            "-e SAM_PROJECT=([^ ]*)",
-            "-e SAM_PROJECT_NAME=([^ ]*)",
-            "--sam_project[ =]([^ ]*)",
-            "--project_name[ =]([^ ]*)",
-            "--project[ =]([^ ]*)",
-        ):
+        config = configparser.ConfigParser()
+        config.read("../webservice/poms.ini")
+        launch_commands = config.get("launch_commands", "projre").split(",")
+        for projre in launch_commands:
             m = re.search(projre, command_executed)
             if m:
                 project = m.group(1)
                 break
-
+        
         q = ctx.db.query(CampaignStage)
         if str(campaign)[0] in "0123456789":
             q = q.filter(CampaignStage.campaign_stage_id == int(campaign))
@@ -630,6 +627,7 @@ class SubmissionsPOMS:
             dataset = sam_specifics(ctx).get_dataset_from_project(submission)
         else:
             dataset = None
+        
 
         ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
         ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
@@ -661,8 +659,7 @@ class SubmissionsPOMS:
             submission_log_format = 1
        
         statuses = []
-        cs = submission.campaign_stage_snapshot_obj.campaign_stage  
-        
+        cs = submission.campaign_stage_snapshot_obj.campaign_stage
         listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
         (
             summary_list,
@@ -690,14 +687,16 @@ class SubmissionsPOMS:
                 "%d"
                 % (
                     psummary.get("tot_consumed", 0)
+                    + psummary.get("tot_cancelled", 0)
                     + psummary.get("tot_failed", 0)
                     + psummary.get("tot_skipped", 0)
                     + psummary.get("tot_delivered", 0)
                 ),
-                listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
+                listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
             ],
             ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
             ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+            ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
             ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
             ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
             ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
@@ -881,8 +880,11 @@ class SubmissionsPOMS:
 
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
+        current_s = s
         if s.parent_obj:
             s = s.parent_obj
+        logit.log("launch_recovery_if_needed: current_s: %s" %repr(current_s))
+        logit.log("launch_recovery_if_needed: s: %s" %repr(s))
 
         if s.recovery_position is None:
             s.recovery_position = 0
@@ -911,7 +913,14 @@ class SubmissionsPOMS:
             rtype = rlist[s.recovery_position].recovery_type
             param_overrides = rlist[s.recovery_position].param_overrides
 
-            nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            # if this is the first recovery, we use s (which may be the parent submission)
+            # else we use the current submission as the project because we don't want to re-submit the same files
+            # May want to add a secondary condition in the future to make sure that the recovery type is the same 
+            # as the previous submission if choosing current_s rather than s
+            if s.recovery_position == 0:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            else:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
 
             s.recovery_position = s.recovery_position + 1
 
@@ -1467,6 +1476,7 @@ class SubmissionsPOMS:
         cleanup_cmdl = [
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
+            #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
             "rm -f /tmp/proxy%s /tmp/token_%s" % (uu, uu)
         ]
 

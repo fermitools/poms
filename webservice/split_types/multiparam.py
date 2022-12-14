@@ -1,4 +1,5 @@
 import json
+import uuid
 
 
 class multiparam:
@@ -26,6 +27,7 @@ class multiparam:
         self.cs = cs
         self.list = json.loads(cs.dataset)
         self.dims = []
+        self.id = uuid.uuid4()
         if self.list:
             for l1 in self.list:
                 self.dims.append(len(l1))
@@ -46,7 +48,7 @@ class multiparam:
             n = n // self.dims[i]
             i = i + 1
 
-        return "_".join(res)
+        return "%s" % ("_".join(res))
 
     def next(self):
         res = self.peek()

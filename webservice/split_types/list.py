@@ -1,3 +1,4 @@
+import uuid
 class list:
     """
        This split type assumes you have been given a comma-separated list 
@@ -8,6 +9,7 @@ class list:
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
         self.list = cs.dataset.split(",")
+        self.id = uuid.uuid4()
 
     def params(self):
         return []
@@ -17,7 +19,7 @@ class list:
             self.cs.cs_last_split = 0
         if self.cs.cs_last_split >= len(self.list):
             raise StopIteration
-        return self.list[self.cs.cs_last_split]
+        return "%s" % (self.list[self.cs.cs_last_split])
 
     def next(self):
         res = self.peek()

@@ -26,11 +26,16 @@ Submission Details {%include 'help_button.html'%}
 {%endblock%}
 {%block content%}
 <script>
- function confirm_call(msg, url) {
-     var r = confirm(msg);
-     if ( r ) {
-         location.assign(url)
-     }
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
  }
  function confirm_validate(msg) {
      var r = confirm(msg);
@@ -65,7 +70,8 @@ a regular launch
 <br>
 
 {%if dataset %}
-{%if dataset[:13] == 'poms_depends_' %}
+<!-- Since we added a uuid to the submission id for the sam definitions, account for it here, but still allow legacy submissions to be viewed -->
+{%if dataset[:13] == 'poms_depends_'  %}
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
 {%endif%}
 {%endif%}

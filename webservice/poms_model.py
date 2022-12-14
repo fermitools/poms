@@ -5,7 +5,9 @@ from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, T
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
-
+from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -86,6 +88,7 @@ class CampaignStage(Base):
     campaign_stage_type = Column(Text, nullable=False)
     merge_overrides = Column(Boolean, nullable=True)
     output_ancestor_depth = Column(Integer, server_default="1")
+    default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
 
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
@@ -142,6 +145,16 @@ class Experiment(Base):
     snow_url = Column(Text, nullable=True)
     restricted = Column(Boolean, nullable=False, server_default=text("false"))
     active = Column(Boolean, nullable=False, server_default=text("true"))
+
+class ExperimentersWatching(Base):
+    __tablename__ = "experimenters_watching"
+
+    experimenters_watching_id = Column(experimenters_watching_id = UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    experimenter_id = Column(ForeignKey("experimenters.experimenter_id"),nullable=False, index=True)
+    campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=False, index=True)
+    created = Column(DateTime(True), nullable=False)
+    experimenter_obj = relationship(Experimenter, backref="exp_watch")
+    campaign_obj = relationship(Campaign, backref="exp_watch")
 
 
 class LoginSetup(Base):
@@ -202,7 +215,7 @@ class Submission(Base):
     )
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
-    submission_params = Column(JSON)
+    submission_params = Column(MutableDict.as_mutable(JSON))
     depends_on = Column(ForeignKey("submissions.submission_id"), index=True)
     depend_threshold = Column(Integer)
     updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
@@ -274,6 +287,7 @@ class CampaignStageSnapshot(Base):
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     # completion_pct = Column(Text, nullable=False, server_default="95")
     completion_pct = Column(Integer, nullable=False, server_default="95")
+    default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
 
     campaign_stage = relationship("CampaignStage")
 

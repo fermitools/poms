@@ -226,11 +226,13 @@ class samweb_lite:
             info["tot_consumed"] = info.get("file_counts", {}).get("consumed", 0) + info.get("file_counts", {}).get(
                 "completed", 0
             )
+            info["tot_cancelled"] = info.get("file_counts", {}).get("cancelled", 0)
             info["tot_failed"] = info.get("file_counts", {}).get("failed", 0)
             info["tot_delivered"] = info.get("file_counts", {}).get("delivered", 0)
             info["tot_unknown"] = info.get("file_counts", {}).get("unknown", 0)
             return
         tot_consumed = 0
+        tot_cancelled = 0
         tot_skipped = 0
         tot_delivered = 0
         tot_unknown = 0
@@ -239,6 +241,7 @@ class samweb_lite:
         tot_jobfails = 0
         for proc in info["processes"]:
             tot_consumed += proc["counts"]["consumed"]
+            tot_cancelled += proc["counts"]["cancelled"]
             tot_failed += proc["counts"]["failed"]
             tot_skipped += proc["counts"].get("skipped", 0)
             tot_delivered += proc["counts"].get("delivered", 0)
@@ -248,6 +251,7 @@ class samweb_lite:
                 tot_jobfails += 1
 
         info["tot_consumed"] = tot_consumed
+        info["tot_cancelled"] = tot_cancelled
         info["tot_failed"] = tot_failed
         info["tot_skipped"] = tot_skipped
         info["tot_jobs"] = tot_jobs

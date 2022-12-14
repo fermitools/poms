@@ -52,7 +52,7 @@ class jobsub_q_scraper:
         self.poms_uri = poms_uri
         gc.enable()
 
-        self.statusmap = {"0": "Unexpanded", "1": "Idle", "2": "Running", "3": "Removed", "4": "Completed", "5": "Held"}
+        self.statusmap = {"0": "Unexpanded", "1": "Idle", "2": "Running", "3": "Removed", "4": "Completed", "5": "Held", "6": "Cancelled"}
 
         self.psess = requests.Session()
         self.known_submissions = {}

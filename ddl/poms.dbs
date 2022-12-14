@@ -53,7 +53,7 @@
 			<column name="completion_type" type="text" jt="12" mandatory="y" >
 				<defo>&#039;located&#039;::text</defo>
 			</column>
-			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+			<column name="completion_pct" type="real" jt="4" mandatory="y" >
 				<defo>95</defo>
 			</column>
 			<column name="param_overrides" type="json" jt="2000" />
@@ -62,6 +62,7 @@
 			<column name="updated" type="timestamptz" jt="93" />
 			<column name="cs_last_split" type="integer" jt="4" />
 			<column name="cs_split_type" type="text" jt="12" />
+			<column name="default_clear_cronjob" type="bool" jt="7" />
 			<column name="cs_split_dimensions" type="text" jt="12" />
 			<index name="idx_campaign_snapshots" unique="PRIMARY_KEY" >
 				<column name="campaign_stage_snapshot_id" />
@@ -89,7 +90,7 @@
 			<column name="completion_type" type="text" jt="12" mandatory="y" >
 				<defo>&#039;located&#039;::text</defo>
 			</column>
-			<column name="completion_pct" type="integer" jt="4" mandatory="y" >
+			<column name="completion_pct" type="real" jt="4" mandatory="y" >
 				<defo>95</defo>
 			</column>
 			<column name="campaign_stage_type" type="text" jt="12" mandatory="y" />
@@ -99,6 +100,7 @@
 			<column name="updated" type="timestamptz" jt="93" />
 			<column name="cs_last_split" type="integer" jt="4" />
 			<column name="cs_split_type" type="text" jt="12" />
+			<column name="default_clear_cronjob" type="bool" jt="7" />
 			<column name="cs_split_dimensions" type="text" jt="12" />
 			<column name="hold_experimenter_id" type="integer" jt="4" />
 			<column name="role_held_with" type="text" jt="12" />
@@ -280,6 +282,23 @@
 				<fk_column name="experiment" pk="experiment" />
 			</fk>
 			<fk name="fk_experiment_expermenters_0" to_schema="public" to_table="experimenters" >
+				<fk_column name="experimenter_id" pk="experimenter_id" />
+			</fk>
+		</table>
+		<table name="experimenters_watching" >
+			<column name="experimenters_watching_id" type="uuid" length="10" decimal="0" jt="12" mandatory="y" autoincrement="y" />
+			<column name="experimenter_id" type="integer" jt="4" mandatory="y" />
+			<column name="campaign_id" type="integer" jt="4" mandatory="y" />
+			<column name="created" type="timestamptz" length="35" decimal="6" jt="93" mandatory="y" >
+				<defo>now()</defo>
+			</column>
+			<index name="pk_experimenters_watching" unique="PRIMARY_KEY" >
+				<column name="experimenters_watching_id" />
+			</index>
+			<fk name="fk_campaign_id" to_schema="public" to_table="campaigns" >
+				<fk_column name="campaign_id" pk="campaign_id" />
+			</fk>
+			<fk name="fk_experimenter_id" to_schema="public" to_table="experimenters" >
 				<fk_column name="experimenter_id" pk="experimenter_id" />
 			</fk>
 		</table>

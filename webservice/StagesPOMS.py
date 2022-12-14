@@ -22,7 +22,7 @@ import re
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -171,6 +171,7 @@ class StagesPOMS:
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop("ae_split_type", None)
+            default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
             vo_role = kwargs.pop("ae_vo_role")
             software_version = kwargs.pop("ae_software_version")
             dataset = kwargs.pop("ae_dataset")
@@ -270,6 +271,7 @@ class StagesPOMS:
                             name=name,
                             experiment=experiment,
                             vo_role=vo_role,
+                            default_clear_cronjob=default_clear_cronjob,
                             # active=active,
                             cs_split_type=split_type,
                             software_version=software_version,
@@ -295,6 +297,7 @@ class StagesPOMS:
                         "vo_role": vo_role,
                         # "active": active,
                         "cs_split_type": split_type,
+                        "default_clear_cronjob":default_clear_cronjob,
                         "software_version": software_version,
                         "dataset": dataset,
                         "param_overrides": param_overrides,
@@ -689,6 +692,50 @@ class StagesPOMS:
         c_s.cs_last_split = None
         ctx.db.commit()
 
+    # h3. update_campaign_split
+    def update_campaign_split(self, ctx, campaign_stage_id, campaign_stage_snapshot_id, last_split_custom_val):
+        """
+            reset a campaign_stages cs_last_split field so the sequence
+            starts over
+        """
+        campaign_stage_id = int(campaign_stage_id)
+        id_to_use = None
+        # ask for forgiveness rather than permission for a bad value
+        try:
+            s = int(last_split_custom_val) + 1
+            id_to_use = int(last_split_custom_val)
+        except Exception:
+            if campaign_stage_snapshot_id:
+                id_to_use = int(campaign_stage_snapshot_id)
+            else:
+                logit.log(logit.ERROR, "update_campaign_split: improper custom value entered")
+                raise TypeError("The value entered is not formatted properly, please enter an integer value corresponding to a campaign stage id.")
+
+        try:
+            c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
+            if id_to_use == 0:
+                c_s.cs_last_split  = None
+                ctx.db.commit()
+                return
+        except Exception:
+            logit.log(logit.ERROR, "update_campaign_split: campaign stage not found")
+            raise AssertionError("Campaign stage not found")
+        try:
+            c_s_s = ctx.db.query(CampaignStageSnapshot).filter(CampaignStageSnapshot.campaign_stage_snapshot_id == id_to_use).one()
+        except Exception:
+            logit.log(logit.ERROR, "update_campaign_split: campaign stage snapshot %s not found" %id_to_use)
+            raise AssertionError("Campaign stage snapshot %s not found" %id_to_use)
+            
+        if c_s.campaign_id != c_s_s.campaign_stage.campaign_id:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not belong to this campaign")
+            raise AssertionError("Requested campaign stage snapshot does not belong to this campaign")
+        if c_s.cs_split_type != c_s_s.cs_split_type:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
+            raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
+        
+        c_s.cs_last_split = id_to_use
+        ctx.db.commit()
+
     # h3. campaign_stage_info
     def campaign_stage_info(self, ctx, campaign_stage_id):
         """
@@ -702,7 +749,20 @@ class StagesPOMS:
             .filter(CampaignStage.campaign_stage_id == campaign_stage_id, CampaignStage.creator == Experimenter.experimenter_id)
             .first()
         )
-
+        # get existing campaign stage snapshots
+        campaign_stage_snapshots_db = (
+            ctx.db.query(CampaignStageSnapshot)
+            .filter(CampaignStageSnapshot.campaign_stage_id == campaign_stage_id, CampaignStageSnapshot.cs_split_type == campaign_stage_info.CampaignStage.cs_split_type)
+            .order_by(desc(CampaignStageSnapshot.campaign_stage_snapshot_id))
+            .all()
+        )
+        campaign_stage_snapshots = []
+        if campaign_stage_snapshots_db:
+                for item in campaign_stage_snapshots_db:
+                        if item.updated:
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.updated).strftime("%Y-%m-%d %H:%M:%S")])
+                        else:
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.created).strftime("%Y-%m-%d %H:%M:%S")])
         # default to time window of campaign
         if ctx.tmin is None and ctx.tdays is None:
             ctx.tmin = campaign_stage_info.CampaignStage.created
@@ -797,6 +857,7 @@ class StagesPOMS:
             dep_svg,
             last_activity,
             recent_submissions,
+            campaign_stage_snapshots
         )
 
     # h3. campaign_stage_submissions
@@ -895,9 +956,9 @@ class StagesPOMS:
             pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
             slist.append(tup.Submission)
-            m = re.match(r"poms_(depends|recover)_(.*)_[0-9]", pd)
+            m = re.match(r"poms_(depends|recover)_([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})_(.*)_[0-9]", pd)
             if m:
-                depends[sid] = int(m.group(2))
+                depends[sid] = int(m.group(3))
                 darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
             else:
                 depends[sid] = None
@@ -998,6 +1059,8 @@ class StagesPOMS:
         try:
             res = splitter.next()
         except StopIteration:
+            if camp.default_clear_cronjob:
+                self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
             raise AssertionError("No more splits in this campaign.")
 
         ctx.db.commit()

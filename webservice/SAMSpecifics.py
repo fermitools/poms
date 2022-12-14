@@ -1,6 +1,10 @@
+from datetime import datetime
 from . import logit
 from .poms_model import CampaignDependency, Submission
 from sqlalchemy import func
+from sqlalchemy.orm.attributes import flag_modified
+import uuid
+
 
 
 class sam_specifics:
@@ -60,7 +64,7 @@ class sam_specifics:
                 s.project,
                 s.project,
             )
-        elif rtype.name == "proj_status":
+        elif rtype.name == "process_status":
             recovery_dims = self.ctx.sam.recovery_dimensions(
                 s.job_type_snapshot_obj.experiment, s.project, useprocess=1, dbhandle=self.ctx.db
             )
@@ -117,8 +121,10 @@ class sam_specifics:
             )
 
         try:
+
             logit.log("counting files dims %s" % recovery_dims)
             nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=self.ctx.db)
+           
         except BaseException as be:
             logit.log("exception %s counting files" % be)
             # if we can's count it, just assume there may be a few for
@@ -126,12 +132,12 @@ class sam_specifics:
             nfiles = 1
 
         s.recovery_position = s.recovery_position + 1
-        self.ctx.db.add(s)
-        self.ctx.db.commit()
+        
+       
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
-            rname = "poms_recover_%d_%d" % (s.submission_id, s.recovery_position)
+            rname = "poms_recover_%s_%d_%d" % (str(uuid.uuid4()), s.submission_id, s.recovery_position)
 
             logit.log(
                 "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s"
@@ -141,7 +147,22 @@ class sam_specifics:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, rname, recovery_dims)
         else:
             rname = None
-
+        
+        recovery = {}
+        recovery["name"] = rname
+        recovery["timestamp"] = datetime.now().isoformat()
+        recovery["count"] = nfiles
+        recovery["exp"] = s.campaign_stage_snapshot_obj.experiment
+        recovery["dims"] = recovery_dims
+        workflow = s.submission_params.get("workflow", {})
+        recoveries = workflow.get("recoveries", [])
+        recoveries.append(recovery)
+        workflow["recoveries"] = recoveries
+        s.submission_params["workflow"] = workflow
+        s.submission_params = s.submission_params
+        flag_modified(s, 'submission_params')
+        self.ctx.db.add(s)
+        self.ctx.db.commit()
         return nfiles, rname
 
     def dependency_definition(self, s, jobtype, i):
@@ -209,6 +230,24 @@ class sam_specifics:
             self.ctx.sam.create_definition(s.campaign_stage_snapshot_obj.experiment, dname, dims)
         except:
             logit.log("ignoring definition error")
+        
+        dependency = {}
+        dependency["name"] = dname
+        dependency["timestamp"] = datetime.now().isoformat()
+        dependency["current_count"] = cur_dname_nfiles
+        dependency["new_count"] = new_dname_nfiles
+        dependency["exp"] = s.campaign_stage_snapshot_obj.experiment
+        dependency["dims"] = dims
+        workflow = s.submission_params.get("workflow", {})
+        deps = workflow.get("dependencies", [])
+        deps.append(dependency)
+        workflow["dependencies"] = deps
+        s.submission_params["workflow"] = workflow
+        s.submission_params = s.submission_params
+        flag_modified(s, 'submission_params')
+        self.ctx.db.add(s)
+        self.ctx.db.commit()
+
         return dname
 
     def get_file_stats_for_submissions(self, submission_list, experiment, just_output=False):
@@ -299,6 +338,20 @@ class sam_specifics:
             some_kids_list = self.ctx.sam.count_files_list(experiment, some_kids_needed)
             some_kids_decl_list = self.ctx.sam.count_files_list(experiment, some_kids_decl_needed)
             all_kids_decl_list = self.ctx.sam.count_files_list(experiment, all_kids_decl_needed)
+        subs = set([x.submission_id for x in submission_list])
+        existing = self.ctx.db.query(Submission).filter(Submission.submission_id.in_(subs)).all()
+        logit.log("existing, got s: %s" % repr(existing))
+        if existing and summary_list:
+            for i in range(0,len(submission_list)):
+                logit.log("sub_%d: %s" % (i, submission_list[i]))
+                s = [p for p in existing if p.submission_id == submission_list[i].submission_id]
+                logit.log("sub_%d, got s: %s" % (i,repr(s)))
+                if s:
+                    s[0].files_consumed = summary_list[i].get("tot_consumed", 0)
+                    s[0].files_generated = summary_list[i].get("files_in_snapshot", 0)
+                    self.ctx.db.add(s[0])
+                   
+        self.ctx.db.commit()
         return (
             summary_list,
             some_kids_decl_needed,
@@ -399,7 +452,7 @@ class sam_project_checker:
                 submission.submission_id,
             )
         else:
-            allkiddims = "defname:poms_depends_%s_1" % submission.submission_id
+            allkiddims = "defname:poms_depends_%s_1" % (submission.submission_id)
         self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)

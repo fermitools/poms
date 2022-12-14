@@ -307,8 +307,15 @@ class PomsService:
         p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="CampaignDepsHelp"
     )
     def campaign_overview(self, **kwargs):
-        c, d = self.campaignsPOMS.campaign_overview(**kwargs)
-        return {"s": c, "svgdata": d}
+        c, d, sl = self.campaignsPOMS.campaign_overview(**kwargs)
+        return {"s": c, "svgdata": d, "slist": sl}
+
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="CampaignDepsHelp"
+    )
+    def show_watching(self, **kwargs):
+        d, c = self.campaignsPOMS.show_watching(**kwargs)
+        return {"svgdata": d, "campaigns": c}
 
     # h4. job_type_rm
     @poms_method(rtype="json")
@@ -549,6 +556,19 @@ class PomsService:
     def reset_campaign_split(self, **kwargs):
         return self.stagesPOMS.reset_campaign_split(**kwargs)
 
+    
+    # see &l=webservice/StagesPOMS.py#update_campaign_split&
+
+    # h4. update_campaign_split
+
+    @poms_method(
+        p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage"}],
+        redirect="%(poms_path)s/campaign_stage_info/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
+        rtype="redirect",
+    )
+    def update_campaign_split(self, **kwargs):
+        return self.stagesPOMS.update_campaign_split(**kwargs)
+
     # see &l=webservice/StagesPOMS.py#reset_campaign_split&
 
     # h4. campaign_stage_datasets
@@ -604,6 +624,7 @@ class PomsService:
             "dep_svg",
             "last_activity",
             "recent_submissions",
+            "campaign_stage_snapshots"
         ],
         help_page="POMS_UserDocumentation",
         t="campaign_stage_info.html",
@@ -1019,6 +1040,26 @@ class PomsService:
     @poms_method(rtype="json")
     def save_campaign(self, *args, **kwargs):
         return self.campaignsPOMS.save_campaign(*args, **kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#watch_campaign&
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        t="show_campaigns.html",
+        u=["tl", "last_activity", "msg", "data"],
+        need_er=True,
+    )
+    def watch_campaign(self, **kwargs):
+        return self.campaignsPOMS.watch_campaign(**kwargs)
+
+    # see &l=webservice/CampaignsPOMS.py#stop_watching&
+    @poms_method(
+        p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
+        t="show_watching.html",
+        u=["tl", "last_activity", "msg", "data"],
+        need_er=True,
+    )
+    def stop_watching(self, **kwargs):
+        return self.campaignsPOMS.watch_campaign(**kwargs)
 
     # see &l=webservice/CampaignsPOMS.py#save_campaign&
 

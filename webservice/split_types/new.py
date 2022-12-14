@@ -1,4 +1,5 @@
 import time
+import uuid
 
 
 class new:
@@ -33,6 +34,7 @@ class new:
         self.tlocaltime = 0  # assume GMT
         self.tfirsttime = None  # override start time
         self.tlasttime = time.time()  # override end time -- default now
+        self.id = uuid.uuid4()
 
         if camp.cs_split_type[3:] == "_local":
             self.tlocaltime = 1
@@ -103,7 +105,7 @@ class new:
 
         self.etime = etime
 
-        new = self.cs.dataset + "_time_%s__%s" % (int(stime), int(etime))
+        new = self.cs.dataset + "_%s_time_%s__%s" % (str(self.id),int(stime), int(etime))
 
         self.samhandle.create_definition(
             self.cs.job_type_obj.experiment,
