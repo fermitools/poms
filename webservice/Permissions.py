@@ -24,9 +24,10 @@ import sys
 import time
 import glob
 import uuid
-
+from datetime import datetime
+from datetime import timedelta
 #VAULT_OPTS = htcondor.param.get("SEC_CREDENTIAL_GETTOKEN_OPTS", "")
-DEFAULT_ROLE = "Analysis"
+DEFAULT_ROLE = "analysis"
 
 class Permissions:
     
@@ -96,43 +97,68 @@ class Permissions:
             raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
         return tokenfile
     
-    def check_token(self, ctx, tokenfile: str) -> bool:
+    def check_token(self, ctx) -> bool:
         """check if token is (almost) expired"""
-        if not os.path.exists(tokenfile):
-            return False
-        exp_time = None
+       
         pid = os.getuid()
-        tmp = self.get_tmp()
-        exp = ctx.experiment
+        path = f"/run/user/{pid}"
+        #tmp = self.get_tmp()
         role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
-        if exp == "samdev":
+        
+        if ctx.experiment == "samdev":
             issuer: Optional[str] = "fermilab"
         else:
-            issuer = exp
-
-        tokenfile = f"{tmp}/bt_token_{issuer}_{role}_{pid}"
-        os.environ["BEARER_TOKEN_FILE"] = tokenfile
-        p = subprocess.Popen(f"httokendecode", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        so, se = p.communicate()
-        p.wait()
-        data = json.loads(so.decode('utf8'))
+            issuer = ctx.experiment
+            
+        if role == "analysis":
+            tokenfile = f"{path}/bt_u{pid}-{issuer}-{ctx.username}"
+            vaultfile = f"/tmp/vt_u{pid}-{issuer}-{ctx.username}"
+        else:
+            tokenfile = f"{path}/bt_u{pid}-{issuer}_production-{ctx.username}"
+            vaultfile = f"/tmp/vt_u{pid}-{issuer}_production-{ctx.username}"
+        
+        if (role == "analysis" or ctx.experiment == "samdev") and not os.path.exists(tokenfile):
+            return False
+        elif role == "production" and ctx.experiment != "samdev":
+            return True
+        
         try:
+            os.environ["BEARER_TOKEN_FILE"] = tokenfile
+            p = subprocess.Popen(f"httokendecode", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            so, se = p.communicate()
+            p.wait()
+            data = json.loads(so.decode('utf8'))
             in_experiment = f"/{issuer}" in data["wlcg.groups"]
+            
             if not in_experiment:
                 raise PermissionError("User not in experiment")
-            tok_exp_time = data["exp"]
-            
-            tok_scope = data["scope"]
-            logit.log("data:" + repr(data))
-            return int(tok_exp_time) - time.time() > 60
+            exp_ticks = data["exp"]
+            #converted_ticks = datetime.datetime.now() + datetime.timedelta(microseconds = exp_ticks/10)
+            #tok_scope = data["scope"]
+            # logit.log("Time Left Real: %s" % (datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow()))
+            if datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow() > timedelta(minutes=60):
+                return True
+            else:
+                logit.log("Removing vault file")
+                os.remove(vaultfile)
+                logit.log("Removing token file")
+                os.remove(tokenfile)
+                logit.log("Files Removed")
+                return False
         except ValueError as e:
+            logit.log("Removing vault file")
+            os.remove(vaultfile)
+            logit.log("Removing token file")
+            os.remove(tokenfile)
+            logit.log("Files Removed")
+            logit.log("Error authorizing token: %s" % (str(e)))
             print(
                 "decode_token.sh could not successfully extract the "
                 f"expiration time from token file {tokenfile}. Please open "
                 "a ticket to Distributed Computing Support if you need further "
                 "assistance."
             )
-            raise
+            return False
 
   
 

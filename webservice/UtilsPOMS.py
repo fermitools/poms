@@ -290,9 +290,9 @@ class UtilsPOMS:
 
 
         if data['env'] == 'analysis':
-            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s" % (os.geteuid(), data['issuer']))
+            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username))
         else:
-            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s_production" % (os.geteuid(), data['issuer']))
+            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username))
 
         auth = response['auth']
 
@@ -347,9 +347,9 @@ class UtilsPOMS:
 
         # Write bearer token to outfile
         if data['env'] == 'analysis':
-            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s" % (os.geteuid(),os.geteuid(), data['issuer']))
+            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s-%s" % (os.geteuid(),os.geteuid(), data['issuer'], ctx.username))
         else:
-            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s_production" % (os.geteuid(),os.geteuid(), data['issuer']))
+            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s_production-%s" % (os.geteuid(),os.geteuid(), data['issuer'], ctx.username))
 
         return data
         

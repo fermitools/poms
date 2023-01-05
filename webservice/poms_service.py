@@ -22,6 +22,7 @@
 #
 # Usual basic python module imports...
 #
+import re
 import os
 import glob
 import pprint
@@ -32,7 +33,7 @@ import json
 import logging
 import sys
 from configparser import ConfigParser
-
+import traceback
 import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
@@ -703,7 +704,7 @@ class PomsService:
     # h4. mark_campaign_hold
     @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")
     def mark_campaign_hold(self, **kwargs):
-        kwargs["campaign_stage_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
+        kwargs["campaign_stage_ids"] = [int(re.sub('\D', '', x)) for x in kwargs["ids2HR"].split(",")]
         logit.log("ids2HR is %s" % kwargs["ids2HR"])
         logit.log("campaign_stage_ids is %s" % kwargs["campaign_stage_ids"])
         del kwargs["ids2HR"]
@@ -1117,8 +1118,8 @@ class PomsService:
         p = ConfigParser(interpolation=None)
         try:
             p.read_string(data)
-        except Exception:
-            return {"status": "400 Bad Request", "message": "Bad file format"}
+        except Exception as e:
+            return {"status": "400 Bad Request", "message": "Bad file format %s" % str(e) }
 
         cfg = {section: dict(p.items(section)) for section in p.sections()}
         pprint.pprint(cfg)
