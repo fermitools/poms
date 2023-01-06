@@ -1485,7 +1485,7 @@ class SubmissionsPOMS:
             % (uu, uu),
    
             "source /grid/fermiapp/products/common/etc/setups",
-            #"setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_6, ifdhc_config v2_6_6; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0"
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
             "setup jobsub_client v_lite;  export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1"
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
@@ -1500,8 +1500,8 @@ class SubmissionsPOMS:
                     "experimenter": experimenter_login,
                 }
             ).replace("'", """'"'"'"""),
-            #'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db ',
-            'UPS_OVERRIDE="" setup jobsub_client v_lite',
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db ',
+            'setup jobsub_client v_lite',
             "ups active",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
@@ -1528,7 +1528,8 @@ class SubmissionsPOMS:
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            "rm -f /tmp/proxy%s; rm -f /run/user/$UID/bt_u$UID; rm -f /tmp/token%s;" % (uu, uu) 
+            "rm -v -f /tmp/proxy%s; rm -v -f /run/user/$UID/bt_u$UID; rm -v -f /tmp/token%s;" % (uu, uu),
+            "date +%H:%M:%S.%N",
         ]
 
         if definition_parameters:

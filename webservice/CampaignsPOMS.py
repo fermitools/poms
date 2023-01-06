@@ -596,7 +596,6 @@ class CampaignsPOMS:
             Find the starting stage in a campaign, and launch it with
             launch_jobs(campaign_stage_id=...)
         """
-
         stages = self.get_leading_stages(ctx, campaign_id)
         logit.log("launch_campaign: got stages %s" % repr(stages))
         if len(stages) == 1:
@@ -609,7 +608,7 @@ class CampaignsPOMS:
                 param_overrides,
                 test_login_setup,
                 test_launch,
-                output_commands
+                output_commands, 
             )
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 

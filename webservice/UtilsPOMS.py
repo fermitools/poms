@@ -12,7 +12,9 @@ from .poms_model import Experimenter, ExperimentsExperimenters
 import tempfile
 import requests
 import secrets
+import subprocess
 import json
+import stat
 import time
 import os
 from . import logit
@@ -288,11 +290,35 @@ class UtilsPOMS:
         vaulttokensecs = self.ttl2secs("7d", "--vaulttokenttl")
         vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
 
-
+        logit.log("Saving vault token")
         if data['env'] == 'analysis':
             self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username))
+            try:
+                logit.log("Saved and attempting to modify vault token permissions")
+                os.chmod("/tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username), stat.S_IROTH |stat.S_IRGRP| stat.S_IRUSR | stat.S_IWUSR)
+                os.system("touch /tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username))
+                logit.log("Saved and modified vault token permissions %s" % datetime.now().strftime("%H:%M:%S.%f") )
+            except Exception as e:
+                logit.log("failure updating permissions: %s" % str(e))  
         else:
             self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username))
+            try:
+                logit.log("Saved and attempting to modify vault token permissions")
+                os.chmod("/tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username), stat.S_IROTH |stat.S_IRGRP| stat.S_IRUSR | stat.S_IWUSR)
+                os.system("touch /tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username))
+                logit.log("Saved and modified vault token permissions %s" % datetime.now().strftime("%H:%M:%S.%f") )
+            except Exception as e:
+                logit.log("failure updating permissions: %s" % str(e))   
+                
+                
+        if debug:      
+            try:
+                logit.log("View tmp permissions")
+                pr = subprocess.Popen(["ls -l /tmp"], stdout=subprocess.PIPE, shell=True)
+                logit.log("TMP Permissions: %s" % pr.stdout.read().decode('utf8'))
+            except Exception as e:
+                logit.log("failure checking tmp permissions: %s" % str(e))   
+        
 
         auth = response['auth']
 
@@ -409,7 +435,6 @@ class UtilsPOMS:
         except Exception as e:
             logit.log("failure writing file", e)
         handle.close()
-
         if dorename:
             try:
                 os.rename(path, outfile)
@@ -419,6 +444,9 @@ class UtilsPOMS:
                 except:
                     pass
                 logit.log("failure renaming " + path + " to " + outfile, e)
+        
+            
+        
     
 
     def getVaultToken(self, vaulttokensecs, response, data):

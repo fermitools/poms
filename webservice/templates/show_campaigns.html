@@ -63,7 +63,13 @@ Campaigns {{ show_hint('#Campaigns', 'Campaigns') }}
     <i class="icon add square"></i>
     Add
 </button>
-
+{%if session_role == "analysis"%}
+    <label for="hidden-new-file" class="tiny ui teal button">
+        <a style="color: white !important;" href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" target='_blank' title="A vault token is required for analysis users. These tokens can be uploaded in 'User Data -> Uploaded Files', or by clicking this link.">
+            <i class="list icon"></i> Acquire Vault Token
+        </a>
+    </label>
+{%endif%}
 <!-- <span id="span-upload" class="tiny ui teal button" {{ 'disabled' if (session_role=='superuser') }}> </span> -->
 
 <form id="ini_upload_form" class="tiny ui buttons" method="POST" enctype="multipart/form-data" action="{{pomspath}}/ini_to_campaign/{{session_experiment}}/{{session_role}}">

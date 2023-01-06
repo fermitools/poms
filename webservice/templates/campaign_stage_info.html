@@ -148,12 +148,18 @@ all the time...
     <div class="ui segment raised">
          <h3>Actions</h3>
          <div class=menu>
+               {%if session_role == "analysis"%}
+                <div class="item">
+                  <a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="A vault token is required for analysis users. These tokens can be uploaded in 'User Data -> Uploaded Files', or by clicking this link." target='_blank'>
+                    <i class="list icon"></i> Acquire Vault Token 
+                  </a>
+                </div>
+              {%endif%}
               <div class=item>
                 <a href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj or session_role=="production-shifter"}}>
                 <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>
-
               <div class=item>
                 <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}

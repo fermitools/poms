@@ -89,16 +89,19 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 					<i class="list icon"></i> INI file
 				</a>
 			</div>
-			<div class="item">
-				<a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" target='_blank'>
-					<i class="list icon"></i> auth
-				</a>
-			</div>
 		</div>
 	</div>
 	<div class="ui segment raised">
 		<h3>Actions</h3>
 		<div class=menu>
+			{%if session_role == "analysis"%}
+				<div class="item">
+					<a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="A vault token is required for analysis users. These tokens can be uploaded in 'User Data -> Uploaded Files', or by clicking this link." target='_blank'>
+						<i class="list icon"></i> Acquire Vault Token 
+					</a>
+				</div>
+				<br/>
+			{%endif%}
 			<div class=item>
 				<button onclick="confirm_call('Are you sure you want to launch jobs now?','{{pomspath}}/launch_campaign/{{session_experiment}}/{{session_role}}?campaign_id={{s.campaign_id}}', this);">
 					<i class="chart rocket icon blue"></i> Launch Campaign
