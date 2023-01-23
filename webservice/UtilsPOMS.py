@@ -9,7 +9,10 @@
 from datetime import datetime, timedelta
 from .utc import utc
 from .poms_model import Experimenter, ExperimentsExperimenters
+import base64
 import tempfile
+#import ctypes
+import sys
 import requests
 import secrets
 import subprocess
@@ -18,6 +21,10 @@ import stat
 import time
 import os
 from . import logit
+import traceback
+import gssapi
+
+
 
 
 class UtilsPOMS:
@@ -144,10 +151,17 @@ class UtilsPOMS:
     def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True):
         logit.log("Attempting OIDC authentication")
         role = "default"
-        if ctx.experiment != "samdev":
-            oidcpath = oidcpath.replace("fermilab", ctx.experiment)
-            if ctx.role != "analysis":
-                role = "%spro" % ctx.experiment
+        
+        issuer = ctx.experiment
+        if issuer == "samdev":
+            issuer = "fermilab"
+        oidcpath = oidcpath.replace("fermilab", issuer)
+        
+        #if ctx.experiment not in ["samdev","accel","accelai", "icarus","admx", "annie","argoneut","cdms","chips","cms","coupp","darksectorldrd","darkside","ebd","egp","emph","emphatic","fermilab","genie","lariat","larp","magis100","mars","minerva","miniboone","minos","next","noble","nova","numix","patriot","pip2","seaquest","spinquest","test","theory","uboone"]:
+        #    oidcpath = oidcpath.replace("fermilab", ctx.experiment)
+        #    issuer = ctx.experiment
+        if ctx.role != "analysis":
+            role = "%spro" % ctx.experiment
         
         path = '/v1/' + oidcpath + '/auth_url'
         url = vaultserver + path
@@ -155,7 +169,7 @@ class UtilsPOMS:
         authdata = {
             'role': role,
             'client_nonce': nonce,
-            'redirect_uri': vaultserver + '/v1/https:/cilogon.org/fermilab/callback'
+            'redirect_uri': vaultserver + '/v1/https:/cilogon.org/%s/callback' % oidcpath
         }
         data = json.dumps(authdata)
         if debug:
@@ -186,19 +200,21 @@ class UtilsPOMS:
             data = response['data']
         if 'auth_url' not in data:
             logit.log("no 'auth_url' in data from %s" % vaultserver)
-        auth_url = data.get("auth_url", referer)
-        #del data['auth_url'] 
-        if auth_url == "":
-            logit.log("'auth_url' is empty in data from %s" % vaultserver)
+            
+        if debug:
+            auth_url = data.get("auth_url", referer)
+            if auth_url == "":
+                logit.log("'auth_url' is empty in data from %s" % vaultserver)
 
-        logit.log("Complete the authentication at:")
-        logit.log("    " + auth_url)
+            logit.log("Complete the authentication at:")
+            logit.log("    " + auth_url)
+        
         data['oidcpath'] = oidcpath
         data['role'] = role
         data['client_nonce'] = nonce
         data['vaultserver'] = vaultserver
         data['debug'] = str(debug)
-        data['issuer'] = "fermilab" if ctx.experiment == "samdev" else ctx.experiment
+        data['issuer'] = issuer
         data['env'] = ctx.role.lower()
         if referer:
             data['referer'] = referer
@@ -213,11 +229,13 @@ class UtilsPOMS:
         logit.log("Data = " + repr(data))
         oidcpath = data['oidcpath']
         role = data['role']
+        role = ctx.role
         vaultserver = data['vaultserver']
         debug = data['debug'] == "True"
         redir = kwargs.get("redir", None)
-
-        logit.log("redir: %s" % redir)
+        
+        if debug:
+            logit.log("redir: %s" % redir)
 
         datastr = ''
         if 'state' in data:
@@ -250,13 +268,13 @@ class UtilsPOMS:
                 time.sleep(pollinterval)
                 secswaited += pollinterval
                 if debug:
-                    logit.log("polling")
+                    logit.log("Polling Body: %s" % data)
                 # The normal "authorized_pending" response comes in
                 #  the body of a 400 Bad Request.  If we let the
                 #  exception go as normal, the resp is not set and we
                 #  can't read the body, so temporarily block 400 from
                 #  throwing an exception.
-                logit.log("Polling Body: %s" % data)
+                
                 resp = requests.post(url, data = data)
                 
                 body = resp.content.decode(encoding='utf-8', errors='strict') 
@@ -286,29 +304,40 @@ class UtilsPOMS:
                 break
 
         logit.log("Response: %s" % response)
-
-        vaulttokensecs = self.ttl2secs("7d", "--vaulttokenttl")
-        vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
-
-        logit.log("Saving vault token")
-        if data['env'] == 'analysis':
-            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username))
-            try:
-                logit.log("Saved and attempting to modify vault token permissions")
-                os.chmod("/tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username), stat.S_IROTH |stat.S_IRGRP| stat.S_IRUSR | stat.S_IWUSR)
-                os.system("touch /tmp/vt_u%d-%s-%s" % (os.geteuid(), data['issuer'], ctx.username))
-                logit.log("Saved and modified vault token permissions %s" % datetime.now().strftime("%H:%M:%S.%f") )
-            except Exception as e:
-                logit.log("failure updating permissions: %s" % str(e))  
+        
+        path = f"/run/user/{os.geteuid()}"
+        vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        if role == "analysis":
+            tokenfile = f"{path}/bt_{ctx.experiment}_analysis_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
         else:
-            self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username))
-            try:
-                logit.log("Saved and attempting to modify vault token permissions")
-                os.chmod("/tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username), stat.S_IROTH |stat.S_IRGRP| stat.S_IRUSR | stat.S_IWUSR)
-                os.system("touch /tmp/vt_u%d-%s_production-%s" % (os.geteuid(), data['issuer'], ctx.username))
-                logit.log("Saved and modified vault token permissions %s" % datetime.now().strftime("%H:%M:%S.%f") )
-            except Exception as e:
-                logit.log("failure updating permissions: %s" % str(e))   
+            tokenfile = f"{path}/bt_{ctx.experiment}_production_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
+        
+        data["tokenfile"] = tokenfile
+        data["vaultfile"] = vaultfile
+        vaultpath = "%s/%s" % (vaultpath, vaultfile)
+
+        if self.try_kerb_auth(ctx, data, vaultserver, data['issuer']):
+            logit.log("successfully did kerb auth")
+        else:
+            logit.log("failed kerb auth")
+
+        vaulttokensecs = self.ttl2secs("28d", "--vaulttokenttl")
+        vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
+        
+        logit.log("Saving vault token")
+        
+        self.writeTokenSafely("vault", vaulttoken, vaultpath)
+        self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s" % os.geteuid())
+        self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s-%s" % (os.geteuid(), ctx.experiment))
+        try:
+            logit.log("Saved and attempting to modify vault token permissions")
+            os.chmod(vaultpath, stat.S_IROTH |stat.S_IRGRP| stat.S_IRUSR | stat.S_IWUSR)
+            os.system("touch %s" % (vaultpath))
+            logit.log("Saved and modified vault token permissions %s" % datetime.now().strftime("%H:%M:%S.%f") )
+        except Exception as e:
+            logit.log("failure updating permissions: %s" % str(e))   
                 
                 
         if debug:      
@@ -329,23 +358,31 @@ class UtilsPOMS:
             logit.log("no 'metadata' in response from %s" % vaultserver)
 
         credkey = metadata['credkey']
-        logit.log("error cra: %s" % metadata)
+        if debug:
+            logit.log("error cra: %s" % metadata)
 
         try:
-            os.makedirs(os.path.expanduser("~/.config/htgettoken"), exist_ok=True)
+            os.makedirs(os.path.expanduser("/home/poms/.config/htgettoken"), exist_ok=True)
         except Exception as e:
-            logit.log('error creating %s' % "~/.config/htgettoken", e)
+            logit.log("error creating /home/poms/.config/htgettoken/credkey-%s-%s: %s" % (data['issuer'], ctx.username, repr(e)))
+        try:
+            with open("/home/poms/.config/htgettoken/credkey-%s-%s" % (data['issuer'], ctx.username), 'w') as file:
+                file.write(credkey + '\n')
+        except Exception as e:
+            logit.log('error writing %s: %s' % ("/home/poms/.config/htgettoken-%s-%s" % (data['issuer'], ctx.username), repr(e)))
         
         if 'oauth2_refresh_token' not in metadata:
             logit.log("no 'oauth2_refresh_token' in response from %s" % vaultserver)
 
         refresh_token = metadata['oauth2_refresh_token']
 
-        secretpath = "secret/oauth/creds/%issuer/%credkey:%role"
-        secretpath = secretpath.replace("%issuer", data['issuer'])
-        secretpath = secretpath.replace("%role", data['role'])
-        fullsecretpath = secretpath.replace("%credkey", credkey)
-
+        secretpath = "secret/oauth/creds/issuer/credkey:role"
+        secretpath = secretpath.replace("issuer", data['issuer'])
+        secretpath = secretpath.replace("role", data['role'])
+        fullsecretpath = secretpath.replace("credkey", credkey)
+        
+        data["fullsecretpath"] = fullsecretpath
+        
         logit.log("Saving refresh token to " + vaultserver)
         logit.log("  at path " + fullsecretpath)
 
@@ -356,15 +393,18 @@ class UtilsPOMS:
             'server': data['issuer'],
             'refresh_token': refresh_token
         }
-        if data['debug'] == "True":
+        if debug:
             logit.log("Refresh token url is", url)
             logit.log("##### Begin refresh token storage data")
             logit.log(storedata)
             logit.log("##### End refresh token storage data")
         try:
-            resp = requests.post(url, headers=headers, data=storedata)
+            resp = requests.get(url, headers=headers, data=storedata)
+            body = resp.content.decode(encoding='utf-8', errors='strict')
+            if debug:
+                logit.log("Refresh token stored body = %s" % body)
         except Exception as e:
-            logit.log("Refresh token storage to %s failed" % vaultserver, e)
+            logit.log("Refresh token storage to %s failed: %s" % (vaultserver, repr(e)))
 
         bearertoken = self.getBearerToken(vaulttoken, fullsecretpath, data)
 
@@ -372,10 +412,7 @@ class UtilsPOMS:
             logit.log("Failure getting token from " + vaultserver)
 
         # Write bearer token to outfile
-        if data['env'] == 'analysis':
-            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s-%s" % (os.geteuid(),os.geteuid(), data['issuer'], ctx.username))
-        else:
-            self.writeTokenSafely("bearer", bearertoken, "/run/user/%s/bt_u%d-%s_production-%s" % (os.geteuid(),os.geteuid(), data['issuer'], ctx.username))
+        self.writeTokenSafely("bearer", bearertoken, tokenfile)
 
         return data
         
@@ -407,14 +444,16 @@ class UtilsPOMS:
     #  directory, unless the output is a device file
     def writeTokenSafely(self, tokentype, token, outfile):
         dorename = False
+        handle = None
+        path = ""
         if self.isDevFile(outfile):
-            logit.log("Writing", tokentype, "token to", outfile)
+            logit.log("Witing %s token to %s" % (tokentype, outfile))
             try:
                 handle = open(outfile, 'w')
             except Exception as e:
-                logit.log("failure opening for write", e)
+                logit.log("failure opening for write: %s" % repr(e))
         else:
-            logit.log("Storing", tokentype, "token in", outfile)
+            logit.log("Storing %s token in %s" % (tokentype, outfile))
             # Attempt to remove the file first in case it exists, because os.O_EXCL
             #  requires it to be gone.  Need to use os.O_EXCL to prevent somebody
             #  else from pre-creating the file in order to steal credentials.
@@ -427,14 +466,15 @@ class UtilsPOMS:
                     prefix=os.path.dirname(outfile) + '/.' + "htgettoken")
                 handle = os.fdopen(fd, 'w')
             except Exception as e:
-                logit.log("failure creating file", e)
+                logit.log("failure creating file: %s" % repr(e))
             dorename = True
 
         try:
             handle.write(token + '\n')
         except Exception as e:
-            logit.log("failure writing file", e)
-        handle.close()
+            logit.log("failure writing file: %s" % repr(e))
+        if handle:
+            handle.close()
         if dorename:
             try:
                 os.rename(path, outfile)
@@ -490,9 +530,9 @@ class UtilsPOMS:
         try:
             resp = requests.post(url, headers=headers, data=formdata)
             body = resp.content.decode(encoding='utf-8', errors='strict')
-            logit.log("Body = %s" % body)
+            #logit.log("Body = %s" % body)
         except Exception as e:
-            logit.log("getting vault token from %s failed" % url, e)
+            logit.log("getting vault token from %s failed: %s" % (url, e))
         
         if data['debug'] == "True":
             logit.log("##### Begin vault token response")
@@ -541,3 +581,131 @@ class UtilsPOMS:
             return response['data']['access_token']
         
         return None
+    
+    def try_kerb_auth(self, ctx, data, vaulthostname, issuer):
+         # Try kerberos authentication with vault
+        logit.log("try_kerb_auth")
+        vaultserver = data['vaultserver']
+        debug = data["debug"] == "True"
+        
+        service = "host@" + vaulthostname
+        if debug:
+            logit.log("Initializing kerberos client for", service)
+
+        # Need to disable kerberos reverse DNS lookup in order to
+        #  work properly with server aliases
+        cfgfile = tempfile.NamedTemporaryFile(mode='w')
+        if debug:
+            logit.log("Disabling kerberos reverse DNS lookup in " + cfgfile.name) 
+        cfgfile.write("[libdefaults]\n    rdns = false\n")
+        cfgfile.flush()
+
+        krb5_config = None #os.getenv("KRB5_CONFIG")
+        
+        if krb5_config is None:
+            # Try not reading from /etc/krb5.conf because it can
+            # interfere if the kerberos domain is missing
+            #os.environ["KRB5_CONFIG"] = cfgfile.name
+            os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
+        else:
+            os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
+            #os.environ["KRB5_CONFIG"] = cfgfile.name + ':' + krb5_config
+            
+        if debug:
+            logit.log("Setting KRB5_CONFIG=" + os.getenv("KRB5_CONFIG"))
+        kname = gssapi.Name(base=service, name_type=gssapi.NameType.hostbased_service)
+        
+        logit.log("Name KRB5_CONFIG=" + kname)
+        kcontext = gssapi.SecurityContext(usage="initiate", name=kname)
+        logit.log("context KRB5_CONFIG=" + os.getenv("KRB5_CONFIG"))
+        kresponse = None
+        try:
+            kresponse = kcontext.step()
+        except Exception as e:
+            if krb5_config is None and (len(e.args) != 2 or \
+                    len(e.args[1]) != 2 or 'expired' not in e.args[1][0]):
+                # Try again with the default KRB5_CONFIG because 
+                # krb5.conf might be there and might work better.
+                # Don't do it for expired tickets because those have
+                # been observed to not always get caught with 2nd try.
+                if debug:
+                    logit.log("Kerberos init without /etc/krb5.conf failed", e)
+                    logit.log("Trying again with /etc/krb5.conf")
+                os.environ["KRB5_CONFIG"] = cfgfile.name + ":/etc/krb5.conf"
+                if debug:
+                    logit.log("Setting KRB5_CONFIG=" + os.getenv("KRB5_CONFIG"))
+                kcontext = gssapi.SecurityContext(usage="initiate", name=kname)
+                try:
+                    kresponse = kcontext.step()
+                except Exception as e2:
+                    logit.log("Kerberos failed: %s" % repr(e2))
+                    kresponse = None
+                    e = e2
+            if kresponse is None:
+                logit.log("Kerberos init failed: %s" % traceback.format_exc() )
+            else:
+                logit.log("Kerberos init failed")
+
+        cfgfile.close()
+
+        if kresponse != None:
+            kerberostoken = base64.b64encode(kresponse).decode()
+            if debug:
+                logit.log("Kerberos token: %s" % kerberostoken)
+                
+            kerbpath = "auth/kerberos-%issuer_%role"
+            kerbpath = kerbpath.replace("%issuer", issuer)
+            kerbpath = kerbpath.replace("%role", ctx.role)
+            path = "/v1/" + kerbpath + '/login'
+            url = vaultserver + path
+            logit.log("Negotiating kerberos with", vaultserver)
+            logit.log("  at path " + kerbpath)
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': 'Negotiate ' + kerberostoken
+            }
+            formdata = ''.encode('ascii')  # empty data is to force a POST
+            try:
+                resp = requests.post(path, headers=headers, data=formdata)
+                body = resp.content.decode(encoding='utf-8', errors='strict') 
+            except Exception as e:
+                logit.log("Kerberos negotiate with %s failed: %s" % (url, repr(e)))
+
+            body = resp.data.decode()
+            if debug:
+                logit.log("##### Begin vault kerberos response")
+                logit.log(body)
+                logit.log("##### End vault kerberos response")
+            response = json.loads(body)
+            if 'auth' in response and response['auth'] is not None:
+                if debug:
+                    logit.log(" succeeded")
+                vaulttokensecs = self.ttl2secs("28d", "--vaulttokenttl")
+                vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
+                
+                logit.log("Attempting to get bearer token from " + vaultserver)
+
+                bearertoken = self.getBearerToken(vaulttoken, data["fullsecretpath"], data)
+
+                if bearertoken is not None:
+                    # getting bearer token worked, write out vault token
+                    self.writeTokenSafely("vault", vaulttoken, data["vaultfile"])
+                    self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s" % os.geteuid())
+                    self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s-%s" % (os.geteuid(), ctx.experiment))
+                    self.writeTokenSafely("bearer", vaulttoken, data["tokenfile"])
+                    
+                    return True
+                
+                return False
+
+            else:
+                logit.log("Kerberos authentication failed")
+                if debug:
+                    if 'warnings' in response:
+                        for warning in response['warnings']:
+                            logit.log("  " + warning)
+                    if 'errors' in response:
+                        for error in response['errors']:
+                            logit.log("  " + error)
+                return False
+        return False

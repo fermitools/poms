@@ -101,26 +101,39 @@ class Permissions:
         """check if token is (almost) expired"""
        
         pid = os.getuid()
-        path = f"/run/user/{pid}"
         #tmp = self.get_tmp()
         role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
         
-        if ctx.experiment == "samdev":
+        """if ctx.experiment == "samdev":
             issuer: Optional[str] = "fermilab"
         else:
             issuer = ctx.experiment
-            
+        """
+        path = f"/run/user/{pid}"
+        vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
         if role == "analysis":
-            tokenfile = f"{path}/bt_u{pid}-{issuer}-{ctx.username}"
-            vaultfile = f"/tmp/vt_u{pid}-{issuer}-{ctx.username}"
+            tokenfile = f"{path}/bt_{ctx.experiment}_analysis_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
         else:
-            tokenfile = f"{path}/bt_u{pid}-{issuer}_production-{ctx.username}"
-            vaultfile = f"/tmp/vt_u{pid}-{issuer}_production-{ctx.username}"
-        
-        if (role == "analysis" or ctx.experiment == "samdev") and not os.path.exists(tokenfile):
-            return False
-        elif role == "production" and ctx.experiment != "samdev":
+            tokenfile = f"{path}/bt_{ctx.experiment}_production_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
+        try:
+            if (role == "analysis" or ctx.experiment == "samdev") and not os.path.exists(tokenfile):
+                if os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                    # Bearer token does not exist, but user has uploaded a vault token, we will trust that it is valid.
+                    return True
+                return False
+            elif role == "production" and ctx.experiment != "samdev":
+                logit.log("No need to check if analysis or samdev user bearer token exists, is production user: %s - %s" % (role, ctx.experiment))
+                return True
+            else:
+                return True
+        except Exception as e:
+            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment. repr(e)))
             return True
+        
+        """if os.path.exists("/tmp/%s" % vaultfile):
+            vaultfile = "/tmp/%s" % vaultfile
         
         try:
             os.environ["BEARER_TOKEN_FILE"] = tokenfile
@@ -158,7 +171,8 @@ class Permissions:
                 "a ticket to Distributed Computing Support if you need further "
                 "assistance."
             )
-            return False
+            return False"""
+        return False
 
   
 

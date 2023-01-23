@@ -1206,6 +1206,7 @@ class SubmissionsPOMS:
             if not cs.campaign_obj.active:
                 cs.campaign_obj.active = True
                 ctx.db.add(cs.campaign_obj)
+                
 
             xff = ctx.headers_get("X-Forwarded-For", None)
             ra = ctx.headers_get("Remote-Addr", None)
@@ -1273,18 +1274,29 @@ class SubmissionsPOMS:
             raise AssertionError(output)
         
         group = exp
+        if ctx.role == "analysis":
+            if group in ["samdev","accel","accelai", "icarus", "admx","annie","argoneut", "cdms","chips","cms","coupp","darksectorldrd","darkside","ebd","egp","emph","emphatic","fermilab","genie","lariat","larp","magis100","mars","minerva","miniboone","minos","next","noble","nova","numix","patriot","pip2","seaquest","spinquest","test","theory","uboone"]:
+                credmon_group = "fermilab"
         if group == "samdev":
             group = "fermilab"
+        
         
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         
         experimenter_login = ctx.username
+        if role == "analysis":
+            vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
+        else:
+            vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
         if ctx.role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
+            vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+            if exp == "samdev":
+                vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
             #proxyfile = "/home/poms/cfg/samdevpro.Production.proxy"
 
         allheld = self.get_job_launches(ctx) == "hold"
@@ -1400,38 +1412,63 @@ class SubmissionsPOMS:
         
         
         # BEGIN TOKEN LOGIC
+            
+        """if os.path.exists("/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)):
+            vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
+        elif os.path.exists("/tmp/%s" % vaultfilename):
+            vaultfile = "/tmp/%s" % vaultfilename
+        """    
+        # Sets read and write permissions for bearer token directory and vault tokens 
+        # Securely copy vault token to external launch host prior to ssh'ing into the launch host
+        if ctx.role == "analysis" or ctx.experiment == "samdev": 
+            tok_permissions = "chmod +rw %s;" % (vaultfile)
+            scp_command = "scp %s %s@%s:/tmp" % (vaultfile, lt.launch_account, lt.launch_host)
+            if lt.launch_host != self.poms_service.hostname:
+                vaultfile = "/tmp/%s" % vaultfilename
+        else:
+            tok_permissions = ""
+            scp_command = ""
         
+        # Declare where a bearer token should be stored when launch host calls htgettoken
+        if ctx.role == "production" and ctx.experiment == "samdev": 
+            # samdev doesn't have a managed token...
+            htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (vaultfile, experimenter_login)
+        elif ctx.role == "analysis":
+             htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
+        else:
+            htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, ctx.role, exp)
 
-        # Sets read and write permissions for bearer token directory and vault tokens
-        if ctx.role == "production": #TODO: is this needed?
-            tok_permissions = "chmod +rw /tmp/vt_u%d-%s_production-%s;" % (os.geteuid(), group, experimenter_login)
-        else:
-            tok_permissions = "chmod +rw /tmp/vt_u%d-%s-%s;" % (os.geteuid(), group, experimenter_login) 
-        
-        if ctx.role == "analysis":
-            # Declares where a bearer token should be stored when launch host calls htgettoken
-            htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --nokerberos --vaulttokeninfile=/tmp/vt_u%d-%s-%s --credkey=%s" % (group, os.geteuid(), group, experimenter_login, experimenter_login)
-        else:
-            htgettokenopts = "-a htvaultprod.fnal.gov -r %s --nokerberos --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (ctx.role, exp)
-            # samdev doesn't really have a managed token...
-            if ctx.experiment == "samdev":
-                htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab --nokerberos  --vaulttokeninfile=/tmp/vt_u%d-%s_production-%s --credkey=%s" % (os.geteuid(), group, experimenter_login, experimenter_login)
-        
-        # Securely copies vault token to external launch host prior to ssh'ing into the launch host        
-        scp_command = "scp /tmp/vt_u%d-%s_production-%s %s@%s:/tmp" % (os.geteuid(), group, experimenter_login, lt.launch_account, lt.launch_host) if ctx.role == "production" and ctx.experiment == "samdev" else "scp /tmp/vt_u%d-%s %s@%s:/tmp" % (os.geteuid(), group,lt.launch_account, lt.launch_host) if ctx.role == "analysis" else ""
  
-        # END TOKEN LOGIC
+      
         
         # Add necessary path variables - Is this necessary?           
         #if not os.environ.get('PATH','unknown').__contains__(":/usr/sbin"):
         #    os.environ["PATH"] = "%s:/usr/sbin" % os.environ.get('PATH','unknown')
-        
+
+        # token logic if not defined in launch script
+        token_logic = [
+            #"cp %s /tmp/vt_u$UID" % (vaultfile),
+            #"cp %s /tmp/vt_u$UID-%s" % (vaultfile, group),
+            ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            "export XDG_RUNTIME_DIR=/tmp/;" if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
+            "export PATH=\"/usr/sbin:/usr/sbin/condor_store_cred:/usr/bin/condor_vault_storer:$PATH:/opt/puppetlabs/bin:/opt/jobsub_lite/bin\";",
+            "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
+            "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
+            "htgettoken %s; " % (htgettokenopts),
+            "",
+            ("condor_vault_storer -v %s_production; " % ctx.experiment) if ctx.role == "production" and ctx.experiment != "samdev"
+            else ("condor_vault_storer -d -v %s_default; " % group),
+            "setup jobsub_client v_lite;"
+        ]
+        # END TOKEN LOGIC
         
         cmdl = [
-            "exec 2>&1",
-            "set -x",
-            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s" % group,
-            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true",
+            "exec 2>&1;",
+            "set -x;",
+            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
+            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
             
             scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
             tok_permissions if do_tokens else "",
@@ -1445,8 +1482,8 @@ class SubmissionsPOMS:
                 "experimenter": experimenter_login,
             },
             
-            "echo == process_id: $$ ==",
-            "export UPLOADS='%s'" % sandbox,
+            "echo == process_id: $$ ==;",
+            "export UPLOADS='%s';" % sandbox,
             #
             # This bit is a little tricky.  We want to do as little of our
             # own setup as possible after the ctx.usernames' launch_setup text,
@@ -1471,24 +1508,16 @@ class SubmissionsPOMS:
             #
             #
             
-            # token logic, no bearer token defined. Utilizes default value of /run/user/$UID/bt_u$UID
-            "export HTGETTOKENOPTS=\"%s\"" %htgettokenopts if do_tokens else "",
-            "export PATH=$PATH:/opt/puppetlabs/bin:/opt/jobsub_lite/bin" if do_tokens else "",
-            "export _condor_SEC_CREDENTIAL_STORER=/bin/true;" if do_tokens else "",
-            "export BEARER_TOKEN_FILE=/tmp/token%s" % uu if do_tokens else "",
-            "htgettoken %s -i %s;" % (htgettokenopts, group) if do_tokens else "",
-            
-        
-            "export X509_USER_PROXY=%s" % proxyfile,
+            "export X509_USER_PROXY=%s;" % proxyfile,
             # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY"
+            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
    
-            "source /grid/fermiapp/products/common/etc/setups",
+            "source /grid/fermiapp/products/common/etc/setups;",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
-            "setup jobsub_client v_lite;  export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1"
+            ""
             if do_tokens
-            else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db",
+            else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             (
                 lt.launch_setup
                 % {
@@ -1499,37 +1528,44 @@ class SubmissionsPOMS:
                     "group": group,
                     "experimenter": experimenter_login,
                 }
-            ).replace("'", """'"'"'"""),
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db ',
-            'setup jobsub_client v_lite',
-            "ups active",
-            # POMS4 'properly named' items for poms_jobsub_wrapper
-            "export POMS4_CAMPAIGN_STAGE_ID=%s" % csid,
-            'export POMS4_CAMPAIGN_STAGE_NAME="%s"' % csname,
-            "export POMS4_CAMPAIGN_STAGE_TYPE=%s" % cstype,
-            "export POMS4_CAMPAIGN_ID=%s" % cid,
-            'export POMS4_CAMPAIGN_NAME="%s"' % cname,
-            "export POMS4_SUBMISSION_ID=%s" % sid,
-            "export POMS4_CAMPAIGN_ID=%s" % cid,
-            "export POMS4_TEST_LAUNCH=%s" % test_launch_flag,
-            "export POMS_CAMPAIGN_ID=%s" % csid,
-            'export POMS_CAMPAIGN_NAME="%s"' % ccname,
-            "export POMS_PARENT_TASK_ID=%s" % (parent_submission_id if parent_submission_id else ""),
-            "export POMS_TASK_ID=%s" % sid,
-            "export POMS_LAUNCHER=%s" % launcher_experimenter.username,
-            "export POMS_TEST=%s" % poms_test,
-            "export POMS_TASK_DEFINITION_ID=%s" % cdid,
-            "export JOBSUB_GROUP=%s" % group,
-            "export GROUP=%s" % group,
-            ("export USER=%s" % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "" 
+            ).replace("'", """'"'"'""")
         ]
+        
+        # add token logic if not already in login_setup:
+        tokens_defined_in_login_setup = "HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup
+        if not tokens_defined_in_login_setup:
+            cmdl.extend(token_logic)
+            
+        cmdl.extend([
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
+            'setup jobsub_client v_lite;',
+            "ups active;",
+            # POMS4 'properly named' items for poms_jobsub_wrapper
+            "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
+            'export POMS4_CAMPAIGN_STAGE_NAME="%s";' % csname,
+            "export POMS4_CAMPAIGN_STAGE_TYPE=%s;" % cstype,
+            "export POMS4_CAMPAIGN_ID=%s;" % cid,
+            'export POMS4_CAMPAIGN_NAME="%s";' % cname,
+            "export POMS4_SUBMISSION_ID=%s;" % sid,
+            "export POMS4_CAMPAIGN_ID=%s;" % cid,
+            "export POMS4_TEST_LAUNCH=%s;" % test_launch_flag,
+            "export POMS_CAMPAIGN_ID=%s;" % csid,
+            'export POMS_CAMPAIGN_NAME="%s";' % ccname,
+            "export POMS_PARENT_TASK_ID=%s;" % (parent_submission_id if parent_submission_id else ""),
+            "export POMS_TASK_ID=%s;" % sid,
+            "export POMS_LAUNCHER=%s;" % launcher_experimenter.username,
+            "export POMS_TEST=%s;" % poms_test,
+            "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
+            "export JOBSUB_GROUP=%s;" % group,
+            "export GROUP=%s;" % group
+        ])
 
         cleanup_cmdl = [
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            "rm -v -f /tmp/proxy%s; rm -v -f /run/user/$UID/bt_u$UID; rm -v -f /tmp/token%s;" % (uu, uu),
-            "date +%H:%M:%S.%N",
+            "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+            "date +%H:%M:%S.%N;",
         ]
 
         if definition_parameters:
@@ -1574,12 +1610,12 @@ class SubmissionsPOMS:
         lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")
         if output_commands:
-            cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s"' % lcmd)
+            cmdl.append('echo "\n=========\nrun the following to launch the job:\n%s";' % lcmd)
             cmdl.append("/bin/bash -i")
         else:
             cmdl.append(lcmd)
         cmdl.extend(cleanup_cmdl)
-        cmdl.append("echo == completed: $$ ==")
+        cmdl.append("echo == completed: $$ ==;")
         cmdl.append("exit")
         cmdl.append("' &")
         cmd = "\n".join(cmdl)
@@ -1609,9 +1645,6 @@ class SubmissionsPOMS:
         logit.log("started launch ssh")
    
         
-        #data = self.get_oidc_url(ctx)
-        
-        #logit.log("TRYING OIDC: " + repr(data))
         return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
 
     def get_file_upload_path(self, ctx, filename):
