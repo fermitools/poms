@@ -1288,10 +1288,14 @@ class SubmissionsPOMS:
             vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
-        if ctx.role == "analysis":
+        if ctx.role == "analysis" and lt.launch_host == self.poms_service.hostname:
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
+        elif ctx.role == "analysis":
+            sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
+            vaultfile = "%s/%s" % (sandbox, vaultfilename)
+            proxyfile = "%s/x509up_voms_%s_Analysis_%s" % ("/home/poms/uploads/%s/%s" % (exp, experimenter_login), exp, experimenter_login)
         else:
             sandbox = "$HOME"
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
@@ -1306,7 +1310,7 @@ class SubmissionsPOMS:
         # for the moment, using fifeutilgpvm02 is code for using
         # jobsub_lite and tokens.  This needs a flag on
         # the campaigns and/or experiments instead.
-        do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
+        #do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
         do_tokens = True
         
         proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile) and not do_tokens
@@ -1398,18 +1402,6 @@ class SubmissionsPOMS:
             sam_specifics(ctx).declare_approval_transfer_datasets(sid)
 
         ctx.db.commit()
-
-        
-        
-        # Copy vault token to launch host if not local.
-        #if ctx.role == "analysis":
-         #   os.system("chmod +rw /tmp/vt_u%d-%s" %(os.geteuid(), group))
-        #else:
-        #    if ctx.experiment == "samdev" and lt.launch_account != "poms_launcher":
-        #        os.system("scp /tmp/vt_u%d-%s_production %s@%s:/tmp/"  % (os.geteuid(), "fermilab",lt.launch_account, lt.launch_host))
-        #        os.system("chmod +rw /tmp/vt_u%d-%s_production" %(os.geteuid(), "fermilab"))
-        
-        
         
         # BEGIN TOKEN LOGIC
             
@@ -1422,12 +1414,16 @@ class SubmissionsPOMS:
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
         if ctx.role == "analysis" or ctx.experiment == "samdev": 
             tok_permissions = "chmod +rw %s;" % (vaultfile)
-            scp_command = "scp %s %s@%s:/tmp" % (vaultfile, lt.launch_account, lt.launch_host)
-            if lt.launch_host != self.poms_service.hostname:
+            scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
+            scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)
+            #scp_command = "rsync -r %s %s@%s:%s" % (sandbox, lt.launch_account, lt.launch_host, sandbox)
+            if lt.launch_host != self.poms_service.hostname:  
                 vaultfile = "/tmp/%s" % vaultfilename
+                proxyfile = "/tmp/x509up_voms_%s_Analysis_%s" % (exp, experimenter_login)
         else:
             tok_permissions = ""
             scp_command = ""
+            vaultfile = ""
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if ctx.role == "production" and ctx.experiment == "samdev": 
@@ -1438,17 +1434,11 @@ class SubmissionsPOMS:
         else:
             htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, ctx.role, exp)
 
- 
-      
+         # add token logic if not already in login_setup:
+        tokens_defined_in_login_setup = "HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup
         
-        # Add necessary path variables - Is this necessary?           
-        #if not os.environ.get('PATH','unknown').__contains__(":/usr/sbin"):
-        #    os.environ["PATH"] = "%s:/usr/sbin" % os.environ.get('PATH','unknown')
-
         # token logic if not defined in launch script
         token_logic = [
-            #"cp %s /tmp/vt_u$UID" % (vaultfile),
-            #"cp %s /tmp/vt_u$UID-%s" % (vaultfile, group),
             ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_RUNTIME_DIR=/tmp/;" if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
@@ -1457,9 +1447,9 @@ class SubmissionsPOMS:
             "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "htgettoken %s; " % (htgettokenopts),
-            "",
-            ("condor_vault_storer -v %s_production; " % ctx.experiment) if ctx.role == "production" and ctx.experiment != "samdev"
-            else ("condor_vault_storer -d -v %s_default; " % group),
+            ("condor_vault_storer -v %s_production; " % ctx.experiment) if ctx.role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
+            else
+            "(cat %s; echo  \"https://htvaultprod.fnal.gov:8200/v1/secret/oauth/creds/%s/%s:default\";)  | ( read TOK; read URL; echo \"{\"; echo \" \\\"vault_token\\\": \\\"$TOK\\\",\"; echo \"  \\\"vault_url\\\": \\\"$URL\\\"\"; echo \"}\"; ) | condor_store_cred add-oauth -s %s -i - > /dev/stdout" % (vaultfile, group, experimenter_login, group),
             "setup jobsub_client v_lite;"
         ]
         # END TOKEN LOGIC
@@ -1469,7 +1459,6 @@ class SubmissionsPOMS:
             "set -x;",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
-            
             scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
             tok_permissions if do_tokens else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
@@ -1512,7 +1501,6 @@ class SubmissionsPOMS:
             # proxy file has to belong to us, apparently, so...
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
-   
             "source /grid/fermiapp/products/common/etc/setups;",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
             ""
@@ -1531,8 +1519,7 @@ class SubmissionsPOMS:
             ).replace("'", """'"'"'""")
         ]
         
-        # add token logic if not already in login_setup:
-        tokens_defined_in_login_setup = "HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup
+       
         if not tokens_defined_in_login_setup:
             cmdl.extend(token_logic)
             
@@ -1565,6 +1552,7 @@ class SubmissionsPOMS:
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
             "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname else "",
             "date +%H:%M:%S.%N;",
         ]
 

@@ -21,11 +21,9 @@ import stat
 import time
 import os
 from . import logit
-import traceback
-import gssapi
-
-
-
+#import traceback
+#from ctypes import *
+#import gssapi
 
 class UtilsPOMS:
     # h3. __init__
@@ -147,7 +145,7 @@ class UtilsPOMS:
         ctx.db.query(Experimenter).filter(Experimenter.username == ctx.username).update({"session_role": session_role})
 
         ctx.db.commit()
-
+    # Leaving debug on for the time being to find errors if they occur
     def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True):
         logit.log("Attempting OIDC authentication")
         role = "default"
@@ -318,10 +316,17 @@ class UtilsPOMS:
         data["vaultfile"] = vaultfile
         vaultpath = "%s/%s" % (vaultpath, vaultfile)
 
-        if self.try_kerb_auth(ctx, data, vaultserver, data['issuer']):
-            logit.log("successfully did kerb auth")
-        else:
-            logit.log("failed kerb auth")
+        secretpath = "secret/oauth/creds/issuer/credkey:role"
+        secretpath = secretpath.replace("issuer", data['issuer'])
+        secretpath = secretpath.replace("role", data['role'])
+        fullsecretpath = secretpath.replace("credkey", ctx.username)
+        
+        data["fullsecretpath"] = fullsecretpath
+        
+        #if self.try_kerb_auth(ctx, data, vaultserver, data['issuer']):
+        #    logit.log("successfully did kerb auth")
+        #else:
+        #    logit.log("failed kerb auth")
 
         vaulttokensecs = self.ttl2secs("28d", "--vaulttokenttl")
         vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
@@ -376,12 +381,7 @@ class UtilsPOMS:
 
         refresh_token = metadata['oauth2_refresh_token']
 
-        secretpath = "secret/oauth/creds/issuer/credkey:role"
-        secretpath = secretpath.replace("issuer", data['issuer'])
-        secretpath = secretpath.replace("role", data['role'])
-        fullsecretpath = secretpath.replace("credkey", credkey)
         
-        data["fullsecretpath"] = fullsecretpath
         
         logit.log("Saving refresh token to " + vaultserver)
         logit.log("  at path " + fullsecretpath)
@@ -586,11 +586,12 @@ class UtilsPOMS:
          # Try kerberos authentication with vault
         logit.log("try_kerb_auth")
         vaultserver = data['vaultserver']
+        logit.log(vaultserver)
         debug = data["debug"] == "True"
+        service = "host@htvaultprod"
         
-        service = "host@" + vaulthostname
         if debug:
-            logit.log("Initializing kerberos client for", service)
+            logit.log("Initializing kerberos client for: " + service)
 
         # Need to disable kerberos reverse DNS lookup in order to
         #  work properly with server aliases
@@ -599,26 +600,38 @@ class UtilsPOMS:
             logit.log("Disabling kerberos reverse DNS lookup in " + cfgfile.name) 
         cfgfile.write("[libdefaults]\n    rdns = false\n")
         cfgfile.flush()
-
-        krb5_config = None #os.getenv("KRB5_CONFIG")
+        
+        s = subprocess.call("klist -A", shell=True)
+        logit.log("klist: %d %s" % (s, ctx.experiment))
+        os.environ["$KRB5CCNAME"] = "/tmp/krb5cc_poms_auth_%s" % ctx.experiment
+        os.environ["$X509_USER_PROXY"] = "/home/poms/uploads/%s/%s/x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username, ctx.experiment, ctx.username)
+        os.environ["$REQUESTS_CA_BUNDLE"] = os.environ["$X509_USER_PROXY"]
+        os.system("kinit -X X509_user_identity=$X509_USER_PROXY -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;")
+        
+        krb5_config = None #"/etc/krb5.conf"
         
         if krb5_config is None:
             # Try not reading from /etc/krb5.conf because it can
             # interfere if the kerberos domain is missing
-            #os.environ["KRB5_CONFIG"] = cfgfile.name
-            os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
+            os.environ["KRB5_CONFIG"] = cfgfile.name
+            #os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
         else:
-            os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
-            #os.environ["KRB5_CONFIG"] = cfgfile.name + ':' + krb5_config
+            #os.environ["KRB5_CONFIG"] = "/etc/krb5.conf"
+            os.environ["KRB5_CONFIG"] = cfgfile.name + ':' + krb5_config
             
         if debug:
             logit.log("Setting KRB5_CONFIG=" + os.getenv("KRB5_CONFIG"))
-        kname = gssapi.Name(base=service, name_type=gssapi.NameType.hostbased_service)
+        kname = None
+    
+        try:
+            kname = gssapi.Name(base=service, name_type=gssapi.NameType.hostbased_service)
+        except Exception as e:
+            logit.log("Error: %s" % repr(e))
         
-        logit.log("Name KRB5_CONFIG=" + kname)
+        os.environ["$X509_USER_PROXY"] = "%s/x509up_voms_%s_Analysis_%s" % ("/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username), ctx.experiment, ctx.username)
         kcontext = gssapi.SecurityContext(usage="initiate", name=kname)
-        logit.log("context KRB5_CONFIG=" + os.getenv("KRB5_CONFIG"))
         kresponse = None
+        logit.log("Proxy = " + os.environ["$X509_USER_PROXY"])
         try:
             kresponse = kcontext.step()
         except Exception as e:
@@ -655,7 +668,8 @@ class UtilsPOMS:
                 
             kerbpath = "auth/kerberos-%issuer_%role"
             kerbpath = kerbpath.replace("%issuer", issuer)
-            kerbpath = kerbpath.replace("%role", ctx.role)
+            #kerbpath = kerbpath.replace("%issuer", "fermilab")
+            kerbpath = kerbpath.replace("%role", ctx.role if ctx.role == "production" else "default")
             path = "/v1/" + kerbpath + '/login'
             url = vaultserver + path
             logit.log("Negotiating kerberos with", vaultserver)
@@ -666,12 +680,13 @@ class UtilsPOMS:
             }
             formdata = ''.encode('ascii')  # empty data is to force a POST
             try:
-                resp = requests.post(path, headers=headers, data=formdata)
+                os.system("export USER=ltrestka")
+                resp = requests.post(url, headers=headers, data=formdata)
                 body = resp.content.decode(encoding='utf-8', errors='strict') 
             except Exception as e:
                 logit.log("Kerberos negotiate with %s failed: %s" % (url, repr(e)))
 
-            body = resp.data.decode()
+            body = resp.content.decode(encoding='utf-8', errors='strict') 
             if debug:
                 logit.log("##### Begin vault kerberos response")
                 logit.log(body)
@@ -680,21 +695,24 @@ class UtilsPOMS:
             if 'auth' in response and response['auth'] is not None:
                 if debug:
                     logit.log(" succeeded")
+                response["auth"]["metadata"]["user"] = "ltrestka"
                 vaulttokensecs = self.ttl2secs("28d", "--vaulttokenttl")
+                logit.log("getting vault token with kresponse: %s" % repr(response))
                 vaulttoken = self.getVaultToken(vaulttokensecs, response, data)
-                
+                logit.log("got vault token: %s" %repr(vaulttoken))
                 logit.log("Attempting to get bearer token from " + vaultserver)
 
-                bearertoken = self.getBearerToken(vaulttoken, data["fullsecretpath"], data)
+                #bearertoken = self.getBearerToken(vaulttoken, data["fullsecretpath"], data)
 
-                if bearertoken is not None:
+                #if bearertoken is not None:
                     # getting bearer token worked, write out vault token
-                    self.writeTokenSafely("vault", vaulttoken, data["vaultfile"])
-                    self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s" % os.geteuid())
-                    self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s-%s" % (os.geteuid(), ctx.experiment))
-                    self.writeTokenSafely("bearer", vaulttoken, data["tokenfile"])
-                    
-                    return True
+                self.writeTokenSafely("vault", vaulttoken, data["vaultfile"])
+                self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s" % os.geteuid())
+                self.writeTokenSafely("vault", vaulttoken, "/tmp/vt_u%s-%s" % (os.geteuid(), ctx.experiment))
+                    #self.writeTokenSafely("bearer", vaulttoken, data["tokenfile"])
+                s = subprocess.call("condor_vault_storer -v -d %s" % ctx.experiment, shell=True)
+                logit.log("condor_vault_storer: %d %s" % (s, ctx.experiment))
+                return True
                 
                 return False
 
