@@ -71,9 +71,7 @@ a regular launch
 
 {%if dataset %}
 <!-- Since we added a uuid to the submission id for the sam definitions, account for it here, but still allow legacy submissions to be viewed -->
-{%if dataset[:13] == 'poms_depends_' and dataset|length > 50  %}
-...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[50:-2]}}">Submission #{{dataset[50:-2]}}</a>
-{%elif dataset[:13] == 'poms_depends_' and dataset|length < 50  %}
+{%if dataset[:13] == 'poms_depends_' %}
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
 {%endif%}
 {%endif%}
