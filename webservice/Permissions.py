@@ -28,7 +28,6 @@ class Permissions:
         logit.log("Cleared Cache")
 
     def is_superuser(self, ctx):
-        self.clear_cache()
         if not ctx.username in self.sucache:
             # Is this a username or user_id?
             if str(ctx.username).isdecimal():
@@ -40,7 +39,6 @@ class Permissions:
         return self.sucache[ctx.username]
 
     def check_experiment_role(self, ctx):
-        self.clear_cache()
         if self.is_superuser(ctx):
             return "superuser"
 
@@ -70,7 +68,6 @@ class Permissions:
         return self.excache[key]
 
     def get_exp_owner_role(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
-        self.clear_cache()
         if not name and not item_id:
             raise AssertionError("need either item_id or name")
 
@@ -164,7 +161,6 @@ class Permissions:
         return self.icache[k]
 
     def can_view(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
-        self.clear_cache()
         if self.is_superuser(ctx) and ctx.role == "superuser":
             return
 
@@ -202,7 +198,6 @@ class Permissions:
         logit.log("can_view: resp: ok")
 
     def nonexistent(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
-        self.clear_cache()
         logit.log(
             "nonexistent: %s: cur: %s, %s, %s; item: %s, %s, %s" % (t, ctx.username, ctx.experiment, ctx.role, owner, exp, role)
         )
@@ -218,7 +213,6 @@ class Permissions:
         logit.log("nonexistent: resp: ok")
 
     def can_modify(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
-        self.clear_cache()
         if self.is_superuser(ctx) and ctx.role == "superuser":
             return None
 
@@ -266,7 +260,6 @@ class Permissions:
         logit.log("can_modify: resp: ok")
 
     def can_do(self, ctx, t, item_id=None, name=None, experiment=None, campaign_id=None, campaign_name=None):
-        self.clear_cache()
         if self.is_superuser(ctx) and ctx.role == "superuser":
             return
 
