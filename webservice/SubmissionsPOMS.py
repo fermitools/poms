@@ -1552,7 +1552,7 @@ class SubmissionsPOMS:
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
             "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
-            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname else "",
+            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and ctx.role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
 
