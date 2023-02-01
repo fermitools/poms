@@ -1449,7 +1449,7 @@ class SubmissionsPOMS:
             "htgettoken %s; " % (htgettokenopts),
             ("condor_vault_storer -v %s_production; " % ctx.experiment) if ctx.role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
             else
-            "(cat %s; echo  \"https://htvaultprod.fnal.gov:8200/v1/secret/oauth/creds/%s/%s:default\";)  | ( read TOK; read URL; echo \"{\"; echo \" \\\"vault_token\\\": \\\"$TOK\\\",\"; echo \"  \\\"vault_url\\\": \\\"$URL\\\"\"; echo \"}\"; ) | condor_store_cred add-oauth -s %s -i - > /dev/stdout" % (vaultfile, group, experimenter_login, group),
+            "(cat %s; echo  \"https://htvaultprod.fnal.gov:8200/v1/secret/oauth/creds/%s/%s:default\";)  | ( read TOK; read URL; echo \"{\"; echo \" \\\"vault_token\\\": \\\"$TOK\\\",\"; echo \"  \\\"vault_url\\\": \\\"$URL\\\"\"; echo \"}\"; ) | condor_store_cred add-oauth -s %s_default -i - > /dev/stdout" % (vaultfile, group, experimenter_login, group),
             "setup jobsub_client v_lite;"
         ]
         # END TOKEN LOGIC
