@@ -47,14 +47,19 @@ Uploaded Files
   {% else %}
   <h3> Upload a file </h3>
   <form action="{{pomspath}}/upload_file" method="POST" enctype="multipart/form-data">
-  <input type=hidden name="experiment" value="{{session_experiment}}">
-  <input type=hidden name="role" value="{{session_role}}">
-  <input type=hidden name="username" value="{{username}}">
-  Filename: <input type="file" name="filename" multiple />
+    <input type=hidden name="experiment" value="{{session_experiment}}">
+    <input type=hidden name="role" value="{{session_role}}">
+    <input type=hidden name="username" value="{{username}}">
+    Filename: <input type="file" name="filename" multiple />
             <input type="submit" value="Upload" />
-            </form>
+    <div class="item" style="display: inline-block; padding-left: 20px;">
+      <a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="You can optionally use this feature to fetch or renew a vault token for this experiment, bypassing the need to upload." target='_blank'>
+        <i class="list icon"></i> Acquire Vault Token 
+      </a>
+    </div>
   </form>
   {% endif %}
+ 
   </div>
 
   <div class="ui raised segment">

@@ -1,0 +1,61 @@
+{%extends "layout.html" %}
+
+{%block header%}
+<h1 class="ui header">
+          Token Authentication Required
+</h1>
+{%endblock%}
+{%block content%}
+<div>
+    <h2>
+        Analysis users require token authorization for each experiment.<br/>
+    </h2>
+    <h3>
+        Please complete the authentication at: <span><a id="url"  href="{{oidc_data['auth_url']}}" target="_blank">{{oidc_data['auth_url']}}</a></span>.<br/>
+        This link will expire in <a id="countdown">120</a> seconds.
+    </h3>
+    <h5>
+        If a new tab was not automatically redirected to the cilogon url above, you can choose to allow pop-up's for this site by accessing your browser settings.
+    </h5>
+    <br/>
+    Tokens are good for 30 days from the time they are generated or used, but can always be renewed by clicking "token auth" on the top right corner of the page.
+    <br/>
+    If you expect your campaign to run longer than 30 days, it may be wise to renew your token prior to launching each campaign stage.
+    <br/>
+    For issues relating tokens, or if you need a longer lasting token for a specific campaign stage, please contact <a href="mailto:ltrestka@fnal.gov">Poms Support</a>
+    <br/>
+    Otherwise, simply click on the link above.
+</div>
+<br/>
+(<b>NO NOT CLOSE THIS PAGE:</b><i> This page will automatically redirect to your destination once authentication is complete)</i>
+<input id="data" hidden value="{{oidc_data}}">
+<script type="text/javascript">
+    window.open($("#url").text(),'_blank');
+    var formdata = {'data': $("#data").val()};
+    $.ajax({
+        url: "{{pomspath}}/poll_oidc_status/{{session_experiment}}/{{session_role}}?redir={{redir}}",
+        type: 'POST',
+        data: formdata,
+        success: function(data){
+            //alert(JSON.stringify(data['oidc_data']['referer']));
+            if(data['oidc_data']['referer'] == null || data['oidc_data']['referer'] === "undefined" || data['oidc_data']['referer'].includes("auth")){
+                location.href = "{{pomspath}}/index/{{session_experiment}}/{{session_role}}"
+            }
+            else{
+                location.href = data['oidc_data']['referer']
+            }
+        }
+    });
+    do_countdown();
+    function do_countdown(){
+        if(parseInt($("#countdown").html()) <= 0){
+            return;
+        }
+        setTimeout(() => {
+            $("#countdown").html(parseInt($("#countdown").html()) - 1);
+            do_countdown();
+        }, 1000);
+    }
+    
+</script>
+{%endblock%}

@@ -53,20 +53,20 @@ class JobsPOMS:
         jjidq = ctx.db.query(Submission.jobsub_job_id, Submission.submission_id)
 
         if campaign_id:
-            what = "--constraint=POMS4_CAMPAIGN_ID==%s" % campaign_id
+            what = "--constraint POMS4_CAMPAIGN_ID==%s" % campaign_id
             cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_id).one()
             csids = ctx.db.query(CampaignStage.campaign_stage_id).filter(CampaignStage.campaign_id == campaign_id).first()
             csids = list(csids)
             jjidq = jjidq.filter(Submission.campaign_stage_id.in_(csids))
 
         if campaign_stage_id:
-            what = "--constraint=POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
+            what = "--constraint POMS4_CAMPAIGN_STAGE_ID==%s" % campaign_stage_id
             cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
             jjidq = jjidq.filter(Submission.campaign_stage_id == campaign_stage_id)
 
         if submission_id:
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()  #
-            what = "--constraint=POMS4_SUBMISSION_ID==%s" % s.submission_id
+            what = "--constraint POMS4_SUBMISSION_ID==%s" % s.submission_id
             cs = s.campaign_stage_obj
             jjidq = jjidq.filter(Submission.submission_id == submission_id)
 
@@ -119,22 +119,32 @@ class JobsPOMS:
             else:
                 raise SyntaxError("called with unknown action %s" % act)
 
+            experimenter_login = ctx.username
+            role = ctx.role
+            if role == "analysis":
+                vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
+            else:
+                vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
             if ctx.role == "analysis":
                 sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
-                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, ctx.experiment, ctx.username)
+                vaultfile = "%s/%s" % (sandbox, vaultfilename)
+                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, ctx.experiment, experimenter_login)
             else:
                 sandbox = "$HOME"
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (ctx.experiment, ctx.experiment)
+                if ctx.experiment == "samdev":
+                    vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
+           
 
             # expand launch setup %{whatever}s campaigns...
-
+            
             launch_setup = lts.launch_setup
 
             launch_setup = launch_setup.strip()
             launch_setup = launch_setup.replace("\n", ";")
             launch_setup = launch_setup.strip(";")
             launch_setup = (
-                "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db;"
+                "source /grid/fermiapp/products/common/etc/setups;setup poms_client -g poms31 -z /grid/fermiapp/products/common/db; "
                 + launch_setup
             )
             launch_setup = (
@@ -143,16 +153,51 @@ class JobsPOMS:
                 else ""
             ) + launch_setup
             launch_setup = "export X509_USER_PROXY=%s;" % proxyfile + launch_setup
+            
+             # Declare where a bearer token should be stored when launch host calls htgettoken
+            if ctx.role == "production" and ctx.experiment == "samdev": 
+                # samdev doesn't have a managed token...
+                htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (vaultfile, experimenter_login)
+            elif ctx.role == "analysis":
+                htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
+            else:
+                htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, ctx.role, ctx.experiment)
+
+ 
+      
+        
+            # Add necessary path variables - Is this necessary?           
+            #if not os.environ.get('PATH','unknown').__contains__(":/usr/sbin"):
+            #    os.environ["PATH"] = "%s:/usr/sbin" % os.environ.get('PATH','unknown')
+
+            # token logic if not defined in launch script
+            token_logic = [
+                ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+                "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+                "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
+                "export PATH=$PATH:/opt/jobsub_lite/bin;",
+                "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
+                #"export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
+                "htgettoken %s; " % (htgettokenopts),
+                "setup jobsub_client v_lite;"
+            ]
+            token_string = ""
+            for cmd in token_logic:
+                token_string += cmd
+
+            
+        
             cmd = """
-                exec 2>&1
-                export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s
-                kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true
-                ssh %s@%s '%s; set -x; jobsub_%s -G %s --role %s %s ;  jobsub_%s -G %s --role %s %s ; '
+                exec 2>&1;
+                export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;
+                kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;
+                ssh %s@%s '%s; set -x; %s jobsub_%s -G %s --role %s %s ;   jobsub_%s -G %s --role %s %s ; '
             """ % (
                 group,
                 lts.launch_account,
                 lts.launch_host,
                 launch_setup,
+                token_string,
                 subcmd,
                 group,
                 cs.vo_role,

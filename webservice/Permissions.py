@@ -15,11 +15,166 @@ from poms.webservice.poms_model import (
     ExperimentsExperimenters,
 )
 from . import logit
-
+import os
+import subprocess
+import json
+from typing import Union, Optional, List
+#import htcondor  # type: ignore
+import sys
+import time
+import glob
+import uuid
+from datetime import datetime
+from datetime import timedelta
+#VAULT_OPTS = htcondor.param.get("SEC_CREDENTIAL_GETTOKEN_OPTS", "")
+DEFAULT_ROLE = "analysis"
 
 class Permissions:
+    
     def __init__(self):
         self.clear_cache()
+    0
+    def get_tmp(self) -> str:
+        """return temp directory path"""
+        return os.environ.get("TMPDIR", "/tmp")
+    def get_file_upload_path(self, ctx, filename):
+        return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)
+
+    
+    def get_launch_sandbox(self, ctx):
+
+        uploads = self.get_file_upload_path(ctx, "")
+        uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
+        sandbox = "%s/sandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
+        os.makedirs(sandbox, exist_ok=False)
+        upload_path = self.get_file_upload_path(ctx, "*")
+        logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
+        flist = glob.glob(upload_path)
+        for f in flist:
+            os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
+        return sandbox
+
+    def get_token(self, ctx, debug: int = 0) -> str:
+        """get path to token file"""
+        pid = os.getuid()
+        tmp = self.get_tmp()
+        exp = ctx.experiment
+        role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
+        if exp == "samdev":
+            issuer: Optional[str] = "fermilab"
+        else:
+            issuer = exp
+
+        tokenfile = f"{tmp}/bt_token_{issuer}_{role}_{pid}"
+        os.environ["BEARER_TOKEN_FILE"] = tokenfile
+
+        if not self.check_token(ctx, tokenfile):
+            if ctx.role == "analysis":
+                sandbox = self.get_launch_sandbox(ctx)
+                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, ctx.username)
+                htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, ctx.username)
+            else:
+                sandbox = "$HOME"
+                proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
+                htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (ctx.role, exp)
+                # samdev doesn't really have a managed token...
+                if exp == "samdev":
+                    htgettokenopts = "-r default"
+
+            cmd = f"htgettoken {htgettokenopts} -i {issuer} -a htvaultprod.fnal.gov "
+
+            if role != DEFAULT_ROLE:
+                cmd = f"{cmd} -r {role.lower()}  -a htvaultprod.fnal.gov "  # Token-world wants all-lower
+
+            if debug > 0:
+                sys.stderr.write(f"Running: {cmd}")
+
+            res = os.system(cmd)
+            if res != 0:
+                raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
+            if self.check_token(ctx, tokenfile):
+                return tokenfile
+            raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
+        return tokenfile
+    
+    def check_token(self, ctx) -> bool:
+        """check if token is (almost) expired"""
+       
+        pid = os.getuid()
+        #tmp = self.get_tmp()
+        role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
+        
+        """if ctx.experiment == "samdev":
+            issuer: Optional[str] = "fermilab"
+        else:
+            issuer = ctx.experiment
+        """
+        path = f"/run/user/{pid}"
+        vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        if role == "analysis":
+            tokenfile = f"{path}/bt_{ctx.experiment}_analysis_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+        else:
+            tokenfile = f"{path}/bt_{ctx.experiment}_production_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
+        try:
+            if (role == "analysis" or ctx.experiment == "samdev") and not os.path.exists(tokenfile):
+                if os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                    # Bearer token does not exist, but user has uploaded a vault token, we will trust that it is valid.
+                    return True
+                return False
+            elif role == "production" and ctx.experiment != "samdev":
+                logit.log("No need to check if analysis or samdev user bearer token exists, is production user: %s - %s" % (role, ctx.experiment))
+                return True
+            else:
+                return True
+        except Exception as e:
+            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment. repr(e)))
+            return True
+        
+        """if os.path.exists("/tmp/%s" % vaultfile):
+            vaultfile = "/tmp/%s" % vaultfile
+        
+        try:
+            os.environ["BEARER_TOKEN_FILE"] = tokenfile
+            p = subprocess.Popen(f"httokendecode", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            so, se = p.communicate()
+            p.wait()
+            data = json.loads(so.decode('utf8'))
+            in_experiment = f"/{issuer}" in data["wlcg.groups"]
+            
+            if not in_experiment:
+                raise PermissionError("User not in experiment")
+            exp_ticks = data["exp"]
+            #converted_ticks = datetime.datetime.now() + datetime.timedelta(microseconds = exp_ticks/10)
+            #tok_scope = data["scope"]
+            # logit.log("Time Left Real: %s" % (datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow()))
+            if datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow() > timedelta(minutes=60):
+                return True
+            else:
+                logit.log("Removing vault file")
+                os.remove(vaultfile)
+                logit.log("Removing token file")
+                os.remove(tokenfile)
+                logit.log("Files Removed")
+                return False
+        except ValueError as e:
+            logit.log("Removing vault file")
+            os.remove(vaultfile)
+            logit.log("Removing token file")
+            os.remove(tokenfile)
+            logit.log("Files Removed")
+            logit.log("Error authorizing token: %s" % (str(e)))
+            print(
+                "decode_token.sh could not successfully extract the "
+                f"expiration time from token file {tokenfile}. Please open "
+                "a ticket to Distributed Computing Support if you need further "
+                "assistance."
+            )
+            return False"""
+        return False
+
+  
 
     def clear_cache(self):
         self.icache = {}
@@ -64,6 +219,8 @@ class Permissions:
             raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
         if self.excache[key] == "production" and ctx.role == "superuser":
             raise PermissionError("username %s cannot have role %s in experiment %s" % (ctx.username, ctx.role, ctx.experiment))
+        
+        
 
         return self.excache[key]
 
@@ -248,6 +405,7 @@ class Permissions:
         if exp and exp != ctx.experiment and not self.is_superuser(ctx):
             logit.log("can_modify: resp: fail")
             raise PermissionError("Must be acting as experiment %s to change this" % exp)
+
         logit.log("can_modify_test: %s cur: %s, %s, %s; item: %s, %s, %s" % (role, ctx.username, ctx.experiment, ctx.role, owner, exp, role))
 
         if role and ctx.role not in ("coordinator", "superuser") and role != ctx.role:
@@ -317,3 +475,4 @@ class Permissions:
             raise PermissionError("Must be role %s, not %s to do this" % (role, ctx.role))
 
         logit.log("can_do: resp: ok")
+
