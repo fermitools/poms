@@ -33,7 +33,7 @@ class Permissions:
     
     def __init__(self):
         self.clear_cache()
-    0
+    
     def get_tmp(self) -> str:
         """return temp directory path"""
         return os.environ.get("TMPDIR", "/tmp")

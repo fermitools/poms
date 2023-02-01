@@ -95,18 +95,31 @@ all the time...
                   <input type="number" name="last_split_custom_val" id="last_split_custom_val" placeholder="{{CampaignStage.cs_last_split}}"/>
                   <label for="campaign_stage_snapshot_id">Or select from the following options</label>
                   <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
-                      <option value="0">-</option>
+                      <option id="0"  value="0">-</option>
                       {% for cs in campaign_stage_snapshots %}
                         {% if CampaignStage.cs_last_split == cs[0] %}
-                          <option selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          <option id="{{cs[3]}}" selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
                         {%else%}
-                          <option value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          <option id="{{cs[3]}}" value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
                         {%endif%}
                       {% endfor %}
                   </select>
                 </td>
               </tr>
           </tbody>
+          <script>
+            $("#last_split_custom_val").keypress(function(e){
+              $("option").removeAttr("selected");
+              if ($("#"+ String.fromCharCode(e.keyCode)).length){
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").prop("selected", "selected");
+              }
+              else{
+                $("#campaign_stage_snapshot_id option[id='0']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='0']").prop("selected", "selected");
+              }
+          });
+          </script>
           <tfoot>
             <tr>
               <th colspan="2">
