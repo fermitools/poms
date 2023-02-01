@@ -1504,7 +1504,7 @@ class SubmissionsPOMS:
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
             "source /grid/fermiapp/products/common/etc/setups;",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
             ""
             if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
@@ -1526,7 +1526,7 @@ class SubmissionsPOMS:
             cmdl.extend(token_logic)
             
         cmdl.extend([
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_13; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
             'setup jobsub_client v_lite;',
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
