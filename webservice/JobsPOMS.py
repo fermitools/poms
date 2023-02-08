@@ -122,7 +122,10 @@ class JobsPOMS:
             experimenter_login = ctx.username
             role = ctx.role
             if role == "analysis":
-                vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
+                vaultfilename = f"vt_{ctx.experiment}_Analysis_{experimenter_login}"
+                if not os.path.exists("/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)):
+                    vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
+                
             else:
                 vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
             if ctx.role == "analysis":
@@ -174,7 +177,7 @@ class JobsPOMS:
             token_logic = [
                 ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
                 "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-                "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
+                "export HTGETTOKENOPTS=\"%s\"; " % htgettokenopts,
                 "export PATH=$PATH:/opt/jobsub_lite/bin;",
                 "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
                 #"export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,

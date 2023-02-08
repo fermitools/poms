@@ -2,10 +2,49 @@
 
 {%block header%}
 <h1 class="ui header">
-          Token Authentication Required
+        {% if failed_check == "vp" %}
+        Error: Missing or Stale Vault Token and Proxy
+        {% elif failed_check == "vt" %}
+        Error: Missing or Stale Vault Token
+        {% elif failed_check == "p" %}
+        Error: Missing or Stale Proxy
+        {% else %}
+        Submission Check Passed
+        {% endif %}
 </h1>
 {%endblock%}
 {%block content%}
+<div>
+    <h2>
+        {% if failed_check != "" %}
+        Analysis users require an uploaded vault token, and proxy file to submit a job.<br/>
+        {% else %}
+        Your have a valid vault token and proxy. <br/>
+        Please stand by to be redirected, or click <a href="{{redir}}">here.</a>
+        {% endif %}
+    </h2>
+    <h3>
+        {% if failed_check == "vp" %}
+        To resolve this issue: please use poms_client to run "upload_file --experiment={{session_experiment}} --poms_role={{session_role}} --proxy --vaulttoken" on your interactive node.
+        {% elif failed_check == "vt" %}
+        To resolve this issue: please use poms_client to run "upload_file --experiment={{session_experiment}} --poms_role={{session_role}} --vaulttoken" on your interactive node.
+        {% elif failed_check == "p" %}
+        To resolve this issue: please use poms_client to run "upload_file --experiment={{session_experiment}} --poms_role={{session_role}} --proxy" on your interactive node.
+        {% endif %}
+    </h3>
+    {% if failed_check != "" %}
+    <h3>
+        Once this is complete, you should see your vault token <a href="{{pomspath}}/file_uploads/{{session_experiment}}/{{session_role}}/{{username}}">here</a>. 
+    </h3>
+    <br/>
+    POMS allows uploaded vault tokens to be used to launch jobs up to 5 days from the time they are uploaded to poms, and will support jobs running for up to 28 days after launch.
+    <br/>
+    If you expect your campaign to run longer than 28 days, it may be wise launch in stages, and renew your token using the method above prior each stage submission.
+    <br/>
+    For issues regarding tokens, or if you need a longer lasting token for a specific campaign stage, please contact <a href="mailto:ltrestka@fnal.gov">Poms Support</a>
+    {% endif %}
+</div>
+<!-- Hide for now, until we decide how to do this replace div above once we decide how we want to run the oidc process with poms.
 <div>
     <h2>
         Analysis users require token authorization for each experiment.<br/>
@@ -57,5 +96,18 @@
         }, 1000);
     }
     
+</script>
+-->
+<script>
+    if ("{{redir}}" != "" && "{{failed_check}}" == ""){
+        setTimeout(() => {
+            location.href = "{{redir}}"
+        }, 5000);
+    }
+    else {
+        setTimeout(() => {
+            location.reload();
+        }, 20000);
+    }
 </script>
 {%endblock%}

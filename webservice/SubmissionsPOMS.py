@@ -1287,7 +1287,9 @@ class SubmissionsPOMS:
         
         experimenter_login = ctx.username
         if role == "analysis":
-            vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
+            vaultfilename = f"vt_{ctx.experiment}_Analysis_{experimenter_login}"
+            if not os.path.exists("/home/poms/uploads/%s/%s/%s" % (exp, experimenter_login, vaultfilename)):
+                vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
         if ctx.role == "analysis" and lt.launch_host == self.poms_service.hostname:
@@ -1304,6 +1306,9 @@ class SubmissionsPOMS:
             if exp == "samdev":
                 vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
             #proxyfile = "/home/poms/cfg/samdevpro.Production.proxy"
+        if ctx.role == "analysis":
+            os.system("chmod -R +777 %s;" % sandbox)
+            os.system("chmod +777 %s;" % vaultfile)
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1406,12 +1411,6 @@ class SubmissionsPOMS:
         ctx.db.commit()
         
         # BEGIN TOKEN LOGIC
-            
-        """if os.path.exists("/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)):
-            vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
-        elif os.path.exists("/tmp/%s" % vaultfilename):
-            vaultfile = "/tmp/%s" % vaultfilename
-        """    
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
         if ctx.role == "analysis" or ctx.experiment == "samdev": 
@@ -1441,18 +1440,21 @@ class SubmissionsPOMS:
         
         # token logic if not defined in launch script
         token_logic = [
-            ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            "export XDG_RUNTIME_DIR=/tmp/;" if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            #("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export EXPERIMENT=%s;" % ctx.experiment if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export POMS_VTOKEN=%s;" % vaultfilename if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export POMS_CREDKEY=%s;" % ctx.username if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export XDG_RUNTIME_DIR=/tmp/;" if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
-            "export PATH=\"/usr/sbin:/usr/sbin/condor_store_cred:/usr/bin/condor_vault_storer:$PATH:/opt/puppetlabs/bin:/opt/jobsub_lite/bin\";",
-            "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
-            "htgettoken %s; " % (htgettokenopts),
-            ("condor_vault_storer -v %s_production; " % ctx.experiment) if ctx.role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
-            else
-            "(cat %s; echo  \"https://htvaultprod.fnal.gov:8200/v1/secret/oauth/creds/%s/%s:default\";)  | ( read TOK; read URL; echo \"{\"; echo \" \\\"vault_token\\\": \\\"$TOK\\\",\"; echo \"  \\\"vault_url\\\": \\\"$URL\\\"\"; echo \"}\"; ) | condor_store_cred add-oauth -s %s_default -i - > /dev/stdout" % (vaultfile, group, experimenter_login, group),
-            "setup jobsub_client v_lite;"
+            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
+            "export PATH=\"/opt/jobsub_lite/bin:/usr/sbin:/usr/bin:$PATH:/opt/puppetlabs/bin\";",
+            ("htgettoken %s;" % (htgettokenopts))
+            
+            # We are hiding this for now, and assuming that uploaded vault tokens are already stored in credmon vault
+            #if ctx.role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
+            #else
+            #("poms_condor_vault_storer -v %s_default; ") % ctx.experiment,
         ]
         # END TOKEN LOGIC
         
@@ -1518,7 +1520,8 @@ class SubmissionsPOMS:
                     "group": group,
                     "experimenter": experimenter_login,
                 }
-            ).replace("'", """'"'"'""")
+            ).replace("'", """'"'"'"""),
+            "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
         ]
         
        
@@ -1526,8 +1529,8 @@ class SubmissionsPOMS:
             cmdl.extend(token_logic)
             
         cmdl.extend([
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
             'setup jobsub_client v_lite;',
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,

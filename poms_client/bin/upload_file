@@ -40,7 +40,7 @@ try:
              else:
                  logging.info("POMS token stale, continuing..")
 
-        vaultfile = "/tmp/vt_%s_%s_%s" % (options.experiment, options.poms_role, os.environ.get('USER','unknown'))
+        vaultfile = "/tmp/vt_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(), os.environ.get('USER','unknown'))
         logging.info( "vaultfile: %s" % vaultfile)
         if os.environ.get('BEARER_TOKEN_FILE', None):
             # already have a token(?), just upload
@@ -54,7 +54,7 @@ try:
              vo = options.experiment
              if vo == 'samdev':
                  vo = 'fermilab'
-             os.system('/usr/bin/condor_vault_storer %s 2>/dev/null' % vo)
+             os.system('/usr/bin/condor_vault_storer %s' % vo)
              os.system("cp /tmp/vt_u%d %s" % (os.getuid(), vaultfile))
         args.append(vaultfile)
 except SystemExit:

@@ -229,7 +229,6 @@ class FilesStatus:
     # h3. upload_file
     def upload_file(self, ctx, filename):
         logit.log("upload_file: entry")
-
         quota = int(ctx.config_get("base_uploads_quota"))
         logit.log("upload_file: quota: %d" % quota)
         # if they pick multiple files, we get a list, otherwise just one
@@ -238,9 +237,8 @@ class FilesStatus:
             filenames = [filename]
         else:
             filenames = filename
-
+        
         logit.log("upload_file: files: %d" % len(filenames))
-
         for filename in filenames:
             logit.log("upload_file: filename: %s" % filename.filename)
             outf = self.get_file_upload_path(ctx, filename.filename)
@@ -248,6 +246,7 @@ class FilesStatus:
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
             size = 0
+            print("upload_file: filename: %s" % filename.filename)
             while True:
                 data = filename.file.read(8192)
                 if not data:

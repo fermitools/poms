@@ -760,9 +760,9 @@ class StagesPOMS:
         if campaign_stage_snapshots_db:
                 for item in campaign_stage_snapshots_db:
                         if item.updated:
-                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.updated).strftime("%Y-%m-%d %H:%M:%S")])
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.updated).strftime("%Y-%m-%d %H:%M:%S"), item.cs_last_split])
                         else:
-                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.created).strftime("%Y-%m-%d %H:%M:%S")])
+                            campaign_stage_snapshots.append([item.campaign_stage_snapshot_id, item.cs_split_type, (item.created).strftime("%Y-%m-%d %H:%M:%S"), item.cs_last_split])
         # default to time window of campaign
         if ctx.tmin is None and ctx.tdays is None:
             ctx.tmin = campaign_stage_info.CampaignStage.created

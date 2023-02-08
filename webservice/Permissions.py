@@ -68,7 +68,7 @@ class Permissions:
         tokenfile = f"{tmp}/bt_token_{issuer}_{role}_{pid}"
         os.environ["BEARER_TOKEN_FILE"] = tokenfile
 
-        if not self.check_token(ctx, tokenfile):
+        if not self.pre_submission_check(ctx, tokenfile):
             if ctx.role == "analysis":
                 sandbox = self.get_launch_sandbox(ctx)
                 proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, ctx.username)
@@ -92,89 +92,46 @@ class Permissions:
             res = os.system(cmd)
             if res != 0:
                 raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
-            if self.check_token(ctx, tokenfile):
+            if self.pre_submission_check(ctx, tokenfile):
                 return tokenfile
             raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
         return tokenfile
     
-    def check_token(self, ctx) -> bool:
-        """check if token is (almost) expired"""
-       
-        pid = os.getuid()
-        #tmp = self.get_tmp()
+    def is_file_older_than_x_days(self, file, days=5):
+        file_time = os.path.getmtime(file) 
+        # Check against 24 hours 
+        logit.log("Age: %s" % ((time.time() - file_time) / 3600))
+        return ((time.time() - file_time) / 3600 > 24*days)
+    
+    def has_valid_proxy(self, proxyfile):
+        logit.log("Checking proxy: %s" % proxyfile)
+        res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
+        logit.log("system(voms-proxy-info... returns %d" % res)
+        return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
+    
+    
+    
+    def pre_submission_check(self, ctx) -> bool:
+        """check if token exists and is not (almost) expired"""
         role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
-        
-        """if ctx.experiment == "samdev":
-            issuer: Optional[str] = "fermilab"
-        else:
-            issuer = ctx.experiment
-        """
-        path = f"/run/user/{pid}"
         vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
         if role == "analysis":
-            tokenfile = f"{path}/bt_{ctx.experiment}_analysis_{ctx.username}"
-            vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
+            if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+                if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                    return False
         else:
-            tokenfile = f"{path}/bt_{ctx.experiment}_production_{ctx.username}"
             vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
         try:
-            if (role == "analysis" or ctx.experiment == "samdev") and not os.path.exists(tokenfile):
-                if os.path.exists("%s/%s" % (vaultpath, vaultfile)):
-                    # Bearer token does not exist, but user has uploaded a vault token, we will trust that it is valid.
-                    return True
+            if (role == "analysis" or ctx.experiment == "samdev") and (self.is_file_older_than_x_days("%s/%s" % (vaultpath, vaultfile), 5) or not self.has_valid_proxy("%s/%s" % (vaultpath, proxyfile))):
                 return False
-            elif role == "production" and ctx.experiment != "samdev":
-                logit.log("No need to check if analysis or samdev user bearer token exists, is production user: %s - %s" % (role, ctx.experiment))
-                return True
             else:
                 return True
         except Exception as e:
             logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment. repr(e)))
             return True
-        
-        """if os.path.exists("/tmp/%s" % vaultfile):
-            vaultfile = "/tmp/%s" % vaultfile
-        
-        try:
-            os.environ["BEARER_TOKEN_FILE"] = tokenfile
-            p = subprocess.Popen(f"httokendecode", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            so, se = p.communicate()
-            p.wait()
-            data = json.loads(so.decode('utf8'))
-            in_experiment = f"/{issuer}" in data["wlcg.groups"]
-            
-            if not in_experiment:
-                raise PermissionError("User not in experiment")
-            exp_ticks = data["exp"]
-            #converted_ticks = datetime.datetime.now() + datetime.timedelta(microseconds = exp_ticks/10)
-            #tok_scope = data["scope"]
-            # logit.log("Time Left Real: %s" % (datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow()))
-            if datetime.utcfromtimestamp(exp_ticks) - datetime.utcnow() > timedelta(minutes=60):
-                return True
-            else:
-                logit.log("Removing vault file")
-                os.remove(vaultfile)
-                logit.log("Removing token file")
-                os.remove(tokenfile)
-                logit.log("Files Removed")
-                return False
-        except ValueError as e:
-            logit.log("Removing vault file")
-            os.remove(vaultfile)
-            logit.log("Removing token file")
-            os.remove(tokenfile)
-            logit.log("Files Removed")
-            logit.log("Error authorizing token: %s" % (str(e)))
-            print(
-                "decode_token.sh could not successfully extract the "
-                f"expiration time from token file {tokenfile}. Please open "
-                "a ticket to Distributed Computing Support if you need further "
-                "assistance."
-            )
-            return False"""
-        return False
-
-  
 
     def clear_cache(self):
         self.icache = {}

@@ -21,6 +21,7 @@ import stat
 import time
 import os
 from . import logit
+import traceback
 #import traceback
 #from ctypes import *
 #import gssapi
@@ -146,7 +147,7 @@ class UtilsPOMS:
 
         ctx.db.commit()
     # Leaving debug on for the time being to find errors if they occur
-    def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True):
+    def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True): 
         logit.log("Attempting OIDC authentication")
         role = "default"
         
@@ -207,7 +208,7 @@ class UtilsPOMS:
             logit.log("Complete the authentication at:")
             logit.log("    " + auth_url)
         
-        data['oidcpath'] = oidcpath
+        data['oidcpath'] = oidcpath  
         data['role'] = role
         data['client_nonce'] = nonce
         data['vaultserver'] = vaultserver
@@ -307,7 +308,7 @@ class UtilsPOMS:
         vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
         if role == "analysis":
             tokenfile = f"{path}/bt_{ctx.experiment}_analysis_{ctx.username}"
-            vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+            vaultfile = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
         else:
             tokenfile = f"{path}/bt_{ctx.experiment}_production_{ctx.username}"
             vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"

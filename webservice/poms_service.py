@@ -34,6 +34,7 @@ import logging
 import sys
 from configparser import ConfigParser
 import traceback
+import subprocess
 import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
@@ -160,6 +161,10 @@ class PomsService:
     @poms_method()
     def headers(self, **kwargs):
         return repr(cherrypy.request.headers)
+    
+    @poms_method(rtype="redirect")
+    def simple_redir(self, data):
+        raise cherrypy.HTTPRedirect(data)
 
     # h4. sign_out
     @poms_method(rtype="redirect", redirect="https://%(hostname)s/Shibboleth.sso/Logout")
@@ -1188,9 +1193,23 @@ class PomsService:
     )
     def auth(self, ctx, **kwargs):
         logit.log("referer: %s" % ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
+        uploads_dir = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        vaultfilename = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
+        proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
+        failedcheck = ""
+        if not os.path.exists("%s/%s" % (uploads_dir, vaultfilename)):
+            vaultfilename = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+            if not os.path.exists("%s/%s" % (uploads_dir, vaultfilename)):
+                failedcheck = "vt"
+        if not self.permissions.has_valid_proxy("%s/%s" % (uploads_dir, proxyfile)):
+            if failedcheck == "vt":
+                failedcheck = "vp"
+            else:
+                failedcheck = "p"
+        
         data = self.utilsPOMS.get_oidc_url(ctx, referer=ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
-        return {"oidc_data": data}
-    
+        return {"oidc_data": data, "failed_check": failedcheck}
+        
     # see &l=webservice/SubmissionsPOMS.py#poll_oidc_url&
     @poms_method(
         p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll",rtype="json"
@@ -1206,7 +1225,7 @@ class PomsService:
     def assert_token(self, ctx, **kwargs):
         auth_page = "%(poms_path)s/auth/%(experiment)s/%(role)s?redir=%(redirect)s"
         logit.log("current-url: %s" %repr(os.environ))
-        if not self.permissions.check_token(ctx):
+        if not self.permissions.pre_submission_check(ctx):
             redict = kwargs
             redict["poms_path"] = self.path
             redict["experiment"] = ctx.experiment
