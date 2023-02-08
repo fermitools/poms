@@ -79,7 +79,7 @@ class jobsub_q_scraper:
                 break
             except requests.exceptions.ConnectionError:
                 logit.error("Connection Reset!")
-            except Exception(e):
+            except Exception as e:
                 logit.error("Exception: %s" % e)
                 logit.error(r.text)
             time.sleep(2 ** i)

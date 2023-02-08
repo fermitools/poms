@@ -229,7 +229,6 @@ class FilesStatus:
     # h3. upload_file
     def upload_file(self, ctx, filename):
         logit.log("upload_file: entry")
-
         quota = int(ctx.config_get("base_uploads_quota"))
         logit.log("upload_file: quota: %d" % quota)
         # if they pick multiple files, we get a list, otherwise just one
@@ -238,9 +237,8 @@ class FilesStatus:
             filenames = [filename]
         else:
             filenames = filename
-
+        
         logit.log("upload_file: files: %d" % len(filenames))
-
         for filename in filenames:
             logit.log("upload_file: filename: %s" % filename.filename)
             outf = self.get_file_upload_path(ctx, filename.filename)
@@ -248,6 +246,7 @@ class FilesStatus:
             os.makedirs(os.path.dirname(outf), exist_ok=True)
             f = open(outf, "wb")
             size = 0
+            print("upload_file: filename: %s" % filename.filename)
             while True:
                 data = filename.file.read(8192)
                 if not data:
@@ -278,16 +277,23 @@ class FilesStatus:
     # h3. get_launch_sandbox
     def get_launch_sandbox(self, ctx):
 
-        uploads = self.get_file_upload_path(ctx, "")
-        uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
-        sandbox = "%s/sandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
-        os.makedirs(sandbox, exist_ok=False)
-        upload_path = self.get_file_upload_path(ctx, "*")
-        logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
-        flist = glob.glob(upload_path)
-        for f in flist:
-            os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
-        return sandbox
+        try:
+            #uploads = self.get_file_upload_path(ctx, "")
+            uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
+            sandbox = "%ssandboxes/%s" % (ctx.config_get("base_uploads_dir"), str(uu))
+            os.makedirs(sandbox, exist_ok=False)
+            upload_path = self.get_file_upload_path(ctx, "*")
+            logit.log("get_launch_sandbox linking items from upload_path %s into %s" % (upload_path, sandbox))
+            flist = glob.glob(upload_path)
+            for f in flist:
+                os.system("chmod +rw %s" %f)
+                os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
+            return sandbox
+        except Exception as e: 
+            logit.log("get_launch_sandbox failed to link items from upload_path %s into the sandbox: %s" % (upload_path, repr(e)))
+            return ctx.config_get("base_uploads_dir")
+            
+        
 
     # h3. list_launch_file
     def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):

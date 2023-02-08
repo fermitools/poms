@@ -21,7 +21,7 @@ extra=""
 
 if [ "x$GROUP" != "x" ]
 then
-    extra="$extra --experiment $GROUP"
+    extra="$extra --experiment $GROUP -G $GROUP"
 fi
 
 if [ "x$POMS_PARENT_TASK_ID" != "x" ]

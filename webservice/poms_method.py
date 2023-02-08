@@ -18,7 +18,7 @@ import logging
 # mostly so we can pass them to page templates...
 import datetime
 import time
-
+import os
 from collections import deque
 
 # h3. locals
@@ -191,6 +191,7 @@ def poms_method(
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
+
             for k in cargs:
                 if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
@@ -229,6 +230,7 @@ def poms_method(
                 values = func(self, *args)
             else:
                 values = func(self, **kwargs)
+
             # unpack values into dictionary
             if u:
                 vdict = {}
@@ -242,6 +244,10 @@ def poms_method(
                 uvdict.update(kwargs)
                 uvdict.update(values)
                 values = uvdict
+
+            #if values and values.get('rtype_override'):
+             #   self.rtype = values['rtype_override']
+              #  values = values['html']
 
             logit.log("after call: values = %s" % repr(values))
 
@@ -274,6 +280,9 @@ def poms_method(
                 templ = t or values["template"]
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
+                logit.log("values: %s" % repr(values))
+                if not values:
+                    values = kwargs
                 values["help_page"] = help_page
                 # a few templates want to format times, etc.
                 values["datetime"] = datetime

@@ -1,6 +1,7 @@
 from setuptools import setup 
 from setuptools.config import read_configuration
 
+
 # workaround read_configuration/setup bug
 def fixdict(d):
     d[''] = d.get('',None)

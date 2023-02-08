@@ -22,6 +22,7 @@
 #
 # Usual basic python module imports...
 #
+import re
 import os
 import glob
 import pprint
@@ -32,7 +33,8 @@ import json
 import logging
 import sys
 from configparser import ConfigParser
-
+import traceback
+import subprocess
 import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
@@ -159,6 +161,10 @@ class PomsService:
     @poms_method()
     def headers(self, **kwargs):
         return repr(cherrypy.request.headers)
+    
+    @poms_method(rtype="redirect")
+    def simple_redir(self, data):
+        raise cherrypy.HTTPRedirect(data)
 
     # h4. sign_out
     @poms_method(rtype="redirect", redirect="https://%(hostname)s/Shibboleth.sso/Logout")
@@ -703,13 +709,15 @@ class PomsService:
     # h4. mark_campaign_hold
     @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")
     def mark_campaign_hold(self, **kwargs):
-        kwargs["campaign_stage_ids"] = [int(x) for x in kwargs["ids2HR"].split(",")]
+        kwargs["campaign_stage_ids"] = [int(re.sub('\D', '', x)) for x in kwargs["ids2HR"].split(",")]
         logit.log("ids2HR is %s" % kwargs["ids2HR"])
         logit.log("campaign_stage_ids is %s" % kwargs["campaign_stage_ids"])
         del kwargs["ids2HR"]
         for cid in kwargs["campaign_stage_ids"]:
             self.permissions.can_modify(kwargs["ctx"], t="CampaignStage", item_id=cid)
         return self.stagesPOMS.mark_campaign_hold(**kwargs)
+
+        
 
     # see &l=webservice/StagesPOMS.py#mark_campaign_hold&
 
@@ -883,15 +891,16 @@ class PomsService:
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
-    )
+        help_page="launch_campaign",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s" 
+        ) 
     def launch_campaign(self, ctx, **kwargs):
+        self.assert_token(ctx, **kwargs)
         if ctx.username != "poms" or kwargs.get("launcher", "") == "":
             launch_user = ctx.username
         else:
             launch_user = kwargs.get("launcher", "")
-
-        return self.campaignsPOMS.launch_campaign(ctx, **kwargs)
+        return self.campaignsPOMS.launch_campaign(ctx,**kwargs)
 
     # see &l=webservice/CampaignsPOMS.py#launch_campaign&
 
@@ -901,10 +910,12 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
+        help_page="launch_jobs",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
-    def launch_jobs(self, **kwargs):
-        return self.submissionsPOMS.launch_jobs(**kwargs)
+    def launch_jobs(self, ctx, **kwargs):
+        self.assert_token(ctx, **kwargs)
+        return self.submissionsPOMS.launch_jobs(ctx, **kwargs)
 
     # see &l=webservice/SubmissionsPOMS.py#launch_jobs&
 
@@ -1114,8 +1125,8 @@ class PomsService:
         p = ConfigParser(interpolation=None)
         try:
             p.read_string(data)
-        except Exception:
-            return {"status": "400 Bad Request", "message": "Bad file format"}
+        except Exception as e:
+            return {"status": "400 Bad Request", "message": "Bad file format %s" % str(e) }
 
         cfg = {section: dict(p.items(section)) for section in p.sections()}
         pprint.pprint(cfg)
@@ -1176,9 +1187,60 @@ class PomsService:
     def held_launches_remove(self, **kwargs):
         return self.miscPOMS.held_launches_remove(**kwargs)
 
+    # see &l=webservice/SubmissionsPOMS.py#get_oidc_url&
+    @poms_method(
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}],t="auth.html", help_page="OidcAuth"
+    )
+    def auth(self, ctx, **kwargs):
+        logit.log("referer: %s" % ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
+        uploads_dir = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        vaultfilename = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
+        proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
+        failedcheck = ""
+        if not os.path.exists("%s/%s" % (uploads_dir, vaultfilename)):
+            vaultfilename = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+            if not os.path.exists("%s/%s" % (uploads_dir, vaultfilename)):
+                failedcheck = "vt"
+        if not self.permissions.has_valid_proxy("%s/%s" % (uploads_dir, proxyfile)):
+            if failedcheck == "vt":
+                failedcheck = "vp"
+            else:
+                failedcheck = "p"
+        
+        data = self.utilsPOMS.get_oidc_url(ctx, referer=ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
+        return {"oidc_data": data, "failed_check": failedcheck}
+        
+    # see &l=webservice/SubmissionsPOMS.py#poll_oidc_url&
+    @poms_method(
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll",rtype="json"
+    )
+    def poll_oidc_status(self, **kwargs):
+        data =  self.utilsPOMS.poll_oidc_url(**kwargs)
+        return {"oidc_data": data}
+
     @poms_method()
     def clear_cache(self, *args, **kwargs):
         return self.permissions.clear_cache()
+    
+    def assert_token(self, ctx, **kwargs):
+        auth_page = "%(poms_path)s/auth/%(experiment)s/%(role)s?redir=%(redirect)s"
+        logit.log("current-url: %s" %repr(os.environ))
+        if not self.permissions.pre_submission_check(ctx):
+            redict = kwargs
+            redict["poms_path"] = self.path
+            redict["experiment"] = ctx.experiment
+            redict["role"] = ctx.role
+            redirect_path =ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+            redict['redirect'] = redirect_path
+            path = auth_page % redict
+            try:
+                redir = cherrypy.request.headers['X-Auth-Redirect']
+                if not redir or redir != path:
+                    cherrypy.request.headers["X-Auth-Redirect"] = path
+                    raise cherrypy.HTTPRedirect(path)
+            except KeyError:
+                cherrypy.request.headers["X-Auth-Redirect"] = path
+                raise cherrypy.HTTPRedirect(path)
 
     # h4. shutdown
     #

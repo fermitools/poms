@@ -95,18 +95,31 @@ all the time...
                   <input type="number" name="last_split_custom_val" id="last_split_custom_val" placeholder="{{CampaignStage.cs_last_split}}"/>
                   <label for="campaign_stage_snapshot_id">Or select from the following options</label>
                   <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
-                      <option value="0">-</option>
+                      <option id="0"  value="0">-</option>
                       {% for cs in campaign_stage_snapshots %}
                         {% if CampaignStage.cs_last_split == cs[0] %}
-                          <option selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          <option id="{{cs[3]}}" selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
                         {%else%}
-                          <option value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                          <option id="{{cs[3]}}" value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
                         {%endif%}
                       {% endfor %}
                   </select>
                 </td>
               </tr>
           </tbody>
+          <script>
+            $("#last_split_custom_val").keypress(function(e){
+              $("option").removeAttr("selected");
+              if ($("#"+ String.fromCharCode(e.keyCode)).length){
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").prop("selected", "selected");
+              }
+              else{
+                $("#campaign_stage_snapshot_id option[id='0']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='0']").prop("selected", "selected");
+              }
+          });
+          </script>
           <tfoot>
             <tr>
               <th colspan="2">
@@ -148,12 +161,20 @@ all the time...
     <div class="ui segment raised">
          <h3>Actions</h3>
          <div class=menu>
+            <!-- hide for now
+              {%if session_role == "analysis"%}
+                <div class="item">
+                  <a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="A vault token is required for analysis users. These tokens can be uploaded in 'User Data -> Uploaded Files', or by clicking this link." target='_blank'>
+                    <i class="list icon"></i> Acquire Vault Token 
+                  </a>
+                </div>
+              {%endif%}
+            -->
               <div class=item>
                 <a href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
                          and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj or session_role=="production-shifter"}}>
                 <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
                </div>
-
               <div class=item>
                 <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
                    and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}

@@ -736,13 +736,16 @@ def base_path(test_client, config, tokens=False):
         base = config.get('url', 'base_prod_tokens' if tokens else 'base_prod')
     return base
 
+def auth_token():
+    return os.environ['BEARER_TOKEN_FILE']
+
 def check_stale_token(options):
     token = auth_token()
-    rs.headers.add('Authorization: BEARER %s' % token)
+    rs.headers['Authorization'] = 'BEARER %s' % token
     rs.verify = False
     try:
         url = "%s/file_uploads/%s/analysis/%s?fmt=json" % (
-              base_path(options.test, getconfig({})), options.experiment, os.environ['USER'], True)
+              base_path(options.test, getconfig({}), True), options.experiment, os.environ['USER'])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             c = rs.get(url)
