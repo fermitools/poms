@@ -15,7 +15,6 @@ class drainingn:
     def __init__(self, cs, samhandle, dbhandle):
         self.cs = cs
         self.samhandle = samhandle
-        self.id = uuid.uuid4()
         self.dbhandle = dbhandle
         self.dataset = cs.dataset
         self.n = int(cs.cs_split_type[10:].strip(")"))
@@ -30,7 +29,7 @@ class drainingn:
         else:
             snapshotbit = "minus snapshot_id %d" % self.cs.cs_last_split
 
-        new = self.cs.dataset + "_%s_slice_%i_stage_%d" % (str(self.id),self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_slice_%i_stage_%d" % (self.cs.cs_last_split, self.n)
         self.samhandle.create_definition(
             self.cs.experiment, new, "defname: %s  %s  with limit %d " % (self.cs.dataset, snapshotbit, self.n)
         )

@@ -59,7 +59,7 @@ class Permissions:
         pid = os.getuid()
         tmp = self.get_tmp()
         exp = ctx.experiment
-        role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
+        role = cs.campaign_stage_obj.vo_role.lower() if ctx.role == "production" or ctx.role == "production-shifter" else DEFAULT_ROLE
         if exp == "samdev":
             issuer: Optional[str] = "fermilab"
         else:
@@ -76,7 +76,7 @@ class Permissions:
             else:
                 sandbox = "$HOME"
                 proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-                htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (ctx.role, exp)
+                htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (role, exp)
                 # samdev doesn't really have a managed token...
                 if exp == "samdev":
                     htgettokenopts = "-r default"
@@ -113,7 +113,7 @@ class Permissions:
     
     def pre_submission_check(self, ctx) -> bool:
         """check if token exists and is not (almost) expired"""
-        role = ctx.role if ctx.role == "production" else DEFAULT_ROLE
+        role = "production" if ctx.role == "production" or ctx.role == "production-shifter" else DEFAULT_ROLE
         vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
         proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
         if role == "analysis":
@@ -130,7 +130,7 @@ class Permissions:
             else:
                 return True
         except Exception as e:
-            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment. repr(e)))
+            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment, repr(e)))
             return True
 
     def clear_cache(self):

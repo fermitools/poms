@@ -168,7 +168,7 @@ class jobsub_q_scraper:
                     submission_id,
                     d.get("jobsub_job_id", ""),
                     status=self.statusmap[d.get("status", "0")],
-                    project=d.get("project", ""),
+                    project=d.get("project-name", ""),
                 )
 
             self.known_submissions[submission_id] = d

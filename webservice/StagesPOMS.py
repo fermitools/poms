@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
-
+import configparser
 import ast
 import glob
 import importlib
@@ -929,6 +929,29 @@ class StagesPOMS:
         subhist = aliased(SubmissionHistory)
         subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
 
+        config = configparser.ConfigParser()
+        config.read("../webservice/poms.ini")
+        launch_commands = config.get("launch_commands", "projre").split(",")
+        
+        try:
+            subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()
+            for sub in subs:
+                if not sub.project:
+                    logit.log("no project: %s" % sub.submission_id)
+                    project = None
+                    for projre in launch_commands:
+                        logit.log("command executed: %s" % sub.command_executed)
+                        m = re.search(projre, sub.command_executed)
+                        if m:
+                            project = m.group(1)
+                            logit.log("project name: %s" % project)
+                            break
+                    if project:
+                        sub.project = project
+                        ctx.db.add(sub)
+                        ctx.db.flush()
+        except Exception as e:
+            logit.log("Error fetching/saving project name: %s" % repr(e))
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
             .join("experimenter_creator_obj")
@@ -951,14 +974,19 @@ class StagesPOMS:
         darrow = {}
         sids = []
         slist = []
+
         for tup in tuples:
             sid = tup.Submission.submission_id
             pd = tup.Submission.submission_params.get("dataset", "")
             sids.append(sid)
             slist.append(tup.Submission)
             m = re.match(r"poms_(depends|recover)_([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})_(.*)_[0-9]", pd)
+            long = True
+            if not m:
+                m = re.match(r"poms_(depends|recover)_(.*)_[0-9]", pd)
+                long = False
             if m:
-                depends[sid] = int(m.group(3))
+                depends[sid] = int(m.group(3)) if long else int(m.group(2))
                 darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
             else:
                 depends[sid] = None
