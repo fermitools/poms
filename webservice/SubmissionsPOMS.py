@@ -353,9 +353,12 @@ class SubmissionsPOMS:
         config.read("../webservice/poms.ini")
         launch_commands = config.get("launch_commands", "projre").split(",")
         for projre in launch_commands:
+            logit.log("projre: %s" % projre)
             m = re.search(projre, command_executed)
             if m:
+                logit.log("projre m: %s" % repr(m))
                 project = m.group(1)
+                logit.log("project: %s" % project)
                 break
         
         q = ctx.db.query(CampaignStage)
@@ -382,6 +385,8 @@ class SubmissionsPOMS:
 
             if ctx.username != "poms" and s.creator != ctx.get_experimenter().experimenter_id:
                 s.creator = ctx.get_experimenter().experimenter_id
+            if not s.project and project:
+                s.project = project
 
             # do NOT update updated time here; only update it at creation
             # and final state change (Located, Failed, etc.)
@@ -592,6 +597,21 @@ class SubmissionsPOMS:
             .order_by(SubmissionHistory.created)
             .all()
         )
+        config = configparser.ConfigParser()
+        config.read("../webservice/poms.ini")
+        launch_commands = config.get("launch_commands", "projre").split(",")
+        if not submission.project:
+            project = None
+            for projre in launch_commands:
+                logit.log("projre: %s" % projre)
+                m = re.search(projre, submission.command_executed)
+                if m:
+                    project = m.group(1)
+                    break
+            if project:
+                submission.project = project
+                ctx.db.add(submission)
+                ctx.db.flush()
 
         qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'"
 
@@ -1318,7 +1338,8 @@ class SubmissionsPOMS:
         # jobsub_lite and tokens.  This needs a flag on
         # the campaigns and/or experiments instead.
         #do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
-        do_tokens = True
+        do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
+                     or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
         
         proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile) and not do_tokens
         if allheld or csheld or proxyheld:
@@ -1433,14 +1454,17 @@ class SubmissionsPOMS:
         elif ctx.role == "analysis":
              htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, ctx.role, exp)
+            htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r production --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, exp)
 
          # add token logic if not already in login_setup:
-        tokens_defined_in_login_setup = "HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup
+        tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
+                                         and "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
+                                         and "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
+        ifdhc_version = "ifdhc v2_6_10," if "ifdhc " not in cs.login_setup_obj.launch_setup else ""
         
         # token logic if not defined in launch script
         token_logic = [
-            #("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             #"export EXPERIMENT=%s;" % ctx.experiment if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             #"export POMS_VTOKEN=%s;" % vaultfilename if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             #"export POMS_CREDKEY=%s;" % ctx.username if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
@@ -1448,7 +1472,7 @@ class SubmissionsPOMS:
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
-            "export PATH=\"/opt/jobsub_lite/bin:/usr/sbin:/usr/bin:$PATH:/opt/puppetlabs/bin\";",
+            "export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/puppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
             
             # We are hiding this for now, and assuming that uploaded vault tokens are already stored in credmon vault
@@ -1506,9 +1530,7 @@ class SubmissionsPOMS:
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
             "source /grid/fermiapp/products/common/etc/setups;",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;",
-            ""
-            if do_tokens
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, %s ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" % (ifdhc_version) if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             (
                 lt.launch_setup
@@ -1525,12 +1547,13 @@ class SubmissionsPOMS:
         ]
         
        
-        if not tokens_defined_in_login_setup:
+        if not tokens_defined_in_login_setup and do_tokens:
             cmdl.extend(token_logic)
             
         cmdl.extend([
-            'setup jobsub_client v_lite;',
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc v2_6_10, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;',
+            'setup jobsub_client v_lite;' if do_tokens else "",
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, %s ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' % (ifdhc_version) if do_tokens
+            else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
