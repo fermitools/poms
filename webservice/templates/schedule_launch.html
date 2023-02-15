@@ -56,7 +56,7 @@ POMS:Campaign Stage {{cs.name}} Scheduled Launches
    <ul>
    {%for f in launch_flist%}
       <li>
-      <a href="list_launch_file?campaign_stage_id={{campaign_stage_id}}&fname={{f}}">{{f}}</a>
+        <a href="{{pomspath}}/list_launch_file?campaign_stage_id={{campaign_stage_id}}&fname={{f}}">{{f}}</a>
    {%endfor%}
    </ul>
 {%endblock%}
