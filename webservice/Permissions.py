@@ -27,7 +27,6 @@ import uuid
 from datetime import datetime
 from datetime import timedelta
 #VAULT_OPTS = htcondor.param.get("SEC_CREDENTIAL_GETTOKEN_OPTS", "")
-DEFAULT_ROLE = "analysis"
 
 class Permissions:
     
@@ -53,85 +52,12 @@ class Permissions:
         for f in flist:
             os.link(f, "%s/%s" % (sandbox, os.path.basename(f)))
         return sandbox
-
-    def get_token(self, ctx, debug: int = 0) -> str:
-        """get path to token file"""
-        pid = os.getuid()
-        tmp = self.get_tmp()
-        exp = ctx.experiment
-        role = cs.campaign_stage_obj.vo_role.lower() if ctx.role == "production" or ctx.role == "production-shifter" else DEFAULT_ROLE
-        if exp == "samdev":
-            issuer: Optional[str] = "fermilab"
-        else:
-            issuer = exp
-
-        tokenfile = f"{tmp}/bt_token_{issuer}_{role}_{pid}"
-        os.environ["BEARER_TOKEN_FILE"] = tokenfile
-
-        if not self.pre_submission_check(ctx, tokenfile):
-            if ctx.role == "analysis":
-                sandbox = self.get_launch_sandbox(ctx)
-                proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, ctx.username)
-                htgettokenopts = "--vaulttokeninfile=%s/bt_%s_Analysis_%s" % (sandbox, exp, ctx.username)
-            else:
-                sandbox = "$HOME"
-                proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
-                htgettokenopts = "-r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov" % (role, exp)
-                # samdev doesn't really have a managed token...
-                if exp == "samdev":
-                    htgettokenopts = "-r default"
-
-            cmd = f"htgettoken {htgettokenopts} -i {issuer} -a htvaultprod.fnal.gov "
-
-            if role != DEFAULT_ROLE:
-                cmd = f"{cmd} -r {role.lower()}  -a htvaultprod.fnal.gov "  # Token-world wants all-lower
-
-            if debug > 0:
-                sys.stderr.write(f"Running: {cmd}")
-
-            res = os.system(cmd)
-            if res != 0:
-                raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
-            if self.pre_submission_check(ctx, tokenfile):
-                return tokenfile
-            raise PermissionError(f"Failed acquiring token. Please enter the following input in your terminal and authenticate at the link it provides: 'export BEARER_TOKEN_FILE={tokenfile} {cmd}'")
-        return tokenfile
     
     def is_file_older_than_x_days(self, file, days=5):
         file_time = os.path.getmtime(file) 
         # Check against 24 hours 
         logit.log("Age: %s" % ((time.time() - file_time) / 3600))
         return ((time.time() - file_time) / 3600 > 24*days)
-    
-    def has_valid_proxy(self, proxyfile):
-        logit.log("Checking proxy: %s" % proxyfile)
-        res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
-        logit.log("system(voms-proxy-info... returns %d" % res)
-        return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
-    
-    
-    
-    def pre_submission_check(self, ctx) -> bool:
-        """check if token exists and is not (almost) expired"""
-        role = "production" if ctx.role == "production" or ctx.role == "production-shifter" else DEFAULT_ROLE
-        vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
-        proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
-        if role == "analysis":
-            vaultfile = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
-            if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
-                vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
-                if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
-                    return False
-        else:
-            vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
-        try:
-            if (role == "analysis" or ctx.experiment == "samdev") and (self.is_file_older_than_x_days("%s/%s" % (vaultpath, vaultfile), 5) or not self.has_valid_proxy("%s/%s" % (vaultpath, proxyfile))):
-                return False
-            else:
-                return True
-        except Exception as e:
-            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment, repr(e)))
-            return True
 
     def clear_cache(self):
         self.icache = {}

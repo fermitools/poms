@@ -46,6 +46,7 @@ from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
 from .condor_log_parser import get_joblogs
 
+DEFAULT_ROLE = "analysis"
 # from exceptions import KeyError
 
 
@@ -375,7 +376,7 @@ class SubmissionsPOMS:
             tim = launch_time
         else:
             tim = datetime.now(utc)
-
+            
         if submission_id:
 
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
@@ -1086,6 +1087,27 @@ class SubmissionsPOMS:
         res = os.system("voms-proxy-info -exists -valid 0:10 -file %s" % proxyfile)
         logit.log("system(voms-proxy-info... returns %d" % res)
         return os.WIFEXITED(res) and os.WEXITSTATUS(res) == 0
+    
+    def validate_submission(self, ctx, role) -> bool:
+        """check if token exists and is not (almost) expired"""
+        vaultpath = "/home/poms/uploads/%s/%s" % (ctx.experiment, ctx.username)
+        proxyfile = "x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username)
+        if role == "analysis":
+            vaultfile = f"vt_{ctx.experiment}_Analysis_{ctx.username}"
+            if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                vaultfile = f"vt_{ctx.experiment}_analysis_{ctx.username}"
+                if not os.path.exists("%s/%s" % (vaultpath, vaultfile)):
+                    return False
+        else:
+            vaultfile = f"vt_{ctx.experiment}_production_{ctx.username}"
+        try:
+            if (role == "analysis" or ctx.experiment == "samdev") and (self.is_file_older_than_x_days("%s/%s" % (vaultpath, vaultfile), 5) or not self.has_valid_proxy("%s/%s" % (vaultpath, proxyfile))):
+                return False
+            else:
+                return True
+        except Exception as e:
+            logit.log("An error occured while checking for tokens for user=%s, role=%s, exp=%s. Assuming token info is in launch script: %s" % (ctx.username,role, ctx.experiment, repr(e)))
+            return True
 
     # h3. get_output_dir_file
     def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id=None, submission_id=None, test_login_setup=None):
@@ -1220,7 +1242,9 @@ class SubmissionsPOMS:
 
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
-
+            else:
+                role = cs.vo_role.lower()
+                
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
 
@@ -1284,19 +1308,19 @@ class SubmissionsPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise PermissionError("non experimenter launch not on localhost")
 
-        if ctx.role == "production" and not lt.launch_host.find(exp) >= 0 and not lt.launch_host == "fifeutilgpvm02.fnal.gov" and not lt.launch_host == "fifeutilgpvm01.fnal.gov" and exp != "samdev":
+        if role== "production" and not lt.launch_host.find(exp) >= 0 and not lt.launch_host == "fifeutilgpvm02.fnal.gov" and not lt.launch_host == "fifeutilgpvm01.fnal.gov" and exp != "samdev":
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             raise AssertionError(output)
 
-        if ctx.role == "analysis" and not (
+        if role == "analysis" and not (
             lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud210.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov", "fifeutilgpvm01.fnal.gov", "fifeutilgpvm02.fnal.gov")
         ):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
         
         group = exp
-        if ctx.role == "analysis":
+        if role == "analysis":
             if group in ["samdev","accel","accelai", "icarus", "admx","annie","argoneut", "cdms","chips","cms","coupp","darksectorldrd","darkside","ebd","egp","emph","emphatic","fermilab","genie","lariat","larp","magis100","mars","minerva","miniboone","minos","next","noble","nova","numix","patriot","pip2","seaquest","spinquest","test","theory","uboone"]:
                 credmon_group = "fermilab"
         if group == "samdev":
@@ -1305,18 +1329,20 @@ class SubmissionsPOMS:
         
         uu = uuid.uuid4()  # random uuid -- shouldn't be guessable.
         
-        experimenter_login = ctx.username
+        # this doesn't work for cron launches, need launcher_experimenter.username
+        # experimenter_login = ctx.username
+        experimenter_login = launcher_experimenter.username
         if role == "analysis":
             vaultfilename = f"vt_{ctx.experiment}_Analysis_{experimenter_login}"
             if not os.path.exists("/home/poms/uploads/%s/%s/%s" % (exp, experimenter_login, vaultfilename)):
                 vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
-        if ctx.role == "analysis" and lt.launch_host == self.poms_service.hostname:
+        if role == "analysis" and lt.launch_host == self.poms_service.hostname:
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
-        elif ctx.role == "analysis":
+        elif role == "analysis":
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % ("/home/poms/uploads/%s/%s" % (exp, experimenter_login), exp, experimenter_login)
@@ -1326,7 +1352,7 @@ class SubmissionsPOMS:
             if exp == "samdev":
                 vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
             #proxyfile = "/home/poms/cfg/samdevpro.Production.proxy"
-        if ctx.role == "analysis":
+        if role == "analysis":
             os.system("chmod -R +777 %s;" % sandbox)
             os.system("chmod +777 %s;" % vaultfile)
 
@@ -1341,7 +1367,7 @@ class SubmissionsPOMS:
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
         
-        proxyheld = ctx.role == "analysis" and not self.has_valid_proxy(proxyfile) and not do_tokens
+        proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         if allheld or csheld or proxyheld:
 
             errnum = 423
@@ -1359,7 +1385,7 @@ class SubmissionsPOMS:
                     "%s@fnal.gov" % cs.experimenter_creator_obj.username,
                 )
                 cs.hold_experimenter_id = cs.creator
-                cs.role_held_with = ctx.role
+                cs.role_held_with = role
                 ctx.db.add(cs)
 
             logit.log("launch_jobs -- holding launch")
@@ -1434,7 +1460,7 @@ class SubmissionsPOMS:
         # BEGIN TOKEN LOGIC
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
-        if ctx.role == "analysis" or ctx.experiment == "samdev": 
+        if role == "analysis" or ctx.experiment == "samdev": 
             tok_permissions = "chmod +rw %s;" % (vaultfile)
             scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
             scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)
@@ -1448,10 +1474,10 @@ class SubmissionsPOMS:
             vaultfile = ""
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
-        if ctx.role == "production" and ctx.experiment == "samdev": 
+        if role == "production" and ctx.experiment == "samdev": 
             # samdev doesn't have a managed token...
             htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (vaultfile, experimenter_login)
-        elif ctx.role == "analysis":
+        elif role == "analysis":
              htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
         else:
             htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r production --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, exp)
@@ -1464,19 +1490,19 @@ class SubmissionsPOMS:
         
         # token logic if not defined in launch script
         token_logic = [
-            ("export USER=%s; " % experimenter_login) if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export EXPERIMENT=%s;" % ctx.experiment if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_VTOKEN=%s;" % vaultfilename if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_CREDKEY=%s;" % ctx.username if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export XDG_RUNTIME_DIR=/tmp/;" if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
-            "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if ctx.role == "analysis" or ctx.experiment == "samdev" else "",
+            ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export EXPERIMENT=%s;" % ctx.experiment if role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export POMS_VTOKEN=%s;" % vaultfilename if role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export POMS_CREDKEY=%s;" % ctx.username if role == "analysis" or ctx.experiment == "samdev" else "",
+            #"export XDG_RUNTIME_DIR=/tmp/;" if role == "analysis" or ctx.experiment == "samdev" else "",
+            "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
             "export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/puppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
             
             # We are hiding this for now, and assuming that uploaded vault tokens are already stored in credmon vault
-            #if ctx.role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
+            #if role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
             #else
             #("poms_condor_vault_storer -v %s_default; ") % ctx.experiment,
         ]
@@ -1580,7 +1606,7 @@ class SubmissionsPOMS:
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
             "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
-            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and ctx.role != "production" and ctx.experiment != "samdev" else "",
+            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
 

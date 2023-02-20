@@ -55,6 +55,7 @@ class jobsub_q_scraper:
         self.statusmap = {"0": "Unexpanded", "1": "Idle", "2": "Running", "3": "Removed", "4": "Completed", "5": "Held", "6": "Cancelled"}
 
         self.psess = requests.Session()
+        self.psess.headers.update({'X-Shib-Userid':'poms'})
         self.known_submissions = {}
         self.jobsub_q_cmd = "condor_q -pool gpcollector03.fnal.gov -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID"
 
