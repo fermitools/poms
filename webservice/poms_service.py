@@ -1201,7 +1201,7 @@ class PomsService:
             vaultfilename = f"vt_{ctx.experiment}_analysis_{ctx.username}"
             if not os.path.exists("%s/%s" % (uploads_dir, vaultfilename)):
                 failedcheck = "vt"
-        if not self.permissions.has_valid_proxy("%s/%s" % (uploads_dir, proxyfile)):
+        if not self.submissionsPOMS.has_valid_proxy("%s/%s" % (uploads_dir, proxyfile)):
             if failedcheck == "vt":
                 failedcheck = "vp"
             else:
@@ -1224,15 +1224,22 @@ class PomsService:
     
     def assert_token(self, ctx, **kwargs):
         auth_page = "%(poms_path)s/auth/%(experiment)s/%(role)s?redir=%(redirect)s"
-        logit.log("current-url: %s" %repr(os.environ))
-        if not self.permissions.pre_submission_check(ctx):
+        vo_role = ctx.role
+        cid = kwargs.get("campaign_id")
+        if cid:
+            try:
+                vo_role = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == cid).first().vo_role.lower()
+            except:
+                pass
+        if not self.submissionsPOMS.validate_submission(ctx, vo_role):
             redict = kwargs
             redict["poms_path"] = self.path
             redict["experiment"] = ctx.experiment
-            redict["role"] = ctx.role
-            redirect_path =ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+            redict["role"] = vo_role
+            redirect_path =ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, vo_role))
             redict['redirect'] = redirect_path
             path = auth_page % redict
+            
             try:
                 redir = cherrypy.request.headers['X-Auth-Redirect']
                 if not redir or redir != path:
