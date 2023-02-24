@@ -4,7 +4,7 @@ campaign_id=
 launcher=
 campaign_stage_id=
 username="poms"
-
+role="superuser"
 while :
 do
 case x$1 in
