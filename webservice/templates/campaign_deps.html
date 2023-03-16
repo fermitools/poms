@@ -1,0 +1,32 @@
+{%extends "layout.html" %}
+
+{%block title%}
+<title>POMS Campaign Stage Dependencies</title>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+          Campaign Stage Dependencies for Campaign {{tag}}
+
+          <div class="sub header">
+              see dependencies
+          </div>
+</h1>
+{%endblock%}
+
+{%block subheader%}
+&nbsp;
+{%endblock%}
+
+{%block content %}
+
+      {{svgdata|safe}}
+
+{%endblock%}
+
+{%block final%}
+
+{%endblock%}

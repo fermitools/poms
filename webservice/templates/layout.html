@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+<!-- sets instead of old jinja globals
+{%set session_experiment=ctx.experiment|default('unknown') %}
+{%set session_role=ctx.role|default('unknown') %}
+{%set experimenter=ctx.get_experimenter()|default('unknown') %}
+{%set first_name=experimenter.first_name|default('unknown') %}
+{%set last_name=experimenter.last_name|default('unknown') %}
+{%set user_authorization_1=ctx.db.query( ExperimentsExperimenters.experiment).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.active.is_(True)).all() %}
+{%set user_authorization=user_authorization_1|map('first') %}
+{%set maxrole=ctx.db.query(ExperimentsExperimenters.role).filter(ExperimentsExperimenters.experimenter_id == experimenter.experimenter_id, ExperimentsExperimenters.experiment == session_experiment).scalar()|default('analysis',true) %}
+{%set is_root=experimenter.root|default(False) %}
+{%set experimenter_id=experimenter.experimenter_id|default(-1) %}
+{%set username=experimenter.username|default('unknown') %}
+{%if is_root %}
+{%set rolenum=4 %}
+{%else%}
+{%set rolenum=(all_roles.index(maxrole)+1) %}
+{%endif%}
+{%set allowed_roles=all_roles[:rolenum] %}
+-->
+    <!-- Standard Meta -->
+    {%if do_refresh %}
+    <meta http-equiv="refresh" content="{{do_refresh}}" />
+    {% endif %}
+
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+    <!-- Site Properities -->
+
+    {%block title%} {%endblock%}
+
+    <script src="{{pomspath}}/static/js/jquery-2.2.4.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/semantic.css">
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/paging.css">
+    <script src="{{pomspath}}/static/js/semantic.js"></script>
+    <script src="{{pomspath}}/static/js/paging.js"></script>
+    <script src="{{pomspath}}/static/js/poms.js"></script>
+    <script src="{{pomspath}}/static/js/tablesort.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/poms.css">
+
+    <link href='{{pomspath}}/static/css/fullcalendar.css' rel='stylesheet' />
+    <link href='{{pomspath}}/static/css/fullcalendar.print.css' rel='stylesheet' media='print' />
+    <script src='{{pomspath}}/static/js/moment.min.js'></script>
+    <script src='{{pomspath}}/static/js/fullcalendar.min.js'></script>
+
+    {% if jquery_ui|default(True) %}
+    <script src='{{pomspath}}/static/js/jquery-ui.js'></script>
+    <script src="{{pomspath}}/static/js/jquery.doublescroll.js"></script> <!-- VP -->
+    {% endif %}
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/datepicker.css">
+
+    <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/search.min.css">
+    <script src='{{pomspath}}/static/js/index.js'></script>
+    <script src='{{pomspath}}/static/js/search.min.js'></script>
+
+
+    <script type="text/javascript" src="{{pomspath}}/static/js/jquery.tablesorter.js"></script>
+    <script type="text/javascript" src="{{pomspath}}/static/js/jquery.tablesorter.widgets.js"></script>
+<!--    <script type="text/javascript" src="https://mottie.github.io/tablesorter/dist/js/jquery.tablesorter.min.js"></script>   -->
+    <!-- tablesorter widgets (optional) -->
+<!--    <script type="text/javascript" src="https://mottie.github.io/tablesorter/dist/js/jquery.tablesorter.widgets.js"></script> -->
+    <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.ice.css">
+    <link rel="stylesheet" href="https://mottie.github.io/tablesorter/css/theme.dropbox.css">
+
+
+    {% if jquery_ui|default(True) %}
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@7.26.28/dist/sweetalert2.all.min.js"></script>
+
+    <style type="text/css">
+      div.scrollable {
+        width: 100%;
+        overflow-x: scroll;
+      }
+      div.scrollable table {
+        width: 300%;
+      }
+    </style>
+    {%block extracss%} {%endblock%}
+  </head>
+
+
+<body id="example" class="started" ontouchstart="" {%block bodytags%} {%endblock%} >
+
+  <!--modal for messages-->
+  <div class="ui modal" id="display_message_modal">
+    <i class="close icon"></i>
+    <div class="header">
+      Message
+    </div>
+    <div class="ui text container">
+      <div class="one field">
+	<div class="field">
+	  <label id="poms_message_data"></label>
+	</div>
+      </div>
+      <div class="ui hidden divider"></div>
+    </div>
+  </div> <!-- Ends display_message_modal  -->
+
+  {% if not popup|default(False) %}
+
+  {% include 'mobil_menu.html' %}
+
+  {% endif %}
+
+  <!--big screen -->
+  <div class="pusher" >  <!--  This is a requirment of semantic-ui when using a sidebar.  For all purposes it is the "body" -->
+
+    <div class="full height">
+
+      {% if not popup|default(False) %}
+
+      {% include 'standard_menu.html' %}
+
+      {% endif %}
+
+      <div class="article" style="padding-left: 1em; padding-top: 1em">  <!-- header of page-->
+
+	<div class="ui three column middle aligned grid">
+	  <div class="row">
+	    <div class="column">
+          <img class="ui small image" src="{{pomspath}}/static/img/poms.jpg">
+      </div>
+      <div class="column">
+        <h2>
+            {%block header%} {%endblock%}
+        </h2>
+      </div>
+	    <div class="column">
+        <br>
+        {% if first_name is defined %}
+	      <i class="teal user icon" style="margin-left: 1em"></i>{{first_name}} {{last_name}}
+        {% endif %}
+        <br>
+        <br>
+	      <select class="ui dropdown" name="session_experiment_id" id="session_experiment_id" style="margin-left: 1em;">
+		      {% for exp in user_authorization|sort %}
+		      <option value="{{exp}}" {{ 'selected="selected"' if (session_experiment == exp) }}>{{exp}}</option>
+		      {% endfor %}
+	      </select>
+	      <select class="ui dropdown" name="current_role" id="current_role" style="margin-left: 1em;">
+                      {% if allowed_roles is defined %}
+		      {% for role in allowed_roles %}
+		      <option value="{{role}}" {{ 'selected="selected"' if (session_role == role) }}>{{role}}</option> 
+		      {% endfor %}
+                      {% endif %}
+	      </select>
+         <br>
+        &nbsp;
+	    </div>
+	  </div>
+	</div>
+	<div class="ui divider"  style="margin: 0px;">
+    </div>
+      <div class="ui three column middle aligned grid" style="margin-top: 5px;">
+        <div class="column"></div>
+        <div class="column">
+          <h3>
+            {%block subheader%} {%endblock%}
+          </h3>
+        </div>
+        <div class="column"></div>
+    </div>
+    {% if jquery_ui|default(True) %}
+	{% include 'datepicker_block.html' %}
+    {%endif%}
+	<div class="no example" style="margin: 0px 10px 0px 10px;">
+      {% if session_role == session_experiment or session_role not in ('production','production-shifter','analysis','superuser') %}
+         <div style="border: solid red 2px; width:50%; margin: 4em auto; padding: 4em;" > 
+             
+            URL error: 
+            {% if ctx.headers_get('Referer') != None %}
+                The page you came from:<br>
+                  <b>{{ctx.headers_get('Referer')}}</b><br>
+                has a bad link, leading to a bad /experiment/role in the url. 
+                <p>
+                Please report the above page to the POMS team
+                <a href="{{servicenow}}/nav_to.do?uri=%2Fcom.glideapp.servicecatalog_cat_item_view.do%3Fsysparm_id%3D993f4a8fa994e0808638daab111d5447%26amp;sysparm_service%3D2deaa5b56f70520032544d1fde3ee40c%26amp;sysparm_affiliation%3D" target="_blank">here</a>,
+                along with what you clicked on in the page to get here, 
+                so we can get rid of these annoying red boxes.
+            {% else %}
+                The bookmark or typed in link you followed to get here
+                has a bad link, leading to a bad /experiment/role in the url. 
+                <p>
+                Please update it at your earliest convenience.
+            {% endif %}
+            <p>
+            You can continue your work by manually fixing the experiment 
+            and role in the URL bar of your browser, so it is of the form
+
+            <b><tt>{{ctx.web_config.get("POMS", "prod_url_error")}}</tt><i>some_page/experiment/role</i></b>....
+
+            <br>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   Thank you.<br>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; POMS Developers 
+        </div>
+      {% endif %}
+	  {%block content%} {%endblock%}
+	</div>
+  {%block final%} {%endblock%}
+</div>  <!--ends article-->
+
+    </div> <!--ends full height-->
+  </div>  <!--ends pusher-->
+
+
+
+<script>
+
+  <!-- enable accordions -->
+  $(document).ready(function(){
+    $('.ui.accordion').accordion();
+  });
+
+  $("#session_experiment_id").change(function() {
+    window.location.replace('{{pomspath}}/update_session_experiment/{{session_experiment}}/{{session_role}}?session_experiment=' +  $("#session_experiment_id").val());
+  });
+
+  $("#current_role").change(function() {
+    window.location.replace('{{pomspath}}/update_session_role/{{session_experiment}}/{{session_role}}?session_role=' + $("#current_role").val());
+  });
+
+  $('.tbox').popup({
+    position : 'top left',
+    delay: {
+      show: 2,
+      hide: 2
+    }
+  });
+
+  $('.tbox_delayed').popup({
+    position : 'top left',
+    delay: {
+      show: 1024,
+      hide: 2
+    }
+  });
+
+
+  /* fix utctime fields to local time */
+  $(document).ready( function() {
+     var el, i, ds;
+     el = document.getElementsByClassName("utctime");
+     for (i = 0 ; i< el.length; i++) {
+         ds = (new Date(parseInt(el[i].getAttribute("time_t")) * 1000)).toLocaleString();
+         el[i].innerHtml = ds
+         el[i].setAttribute('class','localetime')
+     }
+  });
+</script>
+
+</body>
+
+</html>

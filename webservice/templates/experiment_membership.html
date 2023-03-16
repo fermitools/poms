@@ -1,0 +1,67 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS
+{%endblock%}
+
+{%block header%}
+    Experiment Membership{%include 'help_button.html'%}
+{%endblock%}
+
+{%block content%}
+<div>
+  <table id="membership_table" class="ui celled _table unstackable tablesorter tablesorter-ice">
+      <thead>
+          <tr>
+            <th>Last Name</th>
+            <th>First Name</th>
+            <th>Username</th>
+            <th>Role</th>
+          </tr>
+      </thead>
+      <tbody>
+      {% for m in data.members %}
+          <tr>
+              <td>{{m.Experimenter.last_name}}</td>
+              <td>{{m.Experimenter.first_name}}</td>
+              <td>{{m.Experimenter.username}}</td>
+              <td>{{m.ExperimentsExperimenters.role}}</td>
+          </tr>
+      {% endfor %}
+      </tbody>
+  </table>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#membership_table').tablesorter( {
+        widgets : [ 'filter', 'saveSort' ],
+        widgetOptions : {filter_reset: '.reset', saveSort: true},
+        //dateFormat : "yyyymmdd"
+        });
+});
+
+$('#membership_table')
+.bind('filterInit', function() {
+    // check that storage ulility is loaded
+    if ($.tablesorter.storage) {
+        // get saved filters
+
+        var f = $.tablesorter.storage(this, 'tablesorter-filters') || [];
+        $(this).trigger('search', [f]);
+    }
+})
+.bind('filterEnd', function(){
+    if ($.tablesorter.storage) {
+        // save current filters
+        var f = $(this).find('.tablesorter-filter').map(function() {
+            return $(this).val() || '';
+        }).get();
+        $.tablesorter.storage(this, 'tablesorter-filters', f);
+    }
+});
+
+
+</script>
+
+{%endblock%}

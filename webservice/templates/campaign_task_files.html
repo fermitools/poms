@@ -1,0 +1,86 @@
+{%extends "layout.html"%}
+
+{%set name=cs.name|default("") %}
+{%set CampaignStage=cs %}
+
+{%block title%}
+POMS
+{%endblock%}
+
+
+{%block header%}
+<h1 class="ui header">
+  File Info by Submission {%include 'help_button.html'%}
+</h1>
+<div class="ui subheader">
+    <div class="ui basic label">
+      <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+    </div>
+</div>
+
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
+<a href="{{next}}">next {{tdays}} days &gt;</a>
+{%endblock%}
+
+
+{%block subheader%}
+Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br/>
+in Campaign {{CampaignStage.campaign_obj.name}}<span class="ui label">{{CampaignStage.campaign_id}}</span>
+{%endblock%}
+
+
+{%block content%}
+
+<!--
+ {{datarows}}
+-->
+<div id="double-scroll" class="scrollable">
+<table class="ui sortable celled collapsing table">
+  <thead>
+    <tr>
+    {%for col in columns%}
+       <th class="">
+           {{col}}
+            <!-- commenting out per issue #21477
+             <a target="_blank" href="{{docspath}}/campaign_task_files_help#{{col|replace(' ','_')}}"><i class="small icon grey help circle  link"></i></a>
+           -->
+       </th>
+    {%endfor%}
+    </tr>
+  </thead>
+  <tbody>
+    {%for row in datarows %}
+      <tr>
+         {%for col in range(0, columns|count) %}
+              <td><a href="{{row[col][1]}}">{{row[col][0]}}</a></td>
+         {%endfor%}
+      </tr>
+    {%endfor%}
+  </tbody>
+</table>
+</div>
+
+
+
+<script>
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+</script>
+
+
+
+<script>
+$(function() {
+    $('#global_datepicker_container').show();
+});
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
+});
+</script>
+{%endblock%}

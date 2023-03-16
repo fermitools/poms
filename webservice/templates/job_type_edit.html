@@ -1,0 +1,679 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS
+<script src="{{pomspath}}/static/js/json_field_editor.js"></script>
+<link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
+{%endblock%}
+
+<style type="text/css">
+  div.scrollable {
+  width: 100%;
+  overflow-x: scroll;
+  }
+  div.scrollable table {
+  width: 300%;
+  }
+</style>
+
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+{% endmacro %}
+
+{%block header%}
+JobTypes {{ show_hint('#compose-a-job-type', 'Job Type') }}
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block content%}
+
+
+<form id="campaign_definition_form" class="ui form" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}" method="POST">
+
+  {% set has_active=True %}
+  {% set data = data|default({}) %}
+  {%include "view_picker.html" %}
+
+  {% if data.curr_experiment is defined %}
+<div id="double-scroll" class="ui scrollable">
+
+  <table class="ui sortable single line celled table" style="margin-top: 3em;">
+    <thead>
+      <tr>
+		<th></th>
+		<th> Name  </th>
+		<th> Input Files Per Job  </th>
+		<th> Output Files Per Job </th>
+		<th> Output File Patterns  </th>
+		<th> Launch Script  </th>
+		<th> Definition Parameters 	</th>
+		<th> Recoveries  </th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in data.definitions %}
+      <tr>
+	    <td class="collapsing">
+          {% if data.authorized[loop.index0]==True %}
+	        <i class="large edit link blue icon"  onclick="edit_definition({{loop.index}});"></i>
+	        <i class="large copy icon link blue icon" onclick="edit_definition({{loop.index}},'CLONE');"></i>
+	        <i class="large trash link blue icon" onclick="delete_definition('{{row.JobType.name}}','{{row.JobType.job_type_id}}');"></i>
+	      {% else %}
+	        <i class="disabled large edit link blue icon"></i>
+            <i class="large copy link blue icon"  onclick="edit_template({{loop.index}},'CLONE');"></i>
+	        <i class="disabled large trash link blue icon"></i>
+	      {% endif %}
+	    </td>
+        <td id="cdf_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
+	    <td id="cdf_id_{{loop.index}}" style="display:none;">{{row.JobType.job_type_id}}</td>
+	    <td id="cdf_name_{{loop.index}}">{{row.JobType.name}}</td>
+	    <td id="cdf_input_{{loop.index}}">{{row.JobType.input_files_per_job}}</td>
+	    <td id="cdf_output_{{loop.index}}">{{row.JobType.output_files_per_job}}</td>
+	    <td id="cdf_outputpat_{{loop.index}}">{{row.JobType.output_file_patterns|replace("None","%")}}</td>
+	    <td id="cdf_script_{{loop.index}}">{{row.JobType.launch_script|replace("None","")}}</td>
+        {% if row.JobType.definition_parameters is string %}
+	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|replace("None","")}}</td>
+        {% else %}
+	      <td id="cdf_definition_{{loop.index}}">{{row.JobType.definition_parameters|tojson}}</td>
+        {% endif %}
+	      <td id="cdf_recovery_{{loop.index}}">
+	    {% if data.recoveries[row.JobType.job_type_id] is defined %}
+	      {{data.recoveries[row.JobType.job_type_id]}}
+	    {% else %}
+	      []
+	    {% endif %}
+      </td>
+      <td style="display:none;" id="cdf_active_{{loop.index}}">{{row.JobType.active}}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+	      <th colspan="8">
+	        <button class="ui labled teal icon button" onclick="add_definition();return false;" {{ 'disabled' if (session_role=='superuser') }}>
+	        <i class="icon add square"></i>
+	          Add
+	        </button>
+	      </th>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+  {% endif %}
+  <input type="hidden" id="action" name="action" value="find">
+</form>
+
+<div class="ui modal" id="confirm_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Delete JobType
+  </div>
+  <div class="image content">
+    <div class="image">
+      <i class="delete icon"></i>
+    </div>
+    <div class="description">
+      <div class="ui header"><label id="confirm_modal_message">Message Goes Here</label></div>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="two fluid ui buttons">
+      <button class="ui red deny button">
+	      No
+      </button>
+      <button id="approved_btn" class="ui teal approve button">
+	      <i class="checkmark icon"></i>
+	      Yes
+      </button>
+    </div>
+  </div>
+</div> <!-- Ends confirm_modal -->
+
+<div class="ui large modal" id="definition_add_edit_modal">
+  <i class="close icon"></i>
+  <h3 class="block header"><span id="ae_experiment">
+    JobType Editor </span> {{ show_hint('#compose-a-job-type', 'Job Type') }}
+  </h3>
+  <div class="ui hidden divider"></div>
+  <div class="ui text container">
+    <form id="definition_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}">
+      <div class="three fields">
+		<div class="field">
+			<label>Name</label>
+			<input type="text" id="ae_definition_name" name="ae_definition_name" placeholder="Definition Name">
+		</div>
+        <input type="hidden" name="ae_output_files_per_job" value="0">
+        <input type="hidden" name="ae_input_files_per_job" value="0">
+		<div class="field">
+			<label>Output File Patterns</label>
+			<input type="text" id="ae_output_file_patterns" name="ae_output_file_patterns">
+        </div>
+        <div class="field">
+            <label>Active</label>
+            <div class="ui toggle checkbox">
+            <input type="checkbox" id="ae_active" name="ae_active" {{ 'checked' if (data.active is not defined or data.active == True) }}>
+            <label></label>
+        </div>
+        </div>
+      </div>
+      <div class="one field">
+	<div class="field">
+          <label>Launch Script</label>
+          <textarea id="ae_launch_script" name="ae_launch_script" placeholder="Launch Script"></textarea>
+	</div>
+      </div>
+      <div class="one field">
+	<div class="field">
+          <label>Definition Parameters <i class="large edit link blue icon" id="edit_param_modal_btn" onclick="json_field_editor.start('ae_definition_parameters')"></i></label>
+          <textarea id="ae_definition_parameters_text" disabled>[]</textarea>
+	</div>
+      </div>
+      <div class="one field">
+	<div class="field">
+           <label>Recovery Launches <i class="large edit link blue icon" id="edit_recovery_modal_btn" onclick="json_field_editor.recovery_start('ae_definition_recovery')"></i></label>
+          <textarea id="ae_definition_recovery_text" disabled>[]</textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+	<div class="ui button deny red">Cancel</div>
+	<input type="submit" value="Save" id="ae_submit" class="ui button teal" />
+	<input type="submit" name="test_template" value="Test" id="ae_test"class="ui button orange" />
+      </div>
+      <!-- <input type="hidden" name="experiment" value="{{ data.curr_experiment if data.curr_experiment is defined}}"> -->
+      <input type="hidden" name="action" id="ae_definition_action" value="add">
+      <input type="hidden" id="ae_experimenter_id" name="experimenter_id" value="{{experimenter_id|default('unknown')}}">
+      <input type="hidden" id="ae_campaign_definition_id" name="ae_campaign_definition_id" value="0">
+      <input type="hidden" id="ae_definition_parameters" name="ae_definition_parameters" value="[]">
+      <input type="hidden" id="ae_definition_recovery" name="ae_definition_recovery" value="[]">
+    </form>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends definition_add_edit_modal -->
+
+<div class="ui small modal" id="edit_param_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Parameters Editor (Normal)
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+      <table class="ui celled table" id="ep_table">
+	<thead>
+	  <tr>
+	    <th>Key</th>
+	    <th>Value</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="ep_tbody">
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		      <button class="ui button deny red">Cancel</button>
+		      <button class="ui button approve teal">Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_param_modal  -->
+
+<div class="ui small modal" id="edit_recovery_param_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Recovery Parameters Editor
+  </div>
+  <div class="ui text container">
+    <div class="scrollable">
+      <table class="ui celled table" id="repo_table">
+	<thead>
+	  <tr>
+	    <th> Key</th>
+	    <th> Value</th>
+	    <th></th>
+	  </tr>
+	</thead>
+	<tbody id="repo_tbody">
+	</tbody>
+	<tfoot>
+	  <tr>
+	    <th colspan="3">
+	      <div class="actions">
+		      <button class="ui button deny red">Cancel</button>
+		      <button class="ui button approve teal" >Accept</button>
+	      </div>
+	    </th>
+	  </tr>
+	</tfoot>
+  </table>
+  </div>
+  </div>
+  <div class="ui hidden divider"></div>
+
+</div> <!-- Ends edit_recovery_param_modal  -->
+
+<div class="ui large modal" id="edit_recovery_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Definition Recovery Editor
+  </div>
+  <div class="ui text _container">
+    <div class="_scrollable">
+      <table class="ui celled table" id="er_table">
+	      <thead>
+	        <tr>
+	          <th>Type</th>
+	          <th>Param Overrides</th>
+	          <th></th>
+	        </tr>
+	      </thead>
+	      <tbody id="er_tbody">
+         {% for i in range(5) %}
+            <tr>
+                <td> <select id="re_recover_{{i}}" onchange="updateRepo({{i}})">
+                    <option value="">-</option>
+                    {% for rtype in data.rtypes %}
+                        <option value="{{rtype[0]}}">{{rtype[0]}} -: {{rtype[1]}}</option>
+                    {% endfor %}
+                    </select>
+                </td>
+                <td id="re_recover_p_{{i}}"><span> </span> </td>
+                <td><i id="re_recover_p_icon_{{i}}" class="large edit link blue icon"  onclick="edit_recovery_params_o({{i}});"></i>
+            </tr>
+         {% endfor %}
+	      </tbody>
+	      <tfoot>
+	        <tr>
+	          <th colspan="3">
+	            <div class="actions">
+		            <button class="ui button deny red">Cancel</button>
+		            <button class="ui button approve teal">Accept</button>
+	            </div>
+	          </th>
+	        </tr>
+	      </tfoot>
+      </table>
+    </div>
+  </div>  <!-- container -->
+ <div class="ui hidden divider"></div>
+</div> <!-- Ends edit_recovery_modal  -->
+
+<script type="text/javascript">
+
+$('#definition_add_edit_form')
+  .form({
+    fields: {
+      ae_definition_name            : 'empty',
+      ae_input_files_per_job        : 'empty',
+      ae_output_files_per_job       : 'empty',
+      ae_output_file_patterns       : 'empty',
+      ae_launch_script              : 'empty',
+      ae_definition_parameters_text : 'empty',
+      ae_definition_recovery_text   : 'empty'
+    }
+  })
+
+function create_row(index, key, value) {
+    return row;
+}
+
+var ep_parms = [];
+var repo_parms = [];  //recovery parameters override
+var do_recp = false;
+
+var ini_empty_index =[];        // used when cancelling
+
+function updateRepo(ind){
+
+  rtype_id = "#re_recover_" + ind;
+  repo_id = "#re_recover_p_" +ind;
+  repo_icon_id = "#re_recover_p_icon_" +ind;
+  var rtype_val = $(rtype_id).val();
+
+  if (rtype_val!='') {
+    $(repo_id).children().show();                              // this is when rtypein not empty
+    $(repo_icon_id).show();
+  }
+  if ( $(repo_id).children("span").is (":hidden") ) {
+    $(repo_id).children().show();                              // this is when rtype was empty
+    $(repo_icon_id).show();
+  } else {
+    // if we go from existing rtype to empty we need to hide params override
+    if (rtype_val=='') {
+      $(repo_id).children().hide();                            // this is when we change to empty rtype
+      $(repo_icon_id).hide();
+    }
+  }
+
+}
+
+// -----------  Editing recovery params override here ...
+
+
+  function edit_recovery_params_o(index) {
+    var rec_parms_str = $("#re_recover_p_"+index).children("span").text();
+    if (rec_parms_str != "{}" || rec_parms_str != " ") {
+      repo_parms = JSON.parse(rec_parms_str);
+    } else {
+        repo_parms=[];
+    }
+    ep_build_table_body('repo');
+
+   $("#edit_recovery_param_modal").modal({
+     closable  : false,
+     onApprove : function(){
+      var data = ep_build_parms_string('repo');
+      if (data[0] == "") {
+        //console.log(' edit_recovery_params_o, data1 = ' + data[1] );
+        $("#re_recover_p_"+ index).children("span").text(data[1]);
+        $("#edit_recovery_modal").modal('show');
+      } else {
+          return false;
+      }
+    },
+    onDeny : function(){
+      $("#edit_recovery_modal").modal('show');
+    },
+    }).modal('show');
+
+  }
+
+// ------------  Done Editing recovery params override here ...
+// ----------------- Done section for editing Recovery Launches ------------------------------
+// -----------------------------------------------------------------------------
+
+// ----------------- Section for editing Definition Paramers ------------------------------
+
+function toList(dict) {
+    return Object.keys(dict).map(function (key) {
+        return [key, dict[key]];
+    });
+}
+
+function ep_build_parms_string(pval) {
+
+  var parms = "[";
+  var message = "";
+
+  rebuild_ep_parms(pval);
+
+  if (typeof pval !== 'undefined') {
+    var local_ep_parms = repo_parms
+  } else {
+    var local_ep_parms = ep_parms
+  }
+  for (index = 0; index < local_ep_parms.length; index++) {
+    key = local_ep_parms[index][0];
+    value = local_ep_parms[index][1];
+    if ((key != "") && (value != "")) {
+      if (parms != "[") {
+        parms += ",";
+      }
+      parms += '["' +key+ '","' +value+ '"]';
+    } else if ((key == "") && (value == "")){
+      continue;
+    } else {
+      message = "A row is missing the key or value.";
+      break;
+    }
+  }
+
+  parms += "]"
+  var ret_parms= parms;   //JSON.stringify(local_ep_parms);
+  //return [message, parms];
+  return [message, ret_parms];
+}
+
+//function ep_build_table_body() {
+
+function ep_build_table_body(tbtype) {
+
+  if (typeof tbtype !== 'undefined') {
+    if (repo_parms.length ==0) {
+        repo_parms.push(["",""]);
+    }
+    var local_ep_parms = repo_parms
+    $("#repo_tbody").text("");
+    tbval = 'repo'
+
+  } else {
+    if (ep_parms.length ==0) {
+        ep_parms.push(["",""]);
+    }
+    var local_ep_parms = ep_parms
+    $("#ep_tbody").text("");
+    tbval=''
+  }
+
+  if (do_recp == true) tbval = 'repo'
+
+//  for (index = 0; index < ep_parms.length; index++) {
+  for (index = 0; index < local_ep_parms.length; index++) {
+    var tt = "ep_row_" + tbval + index;
+    var ep_row = "ep_row_" + tbval + index;
+    var ep_key = "ep_key_" + tbval + index;
+    var ep_val = "ep_val_" + tbval + index;
+    var row = '<tr id="' +ep_row+ '">';
+    row +=       '<td class="brown">'
+    row +=          '<div class="ui fluid input">'
+    row +=             '<label></label>'
+    row +=             '<input type="text" id="' +ep_key+  '" value="' + local_ep_parms[index][0]+ '">'
+    row +=          '</div>'
+    row +=       '</td>';
+    row +=       '<td>'
+    row +=          '<div class="ui fluid input">'
+    row +=             '<label></label>'
+    row +=             '<input type="text" id="' +ep_val+  '" value="' + local_ep_parms[index][1]+ '">'
+    row +=          '</div>'
+    row +=       '</td>';
+    row +=       '<td  class="collapsing">'
+    row +=         '<i class="blue icon link add square" onclick="ep_add_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link minus square" onclick="ep_delete_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link arrow square up" onclick="ep_up_button('+index+');"></i>'
+    row +=	   '<i class="blue icon link arrow square down" onclick="ep_down_button('+index+');"></i>'
+    row +=       '</td>';
+    row +=     '</tr>'
+
+    if (typeof tbtype !== 'undefined') {
+      $("#repo_tbody").append(row);
+    } else {
+      $("#ep_tbody").append(row);
+    }
+  }
+  if (typeof tbtype !== 'undefined') {
+     $("#edit_recovery_param_modal").modal('refresh');
+  } else {
+     $("#edit_param_modal").modal('refresh');
+  }
+
+}
+
+// -------------- Normal definitions ------------------
+function rebuild_ep_parms(pval) {
+
+  if (typeof pval !== 'undefined') {
+    repo_parms = []
+    var rowCount = $("#repo_table >tbody >tr").length;
+    tbval = 'repo'
+
+  } else {
+    ep_parms = []
+    var rowCount = $("#ep_table >tbody >tr").length;
+    tbval = ''
+
+  }
+  for (index=0; index< rowCount; index++) {
+    var ep_key = "#ep_key_" + tbval + index;
+    var ep_val = "#ep_val_" + tbval + index;
+    var key = $(ep_key).val();
+    var val = $(ep_val).val();
+    if (typeof pval !== 'undefined') {
+      repo_parms.push([key,val]);
+    } else {
+      ep_parms.push([key,val]);
+    }
+  }
+}
+
+function ep_add_button(current_row) {
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body(pval);
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row+1, 0, ["",""] );
+    ep_build_table_body();
+
+  }
+}
+
+function ep_delete_button(current_row) {
+  if (do_recp == true){
+    pval='repo';
+    rebuild_ep_parms(pval);
+    repo_parms.splice(current_row, 1 );
+    ep_build_table_body(pval);
+
+  } else {
+    rebuild_ep_parms();
+    ep_parms.splice(current_row, 1 );
+    ep_build_table_body();
+  }
+}
+
+
+
+function ep_up_button(current_row) {
+  if (current_row > 0) {
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row-1];
+      repo_parms[current_row-1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row-1];
+      ep_parms[current_row-1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
+  }
+}
+
+function ep_down_button(current_row) {
+  if (current_row < (ep_parms.length-1)) {
+    if (do_recp == true){
+      pval='repo';
+      rebuild_ep_parms(pval);
+      var hold = repo_parms[current_row+1];
+      repo_parms[current_row+1] = repo_parms[current_row];
+      repo_parms[current_row] = hold;
+      ep_build_table_body(pval);
+
+    } else {
+      rebuild_ep_parms();
+      var hold = ep_parms[current_row+1];
+      ep_parms[current_row+1] = ep_parms[current_row];
+      ep_parms[current_row] = hold;
+      ep_build_table_body();
+    }
+  }
+}
+
+  function delete_definition(name,job_type_id) {
+    var cdname = name;
+    $("#confirm_modal_message").text("Delete the JobType named " +name+" ?")
+    mod_form = $("#confirm_modal").modal({
+    closable  : false,
+    onApprove : function(){
+      $("#action").val('delete');
+      $("<input>").attr({'type':'hidden','name': 'ae_definition_name', 'value': cdname}).appendTo("#campaign_definition_form");
+      $("<input>").attr({'type':'hidden','name': 'job_type_id', 'value': job_type_id}).appendTo("#campaign_definition_form");
+      $("#campaign_definition_form").submit();
+    },
+    }).modal('show');
+  }
+
+  function edit_definition(index,clone) {
+    if (typeof clone === 'undefined') {
+      $("#ae_definition_action").val("edit");
+      $("#ae_definition_name").val( $("#cdf_name_"+index).text() );
+    } else {
+      $("#ae_definition_action").val("add");
+      $("#ae_definition_name").val( "CLONE OF: " + $("#cdf_name_"+index).text() );
+    }
+    $("#ae_experiment").text("JobType Editor  ({{ data.curr_experiment if data.curr_experiment is defined}})");
+    $("#ae_campaign_definition_id").val( $("#cdf_id_"+index).text()  );
+    $("#ae_launch_script").val( $("#cdf_script_"+index).text() );
+    $("#ae_definition_parameters_text").val( $("#cdf_definition_"+index).text() );
+    $("#ae_definition_parameters").val( $("#cdf_definition_"+index).text() );
+    $("#ae_input_files_per_job").val( $("#cdf_input_"+index).text() );
+    $("#ae_output_files_per_job").val( $("#cdf_output_"+index).text() );
+    $("#ae_output_file_patterns").val( $("#cdf_outputpat_"+index).text() );
+    $("#ae_definition_recovery_text").val( $.trim( $("#cdf_recovery_"+index).text() ) );
+    $("#ae_definition_recovery").val( $("#cdf_recovery_"+index).text() );
+    var isactive = $("#cdf_active_"+index).text();
+    if ( isactive == 'True') {
+        $('#ae_active').prop('checked', true);
+    } else {
+        $('#ae_active').prop('checked', false);
+    }
+    $("#definition_add_edit_modal").modal('show');
+    if ( typeof clone === 'undefined' )
+    {
+      $("#ae_submit").prop('value', 'Save');
+      if ( ($("#cdf_authorized_"+index).text() == "False") ) {
+        $("#ae_submit").prop("disabled",true);
+        $("#ae_test").prop("disabled",true);
+      } else {
+        $("#ae_submit").prop("disabled",false);
+        $("#ae_test").prop("disabled",false);
+      }
+    } else {
+      $("#ae_submit").prop('value', 'Clone');
+        $("#ae_submit").prop("disabled",false);
+      $("#ae_test").hide();
+    }
+  }
+
+  function add_definition() {
+    $("#definition_add_edit_modal").form('reset');
+    $("#ae_experiment").val("{{ data.curr_experiment if data.curr_experiment is defined}}");
+    $('#ae_active').prop('checked', true);
+    $("#definition_add_edit_modal").modal({}).modal('show');
+  }
+
+$(document).ready(function(){
+  if ("{{ data.message }}" != "None") {
+    $("#poms_message_data").text("{{ data.message }}");
+    $("#display_message_modal").modal('show');
+  }
+});
+
+$('#cdf_experiment')
+  .dropdown()
+;
+
+$('.ui.checkbox').checkbox();
+
+$(document).ready(function(){
+  $('#double-scroll').doubleScroll();
+});
+
+</script>
+
+
+{%endblock%}

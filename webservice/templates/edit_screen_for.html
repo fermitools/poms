@@ -1,0 +1,55 @@
+{%extends "layout.html" %}
+
+{%block title%}
+POMS DB Admin
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         {{clasname}} Items{%include 'help_button.html'%}
+
+          <div class="sub header">
+              Edit {{classname}} Item
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">{{classsname}} Items:</h2>
+{%endblock%}
+
+
+
+{%block content %}
+
+<form action="{{action}}" method="POST">
+
+   <input type="hidden", name="classname" value="{{classname}}">
+
+   {% for row in screendata %}
+      <div style="padding: 2px">
+      {% if row.values is sequence %}
+         <div style="text-align: right; width:20em;float: left; padding-right: 1em">
+         {{row.name}}
+         </div>
+         <select name={{row.name}}>
+           {% for ov in row.valmap %}
+            <option value="{{ov.key}}" {% if ov.key == row.value%} selected=1 {%endif %} > {{ov.value}} </option>
+           {% endfor %}
+         </select>
+      {% else %}
+         <div style="text-align: right; width:20em;float: left; padding-right: 1em">
+         {{row.name}}
+         </div>
+         <input name='{{row.name}}' value='{%if row.value is none %}{%else%}{{row.value}}{%endif%}'> <br>
+      {% endif %}
+      </div>
+   {% endfor %}
+
+   <input type="submit" name="_submit">
+</form>
+
+{%endblock%}

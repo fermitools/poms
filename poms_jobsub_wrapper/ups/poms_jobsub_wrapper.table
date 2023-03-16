@@ -1,0 +1,12 @@
+File=Table
+Product=poms_jobsub_wrapper
+
+Flavor=ANY
+Qualifiers=
+
+Action = setup
+   ProdDir()
+   SetupEnv()
+   SetupOptional(poms_client ${UPS_PROD_VERSION})
+   SetupRequired(poms_client)
+   PathPrepend(PATH, ${UPS_PROD_DIR}/bin)

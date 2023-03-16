@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+import requests
+import logging
+import os
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
+
+
+def experiment_list():
+    resp = requests.get('%s/poms/experiment_list' % config.get("localhost"))
+    e_l = resp.json()
+    resp.close()
+    print("instead of %s returning samdev for debugging" % repr(e_l))
+    return ['samdev']
+    return e_l
+
+def campaign_stage_datasets():
+    resp = requests.get('%s/poms/campaign_stage_datasets' % config.get("localhost"))
+    a_m = resp.json()
+    resp.close()
+    return a_m
+
+def create_definition(exp, defname, dims):
+    data = {'defname' : defname, 'dims': dims , 'group':exp, 'user':'poms'}
+    logging.debug('definitions/create: data: %s' % repr(data))
+    resp = rs.post(config.get("SAM", "create_definition_url").replace("PLACEHOLDER1",exp), data = data  )
+    print(resp.text)
+
+def describe_definition(exp, defname):
+    resp = rs.get(config.get("SAM", "describe_definition_url").replace("PLACEHOLDER1",exp).replace("PLACEHOLDER2",defname))
+    d_d = resp.json()
+    resp.close()
+    return d_d
+
+def delete_definition(exp, defname):
+    resp = rs.delete(config.get("SAM", "delete_definition_url").replace("PLACEHOLDER1",exp).replace("PLACEHOLDER2",defname))
+    print(resp.text)
+
+def campaign_stage_actives(exp):
+    resp = requests.get(config.get("SAM", "active_campaign_stage_url").replace("PLACEHOLDER1",exp))
+    c_s_a = resp.json()
+    resp.close()
+    return c_s_a
+    
+
+def update_them():
+
+
+    saw = {}
+    activemap = campaign_stage_datasets()
+
+    print("=====\nactivemap: %s" % repr(activemap))
+
+    for exp in experiment_list():
+
+        rs = requests.Session()
+        rs.cert = (cert, key)
+        rs.verify = False
+
+        current_defs = campaign_stage_actives(exp)
+
+        for c_d in current_defs:
+            defname = c_d['defname']
+            c_s_id = defname[27:]
+            saw[c_s_id] = True
+
+            print ("c_s_id == %s\n" % c_s_id)
+            if c_s_id in activemap:
+                 plist = "','".join(activemap[c_s_id][1])
+                 if plist[-1] == ',':
+                     plist = plist[:-1]
+                 plist="'%s'" % plist
+                 wanted = "project_name %s" % plist 
+                 desc = describe_definition(exp, defname)
+                 print ("=====\ndesc:    %s\n" % repr(desc))
+                 if desc:
+                     has = desc['dimensions']
+                     print ("=====\nhas:    %s\nwanted: %s\n" % (has, wanted))
+                     if has != wanted:
+                         delete_definition(exp, defname)
+                 else:
+                     create_definition(exp, defname, wanted)
+            else:
+                 delete_definition(exp, defname)
+
+    for c_s_id in activemap:
+        if not saw.get(c_s_id,False):
+             plist = "','".join(activemap[c_s_id][1])
+             if plist[-1] == ',':
+                 plist = plist[:-1]
+             plist="'%s'" % plist
+             wanted = "project_name %s" % plist
+             defname = "poms_campaign_stage_active_%s" % c_s_id
+             create_definition(exp, defname, wanted)
+
+# setup session with cert authentication...
+
+cert="%s/private/gsi/pomscert.pem" % os.environ['HOME']
+key="%s/private/gsi/pomskey.pem" % os.environ['HOME']
+rs = requests.Session()
+rs.cert = (cert, key)
+rs.verify = False
+
+logging.basicConfig(level=logging.DEBUG)
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.DEBUG)
+requests_log.propagate = True
+
+update_them()

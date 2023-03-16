@@ -1,0 +1,54 @@
+{%extends "layout.html" %}
+
+{%block title%}
+Confirm {{act}} jobs
+{%endblock%}
+
+{%block header%}
+Confirm {{act}} request {%include 'help_button.html'%}
+{%endblock%}
+
+
+
+
+{%block subheader%}
+{%endblock%}
+{%if output is defined and not what is defined %}
+{%set what = output %}
+{%endif%}
+
+
+{%block content %}
+
+<div class="ui raised padded text container segment">
+
+   Are you sure you want to {{act}} the jobs for
+     {% if campaign_stage_id %}
+        Campaign Stage {{cs.name if cs}}, Submission(s) {{what}}
+     {% elif submission_id %}
+       Submissions(s) {{what}}
+     {% endif %}
+    ? <br>
+  <a href=
+     {% if campaign_id %}
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_id={{campaign_id}}&act={{act}}"
+     {% elif campaign_stage_id %}
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_stage_id={{campaign_stage_id}}&act={{act}}"
+     {% elif submission_id %}
+       "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&submission_id={{submission_id}}&act={{act}}"
+     {% endif %}
+   >
+      <button class="ui button">
+         Yes, {{act}} them
+      </button>
+  </a>
+
+  <a onclick="window.history.back()">
+     <button class="ui button">
+         No! go back
+     </button>
+  </a>
+
+</div>
+
+{%endblock%}

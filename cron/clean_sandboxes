@@ -1,0 +1,4 @@
+#!/bin/sh
+cd ~/sandboxes
+find . -type d -mmin +30 -print | grep -v '.' | xargs rm -rf
+

@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+
+"""
+First draft of proj.py wrapper
+You should be able to launch jobs with project.py with overrides, as:
+    wrap_proj \
+	-Oinputdef=mydataset \
+	-Osite=site1,site2 \
+	--\
+          project.py \
+		--xml whatever.xml \
+  		--command
+to override the inputdef dataset and site list in the whatever.xml file.
+It does this by generating a new xml file with the overrides applied,
+and running the project.py command.
+"""
+import sys
+import os
+import re
+
+debug = 0
+# filename for new and patched xml file
+newfname = "/tmp/xmlpatch%d" % os.getpid()
+
+# strip off script name
+sys.argv = sys.argv[1:]
+
+# collect our -Oname=value args into a [ [name,value],[name,value]...]
+# worklist
+worklist = []
+for i in xrange(len(sys.argv)-1,-1, -1):
+    if sys.argv[i].startswith('-O'):
+        field,val = sys.argv[i][2:].split('=')
+        worklist.append( [field, val] )
+        del sys.argv[i]
+
+#
+# eat the double dash, so we have command to run in sys.argv
+if sys.argv[0] == '--':
+    sys.argv = sys.argv[1:]
+
+#
+# ..except we need to find the xml file and change it...
+for i in range(len(sys.argv)):
+    if sys.argv[i] == '--xml':
+       fname = sys.argv[i+1]
+       sys.argv[i+1] = newfname
+
+
+#
+# now we read the old xml file and write the new one
+#
+inf = open(fname, "r")
+outf = open(newfname, "w")
+
+#
+# note this blatantly assumes the fields are on one line
+# in the xml file, but I think that's probalby okay
+#
+intags = []
+counts = {}
+
+for field, val in worklist:
+    m = re.match('(.*)\[([0-9]*)\]', field)
+    if ( m ):
+        field = m.group(1)
+    counts[field] = 0 
+
+for line in inf:
+   # apply each rule as a regexp substitution
+   for stag in re.findall("<\w+", line):
+       intags.insert(0,stag[1:])
+
+   
+   for field, val in worklist:
+
+       countmatch = None
+       m = re.match('(.*)\[([0-9]+)\]', field)
+       if ( m ):
+           field = m.group(1)
+           countmatch = int(m.group(2))
+
+       plist = field.split('.')
+       field = plist[-1]
+       plist = plist[:-1]
+       cmatch = True
+
+       if debug: print( "checking for:" , plist, " in:" , intags)
+       for p in plist:
+           if not p in intags:
+               cmatch = False
+
+       if not cmatch:
+           continue
+
+
+       reg = '<%s>.*</%s>' % (field, field)
+       sub = '<%s>%s</%s>' % (field, val, field)
+
+       if re.search(reg, line):
+            counts[field] = counts[field] + 1
+
+       if countmatch and countmatch != counts[field]:
+            continue
+
+       if debug: print( "trying re.sub('%s', '%s', '%s')" % (reg, sub, line))
+       line = re.sub(reg, sub, line)
+
+   for etag in re.findall("</\w+", line):
+       try:
+           intags.remove(etag[2:])
+       except:
+           pass
+
+   outf.write(line)
+
+#
+# close out the files
+#
+inf.close()
+outf.close()
+
+# actually run project script; single quote sys.argv, and run it
+# with os.system -- should probably use subprocess.call
+os.system("'%s'" % "' '".join(sys.argv))
+
+#
+# clean up our filename, we should probalby do this in some sort
+# of try block so we do it even if interrupted...
+#
+if debug: os.system("cat %s" % newfname)
+os.unlink(newfname)
+
+
