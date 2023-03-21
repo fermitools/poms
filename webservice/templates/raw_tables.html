@@ -1,0 +1,22 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS DB Admin
+{%endblock%}
+
+{%block header%}
+DB Admin{%include 'help_button.html'%}
+{%endblock%}
+
+{%block subheader%}
+Raw Tables:
+{%endblock%}
+
+{%block content%}
+<!-- tlist: {{tlist}} -->
+<ul>
+   {% for type in tlist|sort %}
+    <li> <a href="{{pomspath}}/list_generic?classname={{type}}">{{type}}</a> </li>
+   {% endfor %}
+</ul>
+{%endblock%}

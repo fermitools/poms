@@ -1,0 +1,133 @@
+
+<!-- Standard Menu -->
+<div class="toc">
+<div class="ui vertical menu">
+
+  <a class="active item"href="{{pomspath}}/index/{{session_experiment}}/{{session_role}}/">
+    <div class="ui float left">
+    <i class="large black home icon"><b>&nbsp;POMS</b></i>
+    </div>
+  </a>
+
+  <div class="item">
+    <div class="ui icon input">
+      <form action="{{pomspath}}/quick_search/{{session_experiment}}/{{session_role}}" style="width: 99%">
+       <input type="text" name="search_term" placeholder="Campaign Search..." style="width: 95%">
+      <button type="submit" style="border:none; background-color:transparent; margin-left: -2.5em; height: 1.5em;">
+         <i class="ui icon search"></i>
+      </button>
+      </form>
+    </div>
+  </div>
+
+
+  <div data-ecl class="item">
+    <div class="header">External Links</div>
+    <div class="menu">
+        <a class="active teal item" href='{{docspath}}/user_documentation' target="_blank">
+            POMS User Documentation
+        </a>
+    </div>
+    <div class="menu">
+        <a class="item" href="{{poms_servicenow_url}}" target="_blank">POMS ServiceNow Page</a>
+    </div>
+    <div class="menu">
+        <a class="item" href="{{exp_obj.logbook if exp_obj else '#'}}" target="_blank">{{session_experiment|capitalize}} Logbook</a>
+    </div>
+    <div class="menu">
+        <a class="item" href='{{servicenow}}/home.do?sysparm_view=scd_outage_calendar&sysparm_auto_request=true' target="_popup" >Downtime Calendar</a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Experiment</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/experiment_membership/{{session_experiment}}/{{session_role}}">
+        Membership (POMS)
+      </a>
+    </div>
+    {% if ctx.role in ("production" , "superuser") %}
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/experiment_shifters/{{session_experiment}}/{{session_role}}">
+        Shifters
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="item">
+    <div class="header">User Data</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/show_watching/{{session_experiment}}/{{session_role}}">
+        Watching
+      </a>
+  {%if session_role == 'analysis' or session_role == 'superuser' %}
+      <a class="item" href="{{pomspath}}/file_uploads/{{session_experiment}}/{{session_role}}/{{username}}">
+        Uploaded Files
+      </a>
+  {%endif%}
+      <a class="item" href="{{pomspath}}/held_launches/{{session_experiment}}/{{session_role}}">
+         Held Launches
+      </a>
+     </div>
+  </div>
+  <div class="item">
+    <div class="header">Campaign Data</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}">
+        Campaigns
+      </a>
+      <a class="item" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}">
+        Campaign Stages
+      </a>
+      <a class="item" href="{{pomspath}}/sample_workflows/{{session_experiment}}/{{session_role}}">
+        Sample Campaigns
+      </a>
+<!--
+      <a class="item" href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}?active=False">
+        InActive Campaign Stages
+      </a>
+-->
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Configure Work</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/login_setup_edit/{{session_experiment}}/{{session_role}}">
+        Compose Login/Setup
+      </a>
+      <a class="item" href="{{pomspath}}/job_type_edit/{{session_experiment}}/{{session_role}}">
+        Compose Job Type
+      </a>
+      <!--
+      <a class="item" href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}">
+        Compose Campaign Stages
+      </a>
+      -->
+      <a class="item" target="_blank" href='{{docspath}}/launch_config_file_templates'>
+        Config File Templates
+      </a>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="header">Jobs</div>
+    <div class="menu">
+      <a class="item" target="_blank" href="{{landscape_base}}/kibana/app/kibana#/dashboard/ba047b90-b8ca-11e7-989a-91951b87e80a?_g=(refreshInterval:(display:Off,pause:!f,value:0),time:(from:now-1d,mode:quick,to:now))&_a=(description:'',filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:Owner,negate:!f,type:phrase,value:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}}),query:(match:(Owner:(query:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}},type:phrase)))),('$state':(store:appState),exists:(field:POMS_CAMPAIGN_NAME),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:POMS_CAMPAIGN_NAME,negate:!f,type:exists,value:exists))),options:(darkTheme:!f),panels:!((col:1,id:'2f40f420-b8ca-11e7-989a-91951b87e80a',panelIndex:1,row:1,size_x:12,size_y:3,type:visualization),(col:7,id:'569cca30-b8ca-11e7-989a-91951b87e80a',panelIndex:2,row:4,size_x:6,size_y:2,type:visualization),(col:1,id:'65759a00-b8ca-11e7-989a-91951b87e80a',panelIndex:3,row:4,size_x:6,size_y:2,type:visualization),(col:1,columns:!(JobsubJobId,Owner,POMS_CAMPAIGN_NAME,ExitCode,ExitSignal,MATCH_GLIDEIN_Site,MachineAttrMachine0,stdout,stderr),id:'7e94c3c0-b8cb-11e7-989a-91951b87e80a',panelIndex:4,row:6,size_x:12,size_y:6,sort:!('@timestamp',desc),type:search)),query:(match_all:()),timeRestore:!f,title:'Fifebatch%20History',uiState:(),viewMode:view)">
+	All (Last Day)
+      </a>
+      <a class="item"  target="_blank" href="{{landscape_base}}/kibana/app/kibana#/dashboard/ba047b90-b8ca-11e7-989a-91951b87e80a?_g=(refreshInterval:(display:Off,pause:!f,value:0),time:(from:now-1d,mode:quick,to:now))&_a=(description:'',filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:Owner,negate:!f,type:phrase,value:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}}),query:(match:(Owner:(query:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}},type:phrase)))),('$state':(store:appState),exists:(field:POMS_CAMPAIGN_NAME),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:POMS_CAMPAIGN_NAME,negate:!f,type:exists,value:exists)),('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:ExitCode,negate:!t,type:phrase,value:'0'),query:(match:(ExitCode:(query:0,type:phrase))))),options:(darkTheme:!f),panels:!((col:1,id:'2f40f420-b8ca-11e7-989a-91951b87e80a',panelIndex:1,row:1,size_x:12,size_y:3,type:visualization),(col:7,id:'569cca30-b8ca-11e7-989a-91951b87e80a',panelIndex:2,row:4,size_x:6,size_y:2,type:visualization),(col:1,id:'65759a00-b8ca-11e7-989a-91951b87e80a',panelIndex:3,row:4,size_x:6,size_y:2,type:visualization),(col:1,columns:!(JobsubJobId,Owner,POMS_CAMPAIGN_NAME,ExitCode,ExitSignal,MATCH_GLIDEIN_Site,MachineAttrMachine0,stdout,stderr),id:'7e94c3c0-b8cb-11e7-989a-91951b87e80a',panelIndex:4,row:6,size_x:12,size_y:6,sort:!(POMS_CAMPAIGN_NAME,asc),type:search)),query:(match_all:()),timeRestore:!f,title:'Fifebatch%20History',uiState:(),viewMode:view)">
+        Failed_By Exit Code and Campaign Stage Name (Last Day)
+      </a>
+      <a class="item"  target="_blank" href="{{landscape_base}}/kibana/app/kibana#/dashboard/ba047b90-b8ca-11e7-989a-91951b87e80a?_g=(refreshInterval:(display:Off,pause:!f,value:0),time:(from:now-7d,mode:quick,to:now))&_a=(description:'',filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:Owner,negate:!f,type:phrase,value:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}}),query:(match:(Owner:(query:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}},type:phrase)))),('$state':(store:appState),exists:(field:POMS_CAMPAIGN_NAME),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:POMS_CAMPAIGN_NAME,negate:!f,type:exists,value:exists))),options:(darkTheme:!f),panels:!((col:1,id:'2f40f420-b8ca-11e7-989a-91951b87e80a',panelIndex:1,row:1,size_x:12,size_y:3,type:visualization),(col:7,id:'569cca30-b8ca-11e7-989a-91951b87e80a',panelIndex:2,row:4,size_x:6,size_y:2,type:visualization),(col:1,id:'65759a00-b8ca-11e7-989a-91951b87e80a',panelIndex:3,row:4,size_x:6,size_y:2,type:visualization),(col:1,columns:!(JobsubJobId,Owner,POMS_CAMPAIGN_NAME,ExitCode,ExitSignal,MATCH_GLIDEIN_Site,MachineAttrMachine0,stdout,stderr),id:'7e94c3c0-b8cb-11e7-989a-91951b87e80a',panelIndex:4,row:6,size_x:12,size_y:6,sort:!('@timestamp',desc),type:search)),query:(match_all:()),timeRestore:!f,title:'Fifebatch%20History',uiState:(),viewMode:view)">
+        Failed_By Exit Code and Campaign Stage Name (Last Week)
+      </a>
+      <a class="item"  target="_blank" href="{{landscape_base}}/kibana/app/kibana#/dashboard/ba047b90-b8ca-11e7-989a-91951b87e80a?_g=(refreshInterval:(display:Off,pause:!f,value:0),time:(from:now-1d,mode:quick,to:now))&_a=(description:'',filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:Owner,negate:!f,type:phrase,value:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}}),query:(match:(Owner:(query:{{"%spro"|format(session_experiment)|replace("samdevpro","mengel")}},type:phrase)))),('$state':(store:appState),exists:(field:POMS_CAMPAIGN_NAME),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:POMS_CAMPAIGN_NAME,negate:!f,type:exists,value:exists)),('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:ExitCode,negate:!t,type:phrase,value:'0'),query:(match:(ExitCode:(query:0,type:phrase))))),options:(darkTheme:!f),panels:!((col:1,id:'2f40f420-b8ca-11e7-989a-91951b87e80a',panelIndex:1,row:1,size_x:12,size_y:3,type:visualization),(col:7,id:'569cca30-b8ca-11e7-989a-91951b87e80a',panelIndex:2,row:4,size_x:6,size_y:2,type:visualization),(col:1,id:'65759a00-b8ca-11e7-989a-91951b87e80a',panelIndex:3,row:4,size_x:6,size_y:2,type:visualization),(col:1,columns:!(JobsubJobId,Owner,POMS_CAMPAIGN_NAME,ExitCode,ExitSignal,MATCH_GLIDEIN_Site,MachineAttrMachine0,stdout,stderr),id:'7e94c3c0-b8cb-11e7-989a-91951b87e80a',panelIndex:4,row:6,size_x:12,size_y:6,sort:!(MachineAttrMachine0,asc),type:search)),query:(match_all:()),timeRestore:!f,title:'Fifebatch%20History',uiState:(),viewMode:view)">
+        Failed_By Exit Code and Node Name (Last Day)
+      </a>
+    </div>
+  </div>
+
+</div>   <!--ends ui vertical inverted sticky menu-->
+</div>

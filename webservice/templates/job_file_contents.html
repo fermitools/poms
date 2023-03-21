@@ -1,0 +1,52 @@
+{%extends "layout.html" %}
+
+{%block title%}
+POMS Job Triage
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         Job Triage{%include 'help_button.html'%}
+
+          <div class="sub header">
+              triage your jobs
+          </div>
+</h1>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">{{file}}</h2>
+{%endblock%}
+
+
+
+{%block content %}
+
+
+<style>
+pre
+{
+line-height: 12px;
+}
+</style>
+
+<div class="ui existing segment">
+<pre>
+{% for item in job_file_contents %}
+{{item}}
+{% endfor %}
+</pre>
+</div>
+{%endblock%}
+
+{%block final%}
+<script type="text/javascript">
+$( document ).on("load",function() {
+       $(document).off("scroll")
+       $(document).off("scrollchange");
+  } )
+</script>
+{%endblock%}

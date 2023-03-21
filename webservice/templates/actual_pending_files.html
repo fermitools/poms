@@ -1,0 +1,80 @@
+{%extends "layout.html" %}
+
+{%block title%}
+Pending files for Jobs
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+         Pending Files {%include 'help_button.html'%}
+</h1>
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
+{%endblock%}
+
+
+
+
+{%block subheader%}
+<a href="{{prev}}">&lt;previous {{tdays}} days</a> |
+<a href="{{next}}">next {{tdays}} days &gt;</a>
+{%endblock%}
+
+
+
+{%block content %}
+
+Pending files for:
+
+     {% if campaign_stage_id is not none %}
+        Campaign Stage {{cs.name}}
+     {% elif submission_id is not none %}
+       Submissions(s) {{jjid}}
+     {% elif job_id is not none %}
+       Job(s) {{jjid}}
+     {% endif %}
+<br>
+
+Projects involved
+<div class="ui raised padded text container segment">
+{% for s in tasklist %}
+<div class="item">
+<div class="ui list">
+<a href="{{sam_base}}/station_monitor/{{cs.experiment}}/stations/{{cs.experiment}}/projects/{{s.project}}">{{s.project}}</a>
+<a href="show_task_jobs?submission_id={{s.submission_id}}&tmax={{s.updated.strftime('%Y-%m-%d %H:%M:%S')}}">[task]</a>
+</div>
+</div>
+{%endfor%}
+</div>
+</div>
+
+Files without children with version {{cs.software_version}}:
+<div class="ui raised padded text container segment">
+<div class="ui list">
+{% for f in flist %}
+<div class="item"> {{f}} </div>
+{%endfor%}
+</div>
+</div>
+
+<script>
+var tmin_local_time = moment.utc('{{tmin}}').toDate();
+tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmin" ).html( tmin_local_time );
+
+var tmax_local_time = moment.utc('{{tmax}}').toDate();
+tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+$( ".tmax" ).html( tmax_local_time );
+</script>
+
+
+
+
+<script>
+$(function() {
+    $('#global_datepicker_container').show();
+});
+</script>
+
+{%endblock%}

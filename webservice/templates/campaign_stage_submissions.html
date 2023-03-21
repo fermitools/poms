@@ -1,0 +1,189 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS:Campaign Stage Submissions
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+     Campaign Stage Submissions{%include 'help_button.html'%}
+</h1>
+
+<div class="ui basic label">
+  <i class="wait icon"></i>  <div class="tmin" style="display:inline;"></div> to <div class="tmax" style="display:inline;"></div>
+</div>
+
+<div>
+  <a href="{{data.prevlink}}">&lt;previous {{data.tdays}} days</a> |
+  <a href="{{data.nextlink}}">next {{data.tdays}} days &gt;</a>
+</div>
+{%endblock%}
+
+
+{%block subheader%}
+Campaign:&nbsp;&nbsp; {{campaign_name}} <br>
+Campaign Stage:&nbsp;&nbsp; {{stage_name}}
+{%endblock%}
+
+{%block content%}
+<!-- 
+-->
+<script>
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
+ }
+</script>
+
+<script>
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
+ }
+</script>
+
+    <table class="ui sortable celled table">
+        <thead>
+            <tr>
+                <th style="width:20%">Stage Name</th>
+                <th>Submission Id</th>
+                <th>Jobsub Id</th>
+                <th>Availble Output</th>
+                <th>Commands</th>
+                <th>Status (History/Current)</th>
+                <th>Submitted</th>
+                <th>Submitter</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for rec in data.submissions %}
+        <tr>
+            <td>{{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.darrow[rec.submission_id]|safe}}{{rec.campaign_stage_name}}</td>
+            <td>{{rec.submission_id}}</td>
+            <td>
+                <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
+                    {{rec.jobsub_job_id}}
+                </a>
+            </td>
+            <td>
+               <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
+               {{rec.available_output}}
+               </a>
+            </td>
+            <td>
+            {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=hold" title="Hold"><i class="ui pause icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=release" title="Release"><i class="ui play icon"></i></a>&nbsp;
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&act=kill" title="Kill"><i class="ui trash icon"></i></a>
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+            {% elif rec.status == 'Completed' %}
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <i class="ui trash icon grey"></i>&nbsp;
+                <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" title="Skip ahead to Located"><i class="ui forward icon"></i></a>
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+            {% elif rec.status == 'Awaiting Approval' %}
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <a onclick="confirm_call('Are you sure you want to UnApprove ?','{{pomspath}}/update_submission?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Removed')" title="UnApprove">
+                <i class="ui trash icon blue"></i>
+                </a>
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <a onclick="confirm_call('Are you sure you want to approve ?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}&jobsub_job_id=&status=Completed')" title="Approve">
+                <i class="ui checkmark icon blue"></i>
+                </a>
+            {% else %}
+                <span>
+                <i class="ui pause icon grey"></i>&nbsp;
+                <i class="ui play icon grey"></i>&nbsp;
+                <i class="ui trash icon grey"></i>&nbsp;
+                <i class="ui forward icon  grey"></i>&nbsp;
+                <i class="ui checkmark icon  grey"></i>&nbsp;
+                <span>
+            {% endif %}
+            </td>
+            <td>
+                <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
+                        <i class="history icon"></i>
+                </button>
+                {{rec.status}}</td>
+            <td>{{rec.created}}</td>
+            <td>{{rec.creator}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="ui small modal" id="status_history_modal">
+        <i class="close icon"></i>
+        <div class="header" id="status_history_header">
+            Status History
+        </div>
+        <div class="scrollable">
+        <table class="ui table segment">
+            <thead>
+                <tr>
+                    <th>Start Timestamp</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="status_history_body">
+            </tbody>
+        </table>
+        </div>
+
+    </div> <!-- Ends status_history_modal -->
+
+<script>
+    var tmin_local_time = moment.utc('{{data.tmin}}').toDate();
+    tmin_local_time = moment(tmin_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmin" ).html( tmin_local_time );
+
+    var tmax_local_time = moment.utc('{{data.tmax}}').toDate();
+    tmax_local_time = moment(tmax_local_time).format('YYYY-MM-DD HH:mm');
+    $( ".tmax" ).html( tmax_local_time );
+
+    $(function() {
+        $('#global_datepicker_container').show();
+    });
+
+
+    function get_status_history(submission_id) {
+        formdata = {"submission_id": submission_id}
+        var trows = " ";
+        $.ajax({
+            url: "{{pomspath}}/session_status_history",
+                type: 'GET',
+                data: formdata,
+                dataType: 'json',
+                success: function(rows){
+                    var index = 0;
+                    for (index = 0; index < rows.length; index++) {
+                        var row = rows[index];
+                        trows = trows + "<tr><td>" +row.created + "</td><td>" + row.status + "</td></tr>";
+                    }
+                    $("#status_history_body").html(trows);
+                    $("#status_history_modal").modal('show');
+                }
+        });
+    }
+
+</script>
+
+
+{%endblock%}

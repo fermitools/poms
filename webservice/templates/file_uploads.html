@@ -1,0 +1,132 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS: Uploaded files for user
+ {% if first_name is defined %}
+     <i class="user icon" style="margin-left: 1em"></i>
+     {{first_name}}
+     {{last_name}}
+ {% endif %}
+
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+Uploaded Files
+</h1>
+{%endblock%}
+
+
+{%block content%}
+
+<a class="ui orange ribbon label">These files are available as <tt>$UPLOADS/filename</tt> to your launch commands.</a>
+  <p>
+  <div class="ui raised segment">
+  {% if session_role == 'superuser' %}
+    <div class="ui floating dropdown labeled icon blue button search">
+        <i class="filter icon"></i>
+        <span class="text">Select Experimenter</span>
+        <div class="menu">
+          <div class="ui icon search input">
+            <i class="search icon"></i>
+            <input type="text" name="search" placeholder="Search issues...">
+          </div>
+          <div class="divider"></div>
+          <div class="header">
+            <i class="tags icon"></i>
+            Tag Label
+          </div>
+          {% for e in experimenters %}
+          <div class="item" data-value="{{e.Experimenter.username}}">
+              <div class="ui blue empty circular label"></div>
+              {{e.Experimenter.first_name}} {{e.Experimenter.last_name}}
+          </div>
+          {% endfor %}
+        </div>
+    </div>
+  {% else %}
+  <h3> Upload a file </h3>
+  <form action="{{pomspath}}/upload_file" method="POST" enctype="multipart/form-data">
+    <input type=hidden name="experiment" value="{{session_experiment}}">
+    <input type=hidden name="role" value="{{session_role}}">
+    <input type=hidden name="username" value="{{username}}">
+    Filename: <input type="file" name="filename" multiple />
+            <input type="submit" value="Upload" />
+  <!-- hide for now
+    <div class="item" style="display: inline-block; padding-left: 20px;">
+      <a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="You can optionally use this feature to fetch or renew a vault token for this experiment, bypassing the need to upload." target='_blank'>
+        <i class="list icon"></i> Acquire Vault Token 
+      </a>
+    </div>
+  -->
+  </form>
+  {% endif %}
+ 
+  </div>
+
+  <div class="ui raised segment">
+  <h3> Uploaded files </h3>
+  <form action="{{pomspath}}/remove_uploaded_files/{{session_experiment}}/{{session_role}}/{{username}}">
+  <table class="ui celled table raised">
+  <thead>
+  <tr><th><input name="file_all" id="file_all" type="checkbox"><th>Name</th><th>Size</th><th>Uploaded</th></tr>
+  </thead>
+  <tbody id="filesbody" name="filesbody">
+  {% for fs in file_stat_list %}
+      {%set file = fs[0] %}
+      {%set size = fs[1] %}
+      {%set mtime = fs[2] %}
+      <tr>
+         <td><input id="filename" name="filename" value="{{file}}" type="checkbox"></td>
+         <td> <a href="{{pomspath}}/download_file/{{session_experiment}}/{{session_role}}?filename={{file}}">{{file}}</a> </td><td> {{size}} </td><td> {{mtime}}</td>
+      </tr>
+  {% endfor %}
+  <tr><td colspan=4></td></tr>
+  <tr><td style="text-align: right;" colspan=2>Total:</td><td>{{total}}b</td><td>{{(total* 1000.0/quota)|int/10}}% of {{(quota/1024)|int}}k quota</td></tr>
+      <tr><td colspan=4>
+           {% if session_role == 'analysis' %}
+           <input class="ui basic button red" type="submit" name="action" value="Delete">
+           {% endif %}
+      </td></tr>
+  </tbody>
+  </table>
+  </form>
+  </div>
+
+  <script>
+    $('.ui.dropdown').dropdown();
+
+    $(".search").dropdown({
+        onChange: function(value) {
+            $.ajax({
+                url: "{{pomspath}}/file_uploads_json/{{session_experiment}}/{{session_role}}",
+                type: 'GET',
+                data: {'checkuser': value},
+                success:  function(rdata){
+                    var html = "<tr><td colspan=4></td></tr>";
+                    for (i = 0; i < rdata.file_stat_list.length; i++) {
+                        var file = rdata.file_stat_list[i][0];
+                        var st_size = rdata.file_stat_list[i][1];
+                        var mtime = rdata.file_stat_list[i][2];
+                        html = html + '<tr>';
+                        html = html +   '<td><input id="filename" name="filename" value="' +file+ '" type="checkbox"></td>';
+                        html = html +   '<td>' + file + '</td>';
+                        html = html +   '<td>' + st_size + '</td>';
+                        html = html +   '<td>' + mtime + '</td>';
+                        html = html + '</tr>';
+                      }
+                      var quota = rdata.quota;
+                      var total = rdata.total;
+                      var pct = Math.round(total* 1000.0/quota) /10;
+                      var quotak = Math.round(quota/1024);
+                      html = html + '<tr><td colspan=4></td></tr>';
+                      html = html + '<tr><td style="text-align: right;" colspan=2>Total:</td><td>' +total+ 'b</td><td>' +pct+ '% of ' +quotak+ 'k quota</td></tr>';
+                      html = html + '<tr><td colspan=4></td></tr>';
+                      $("#filesbody").html(html);
+                    }
+            });
+        }
+    });
+
+  </script>
+{%endblock%}

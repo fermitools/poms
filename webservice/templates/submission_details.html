@@ -1,0 +1,313 @@
+
+{%extends "layout.html"%}
+
+{%block title%}
+POMS:Submission #{{submission.submission_id}}: {{submission.jobsub_job_id}} Details
+{%endblock%}
+
+
+{%block header%}
+Submission Details {%include 'help_button.html'%}
+{%endblock%}
+
+{%block subheader%}
+{%endblock%}
+
+{%block extracss%}
+<style type="text/css">
+
+.fn {
+   display: inline-block;
+   min-width: 12em;
+   font-weight: bold;
+}
+
+</style>
+{%endblock%}
+{%block content%}
+<script>
+ function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
+ }
+ function confirm_validate(msg) {
+     var r = confirm(msg);
+     if ( r ) {
+         return true;
+     } else {
+         return false;
+     }
+ }
+</script>
+<h3>
+Submission #{{submission.submission_id}}<br>
+jobsub_job_Id: {{submission.jobsub_job_id}} <br>
+Campaign Stage <a href="{{pomspath}}/campaign_stage_info/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_snapshot_obj.campaign_stage_id}}">{{submission.campaign_stage_snapshot_obj.name}}</a>
+<span class="ui label">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br/>
+in Campaign <a href="{{pomspath}}/show_campaigns/{{session_experiment}}/{{session_role}}?just_one={{submission.campaign_stage_obj.campaign_obj.name}}">{{submission.campaign_stage_obj.campaign_obj.name}}</a>
+<span class="ui label">{{submission.campaign_stage_obj.campaign_obj.campaign_id}}</span>
+
+</h3>
+
+<div class="ui horizontal segments">
+<div class="ui segment raised" style="max-width: 40%;">
+
+<h3>Information</h3>
+
+Submission was:
+{%if submission.recovery_tasks_parent %}
+a recovery launch for <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission.recovery_tasks_parent}}">Submission #{{submission.recovery_tasks_parent}}</a>
+{%else%}
+a regular launch
+{%endif%}
+<br>
+
+{%if dataset %}
+<!-- Since we added a uuid to the submission id for the sam definitions, account for it here, but still allow legacy submissions to be viewed -->
+{%if dataset[:13] == 'poms_depends_' and dataset|length > 50  %}
+...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[50:-2]}}">Submission #{{dataset[50:-2]}}</a>
+{%elif dataset[:13] == 'poms_depends_' and dataset|length < 50  %}
+...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
+{%endif%}
+{%endif%}
+
+
+<br>
+
+{% if recovery_ids %}
+Recoveries launched: 
+{%for id in recovery_ids %}
+   <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
+{% endfor %}
+<br>
+{% endif %}
+
+{% if depend_ids %}
+Dependencies launched: 
+{%for id in depend_ids %}
+   <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
+{% endfor %}
+<br>
+{% endif %}
+
+{% if submission.jobsub_job_id %}
+{%set cluster=submission.jobsub_job_id[:submission.jobsub_job_id.find("@")] %}
+{%set schedd=submission.jobsub_job_id[submission.jobsub_job_id.find("@")+1:] %}
+{% else %}
+{%set cluster='unknown' %}
+{%set schedd='unknown' %}
+{% endif %}
+
+{%set experiment=submission.campaign_stage_snapshot_obj.experiment %}
+
+<!-- we take a half second off of the create time to get the logfile time,
+    probably this should be looked up for real, or we should make it the
+    rule when we're launching jobs that it uses the submission created time
+    minus half a sec  -->
+
+{%set owner=submission.experimenter_creator_obj.username %}
+
+<!-- submission_log_format {{submission_log_format}}
+View <a href="{{pomspath}}/list_launch_file?/{{session_experiment}}/{{session_role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
+-->
+
+{%if submission_log_format == 3 %}
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
+{%elif submission_log_format == 2%}
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
+{%elif submission_log_format == 1%}
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}">launch output </a> <br>
+{%endif%}
+
+View in
+{%if submission.jobsub_job_id %}
+{%if submission.project %}
+  <a href="{{fifemon_base}}/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+{% else %}
+  <a href="{{fifemon_base}}/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
+{%endif%}
+{%else%}
+Landscape (disabled, no info found) <br>
+{%endif%}
+
+{%if submission.project %}
+View the <a href="{{sam_base}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
+{%endif%}
+
+{%if submission.jobsub_job_id %}
+View the 
+<a href="{{landscape_base}}/lens/view/job/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/">
+<!-- <a href="https://{{schedd}}:8443/jobsub/acctgroups/{{experiment|replace('samdev','fermilab')}}/sandboxes/{%if submission.campaign_stage_snapshot_obj.vo_role == 'Production' %}{{"%spro"|format(experiment)|replace("samdevpro","mengel")}}{%else%}{{submission.experimenter_creator_obj.username}}{%endif%}/{{submission.jobsub_job_id|replace("@",".0@")|replace(".0.0@",".0@")}}/"> -->
+Job Logs
+</a> <br>
+{%endif%}
+
+</div>
+<div class="ui segment raised">
+
+<h3>Actions</h3>
+
+{%if history[-1].status_id < 7000 and history[-1].status_id != 2000 %}
+Hold Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=hold"><i class="pause icon"></i></a> <br>
+Release Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=release"><i class="play icon"></i></a> <br>
+Kill Condor Jobs <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}&act=kill"><i class="trash icon"></i></a> <br>
+Kick to Completed  <button onclick="confirm_call('Are you sure you want to mark this submission Completed?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?status=Completed&submission_id={{submission.submission_id}}&jobsub_job_id={{submission.jobsub_job_id}}')"> <i class="ui forward icon "></i></button>&nbsp;
+{%elif history[-1].status_id == 9000 %}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
+Kick to Completed  <button onclick="confirm_call('Are you sure you want to mark this submission Completed?','{{pomspath}}/update_submission/{{session_experiment}}/{{session_role}}?status=Completed&submission_id={{submission.submission_id}}&jobsub_job_id={{submission.jobsub_job_id}}')"> <i class="ui forward icon "></i></button>&nbsp;
+{%elif history[-1].status_id == 7000 %}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
+Kick to Located
+<button onclick="confirm_call('Are you sure you want to mark this submission Located?',
+'{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission.submission_id}}')" title="Skip ahead to Located"><i class="ui forward icon"></i></button>
+{%else%}
+Hold Condor Jobs <i class="ui pause icon grey"></i>&nbsp;<br>
+Release Condor Jobs  <i class="ui play icon grey"></i>&nbsp;<br>
+Kill Condor Jobs   <i class="ui trash icon grey"></i>&nbsp;<br>
+Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
+{%endif%}
+<br>
+
+Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+{%if submission.recovery_tasks_parent %}
+'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
+{%else%}
+'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
+{%endif%}
+)">Relaunch</button><br>
+
+{%if history[-1].status_id >= 7000 %}
+Launch Recovery for Submission
+<form style="display: inline-block;" action="{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}" onsubmit="return confirm_validate('Are you sure you want to launch jobs now?')">
+<select name="recovery_type">
+{% for r in recoverymap %}
+<option value="{{recoverymap[r][0]}}" >{{r}} </option>
+{% endfor %}
+</select>
+<input type="hidden" name="campaign_stage_id" value="{{submission.campaign_stage_id}}">
+<input type="hidden" name="submission_id" value="{{submission.submission_id}}">
+<input type="submit" name="launch" value="Launch">
+</form>
+
+{%endif%}
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised" style="max-width: 40%;">
+<h3>History</h3>
+
+{% for sh in history %}
+{% if loop.previtem and loop.previtem.status_id != sh.status_id %}
+{{sh.created}} {{statusmap[sh.status_id]}} <br>
+{% endif %}
+{% endfor %}
+
+</div>
+<div class="ui segment raised">
+<h3>File Stats</h3>
+
+{% for stat in statuses %}
+<span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
+{% endfor %}
+
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
+<h3>Submission fields</h3>
+ <span class="fn">submission_id:</span> <span class="val">{{submission.submission_id}}</span> <br>
+ <span class="fn">jobsub_job_id:</span> <span class="val">{{submission.jobsub_job_id}}</span> <br>
+ <span class="fn">campaign_stage_id:</span> <span class="val">{{submission.campaign_stage_id}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.created}}</span> <br>
+ <span class="fn">submission_params:</span> <span class="val">{{submission.submission_params}}</span> <br>
+ <span class="fn">depends_on:</span> <span class="val">{{submission.depends_on}}</span> <br>
+ <span class="fn">depend_threshold:</span> <span class="val">{{submission.depend_threshold}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.updated}}</span> <br>
+ <span class="fn">command_executed:</span> <span class="val">{{submission.command_executed}}</span> <br>
+ <span class="fn">project:</span> <span class="val">{{submission.project}}</span> <br>
+ <span class="fn">login_setup_snapshot_id:</span> <span class="val">{{submission.login_setup_snapshot_id}}</span> <br>
+ <span class="fn">campaign_stage_snapshot_id:</span> <span class="val">{{submission.campaign_stage_snapshot_id}}</span> <br>
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.job_type_snapshot_id}}</span> <br>
+ <span class="fn">recovery_position:</span> <span class="val">{{submission.recovery_position}}</span> <br>
+ <span class="fn">recovery_tasks_parent:</span> <span class="val">{{submission.recovery_tasks_parent}}</span> <br>
+
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
+
+<h3>Campaign Stage Snapshot</h3>
+
+ <span class="fn">campaign_stage_snapshot_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.campaign_stage_snapshot_id}}</span> <br>
+ <span class="fn">campaign_stage_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.campaign_stage_id}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.name}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.job_type_id}}</span> <br>
+ <span class="fn">vo_role:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.vo_role}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.created}}</span> <br>
+ <span class="fn">dataset:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.dataset}}</span> <br>
+ <span class="fn">software_version:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.software_version}}</span> <br>
+ <span class="fn">login_setup_id:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.login_setup_id}}</span> <br>
+ <span class="fn">param_overrides:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.param_overrides}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.updated}}</span> <br>
+ <span class="fn">cs_last_split:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_last_split}}</span> <br>
+ <span class="fn">cs_split_type:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_split_type}}</span> <br>
+ <span class="fn">cs_split_dimensions:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.cs_split_dimensions}}</span> <br>
+ <span class="fn">completion_type:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_type}}</span> <br>
+ <span class="fn">completion_pct:</span> <span class="val">{{submission.campaign_stage_snapshot_obj.completion_pct}}</span> <br>
+
+</div>
+<div class="ui segment raised">
+
+<h3>Job Type Snapshot</h3>
+
+ <span class="fn">job_type_snapshot_id:</span> <span class="val">{{submission.job_type_snapshot_obj.job_type_snapshot_id}}</span> <br>
+ <span class="fn">job_type_id:</span> <span class="val">{{submission.job_type_snapshot_obj.job_type_id}}</span> <br>
+ <span class="fn">name:</span> <span class="val">{{submission.job_type_snapshot_obj.name}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.job_type_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">launch_script:</span> <span class="val">{{submission.job_type_snapshot_obj.launch_script}}</span> <br>
+ <span class="fn">definition_parameters:</span> <span class="val">{{submission.job_type_snapshot_obj.definition_parameters}}</span> <br>
+ <span class="fn">input_files_per_job:</span> <span class="val">{{submission.job_type_snapshot_obj.input_files_per_job}}</span> <br>
+ <span class="fn">output_files_per_job:</span> <span class="val">{{submission.job_type_snapshot_obj.output_files_per_job}}</span> <br>
+ <span class="fn">output_file_patterns:</span> <span class="val">{{submission.job_type_snapshot_obj.output_file_patterns}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.job_type_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.job_type_snapshot_obj.created}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.job_type_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.job_type_snapshot_obj.updated}}</span> <br>
+
+</div>
+</div>
+<div class="ui horizontal segments">
+<div class="ui segment raised">
+<h3>Login/Setup Snapshot</h3>
+
+
+ <span class="fn">login_setup_snapshot_id:</span> <span class="val">{{submission.login_setup_snapshot_obj.login_setup_snapshot_id}}</span> <br>
+ <span class="fn">login_setup_id:</span> <span class="val">{{submission.login_setup_snapshot_obj.login_setup_id}}</span> <br>
+ <span class="fn">experiment:</span> <span class="val">{{submission.login_setup_snapshot_obj.experiment}}</span> <br>
+ <span class="fn">launch_host:</span> <span class="val">{{submission.login_setup_snapshot_obj.launch_host}}</span> <br>
+ <span class="fn">launch_account:</span> <span class="val">{{submission.login_setup_snapshot_obj.launch_account}}</span> <br>
+ <span class="fn">launch_setup:</span> <span class="val">{{submission.login_setup_snapshot_obj.launch_setup}}</span> <br>
+ <span class="fn">creator:</span> <span class="val">{{submission.login_setup_snapshot_obj.creator}}</span> <br>
+ <span class="fn">created:</span> <span class="val">{{submission.login_setup_snapshot_obj.created}}</span> <br>
+ <span class="fn">updater:</span> <span class="val">{{submission.login_setup_snapshot_obj.updater}}</span> <br>
+ <span class="fn">updated:</span> <span class="val">{{submission.login_setup_snapshot_obj.updated}}</span> <br>
+
+</div>
+</div>
+{%endblock%}

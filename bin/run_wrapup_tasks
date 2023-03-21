@@ -1,0 +1,34 @@
+#!/bin/sh
+
+lock() {
+    lockf=/tmp/wrapup_tasks_lock
+    if [ -r  $lockf ]
+    then
+        pid=`cat $lockf`
+        if kill -0 $pid
+        then
+            echo "$0 pid:$$ previous $0 pid $pid still running..."
+            exit
+        fi
+    fi
+    echo "$$" > $lockf
+}
+
+unlock() {
+   if [ x`cat $lockf 2>/dev/null||true` = x$$ ] 
+   then
+       rm $lockf
+   else
+       echo "unlock unhappy lock file..."
+   fi
+}
+
+lock
+
+mv /tmp/wrapup_tasks.html /tmp/wrapup_tasks_old.html || true
+mv /tmp/wt.out /tmp/wt_old.out || true
+date > /tmp/wt.out
+wget --timeout 7200 -t 1 -O /tmp/wrapup_tasks.html $(awk -F "=" '/localhost/ {print $2}' $WEB_CONFIG)/poms/wrapup_tasks >> /tmp/wt.out 2>&1 
+date >> /tmp/wt.out
+
+unlock

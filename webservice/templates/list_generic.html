@@ -1,0 +1,38 @@
+{%extends "layout.html"%}
+
+{%block title%}
+POMS DB Admin
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+     {{classname}} Items{%include 'help_button.html'%}
+
+     <div class="sub header">
+         View/Edit {{classname}} Items
+      </div>
+</h1>
+{%endblock%}
+
+
+
+
+
+
+{%block subheader%}
+<h2 class="ui dividing header">{{classsname}} Items:</h2>
+{%endblock%}
+
+
+
+
+{%block content%}
+
+<ul>
+{% for i in list %}
+   <li> <a href="{{edit_screen}}?classname={{classname}}&id={{i.key}}">{{i.key}}:{{i.value}}</a>
+{% endfor %}
+  <li> <a href="{{edit_screen}}?classname={{classname}}&id=">[[New {{classname}}]]</a>
+<ul>
+
+{%endblock%}

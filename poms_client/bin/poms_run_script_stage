@@ -1,0 +1,50 @@
+#!/bin/sh
+
+. ${SETUPS_DIR:-/grid/fermiapp/products/common/etc}/setups
+
+cmd="$0 $*"
+
+host=$(awk -F "=" '/poms_base_url_prod/ {print $2}' $WEB_CONFIG)
+while :
+do
+case x$1 in
+x--test)   extra="--test=1"; host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG); shift;;
+x--dev)   extra="--test=dev";host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG);  shift;;
+x--int)   extra="--test=int";host=$(awk -F "=" '/poms_base_url_int/ {print $2}' $WEB_CONFIG);  shift;;
+x--debug)  set -x; shift;;
+*) break;;
+esac
+done
+
+log_status() {
+    curl -k --cert /tmp/x509up_u$UID --key /tmp/x509up_u$UID  --data "submission_id=$POMS_TASK_ID" --data "jobsub_job_id=$JOBSUB_JOB_ID" --data "status=$1" "https://$host:8443/poms/update_submission"
+}
+
+startup() {
+    if [ x$POMS_TASK_ID = x ]
+    then
+        export POMS_TASK_ID=`get_task_id_for --campaign=$POMS_CAMPAIGN_ID --user=$USER --command_executed="$cmd" $extra| sed -e 's/Task=//'`
+    fi
+
+    export CLUSTER="`date +%s`"
+    export PROCESS="0"
+    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@$(awk -F "=" '/fakebatch1/ {print $2}' $WEB_CONFIG)"
+    log_status "Idle"
+
+    sleep 1
+    log_status "Running"
+}
+
+run_command() {
+    "$@"
+    rc=$?
+}
+
+wrapup() {
+    sleep 1
+    log_status "Completed"
+}
+
+startup
+run_command "$@"
+wrapup

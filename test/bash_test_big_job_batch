@@ -1,0 +1,39 @@
+#!/bin/sh
+
+PATH=`pwd`/bin_mock_condor_q:$PATH
+
+cd ../webservice
+#profile_bits="-m cProfile -o cProfile.out"
+profile_bits=""
+python ${profile_bits} service.py --no-wsgi &
+pid1=$!
+
+cd ../test/data
+sh  ./mk_condor_q_20k.sh
+files=`echo condor_q_batch_2048_*`
+
+cd ../../job_broker
+export POMS_DIR=`pwd`/..
+for f in $files
+do
+   export CONDOR_Q_OUTPUT=$f
+   echo "starting jobsub_q_submission_scraper.py with `which condor_q` and file $CONDOR_Q_OUTPUT"
+   python jobsub_q_submission_scraper.py -d -t -c ./submission_agent.cfg
+   echo "done condor_q_scraper.py"
+   ps -o pid,pcpu,vsz,rss,command
+   sleep 1
+done
+ps -o pid,pcpu,vsz,rss,command
+
+sleep 10
+
+ps -o pid,pcpu,vsz,rss,command
+
+
+kill -SIGINT $pid1
+sleep 1
+kill -SIGINT $pid1
+sleep 1
+kill -SIGINT $pid1
+
+wait

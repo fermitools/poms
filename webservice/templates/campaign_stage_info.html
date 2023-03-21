@@ -1,0 +1,402 @@
+{%extends "layout.html"%}
+
+{%block title%}
+<title>POMS:Campaign Stage {{CampaignStage.name}} Info</title>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+{%endblock%}
+
+{% macro show_hint(anchor, hint) %}
+	{% include 'help_button.html' %}
+
+{% endmacro %}
+
+
+{%block header%}
+Campaign Stages
+    {{ show_hint('#campaign-stages', 'Help page') }}
+{%endblock%}
+
+{%block subheader%}
+Campaign Stage {{CampaignStage.name}} <span class="ui label">{{CampaignStage.campaign_stage_id}}</span> <br/>
+in Campaign <a href="{{pomspath}}/campaign_overview/{{session_experiment}}/{{session_role}}?campaign_id={{CampaignStage.campaign_obj.campaign_id}}">{{CampaignStage.campaign_obj.name}}</a> <span class="ui label">{{CampaignStage.campaign_obj.campaign_id}}</span>
+{%endblock%}
+
+
+{%block content%}
+<!-- 
+This page is really in English, and hopefully a brief note to that effect
+here in the comments will keep Google Chrome from offering to translate it
+all the time...
+-->
+
+<style>
+.ui.search .prompt{border-radius:0.28571429rem}
+</style>
+
+
+  <div class="ui segment raised ">
+
+    <!-- Campaign_info: {{Campaign_info}} -->
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+
+  <br/>
+  <span class="info">statistics for last 30 days</span>
+
+    <script >
+        $("#campaign th").attr("style", "padding: 0.3em; border-left: 1; text-align: center;");
+
+        function showEditLastSplitModal(){
+          $("#edit_last_split_modal").modal("show");
+        }
+        $(function() {
+          $("#last_split_submit").submit(function(){
+            return confirm("Are you sure you want to change the last split?");
+          });
+        });
+        
+    </script>
+  </div>
+
+  <script>
+   function confirm_call(msg, url, icon = null) {
+    var r = confirm(msg);
+    if ( r ) {
+        if (icon != null){
+            $(icon).attr("disabled", true);
+            $(icon).children('i').eq(0).addClass("spinner");
+            $(icon).children('i').eq(0).addClass("loading");
+        }
+        location.assign(url)
+    }
+ }
+  </script>
+
+<div class="ui small modal" id="edit_last_split_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Last Split Editor
+  </div>
+  <div class="ui text container">
+      <form id="last_split_submit" class="ui form raised segment" action="{{pomspath}}/update_campaign_split/{{session_experiment}}/{{session_role}}" method="GET">
+        <table class="ui celled table" id="ep_table">
+          <thead>
+            <tr>
+              <th>Select a Campaign Stage Snapshot ID</th>
+            </tr>
+          </thead>
+          <tbody id="last_split_body">
+              <tr>
+                <td>
+                  <input type="hidden" name="campaign_stage_id" value="{{CampaignStage.campaign_stage_id}}"/>
+                  <label for="last_split_custom_val">Enter a custom last split value</label>
+                  <input type="number" name="last_split_custom_val" id="last_split_custom_val" placeholder="{{CampaignStage.cs_last_split}}"/>
+                  <label for="campaign_stage_snapshot_id">Or select from the following options</label>
+                  <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
+                      <option id="0"  value="0">-</option>
+                      {% for cs in campaign_stage_snapshots %}
+                        {% if CampaignStage.cs_last_split == cs[0] %}
+                          <option id="{{cs[3]}}" selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%else%}
+                          <option id="{{cs[3]}}" value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%endif%}
+                      {% endfor %}
+                  </select>
+                </td>
+              </tr>
+          </tbody>
+          <script>
+            $("#last_split_custom_val").keypress(function(e){
+              $("option").removeAttr("selected");
+              if ($("#"+ String.fromCharCode(e.keyCode)).length){
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").prop("selected", "selected");
+              }
+              else{
+                $("#campaign_stage_snapshot_id option[id='0']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='0']").prop("selected", "selected");
+              }
+          });
+          </script>
+          <tfoot>
+            <tr>
+              <th colspan="2">
+                <div class="actions">
+                  <button type="button" class="ui button deny red">Cancel</button>
+                  <button type="submit" class="ui button approve teal">Accept</button>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </form>
+  </div>
+</div> <!-- Ends edit_last_split_modal  -->
+
+  <div class="ui horizontal segments">
+    <div class="ui segment raised">
+         <h3>Reports/Status</h3>
+         <div class=menu>
+              <div class=item>
+                 <i class="external icon"></i>
+                 <a href="{{landscape_base}}/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
+              </div>
+              <div class=item>
+               <a href="{{fifemon_base}}/monitor/d/X49EUj3iz/poms-stage?orgId=1&from=now-30d&to=now&var-stage={{CampaignStage.campaign_stage_id}}&var-stage_name={{CampaignStage.name}}" target='_blank'>
+                   <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
+               </a>
+              </div>
+              <div class=item>
+              <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
+                <i class="table icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
+              </a>
+              </div>
+              <div class=item>
+                <a href="{{pomspath}}/campaign_task_files/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&tmax={{last_activity}}&tdays=7"><i class="external file icon" data-content="List file statistics for Submissions for CampaignStage" data-variation="basic"></i>Campaign Stage Submission Files</a>
+              </div>
+          </div> <!-- class=menu -->
+    </div>
+    <div class="ui segment raised">
+         <h3>Actions</h3>
+         <div class=menu>
+            <!-- hide for now
+              {%if session_role == "analysis"%}
+                <div class="item">
+                  <a href="{{pomspath}}/auth/{{session_experiment}}/{{session_role}}" title="A vault token is required for analysis users. These tokens can be uploaded in 'User Data -> Uploaded Files', or by clicking this link." target='_blank'>
+                    <i class="list icon"></i> Acquire Vault Token 
+                  </a>
+                </div>
+              {%endif%}
+            -->
+              <div class=item>
+                <a href="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}?jump_to_campaign={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj or session_role=="production-shifter"}}>
+                <i class="external edit icon" data-content="Edit CampaignStage" data-variation="basic"></i>Edit Campaign Stage</a>
+               </div>
+              <div class=item>
+                <button onclick="confirm_call('Are you sure you want to submit jobs?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                   <i class="external rocket icon" data-content="Immediately Launch Submissions for CampaignStage" data-variation="basic">
+                   </i>
+                  Launch Campaign Stage Jobs Now
+                </button>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs_commands/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
+               </a>
+              </div>
+              <div class=item>
+                <button onclick="confirm_call('Are you sure you want to launch test jobs now?','{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}')" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                   <i class="external rocket icon" data-content="Immediately Launch Test Submissions for CampaignStage" data-variation="basic">
+                   </i>
+                  Launch Campaign Stage Test Jobs Now
+                </button>
+                &nbsp; &nbsp;
+                <a href="{{pomspath}}/launch_jobs_commands/{{session_experiment}}/{{session_role}}?test_launch=1&campaign_stage_id={{CampaignStage.campaign_stage_id}}&output_commands=True" {{"disabled" if (session_role=="analysis"
+                   and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                (<i class="external text icon"></i>commands)
+               </a>
+              </div>
+
+              <div class=item>
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=kill" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                   <i class="external trash icon" data-content="Kill running/idle jobs in CampaignStage" data-variation="basic">
+                   </i>Kill running/idle Jobs for Campaign Stage
+                </a>
+              </div>
+
+              <div class=item>
+                <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=hold" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                >
+                   <i class="external pause icon" data-content="Hold running/idle jobs in CampaignStage" data-variation="basic">
+                   </i>Hold running/idle Jobs for Campaign Stage
+               </a>
+              </div>
+
+              <div class=item>
+                 <a href="{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&act=release" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 >
+                    <i class="external play icon" data-content="Release held jobs in CampaignStage" data-variation="basic">
+                    </i>Release held  Jobs for Campaign Stage
+                </a>
+              </div>
+
+              <div class=item>
+                 <a href="{{pomspath}}/schedule_launch/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 >
+                    <i class="external calendar icon" data-content="Schedule Future Launches" data-variation="basic">
+                    </i>Schedule Future Job Launches
+                 </a>
+             </div>
+            {% if CampaignStage.hold_experimenter_id %}
+            <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold/{{session_experiment}}/{{session_role}}?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Release" 
+                 >
+                    <i class="sign out alternate icon" data-content="Release Queued Launches" data-variation="basic">
+                    </i>Release queued launches
+                 </a>
+                 (queued by {{CampaignStage.experimenter_holder_obj.username}})
+             </div>
+             {% else %}
+             <div class=item>
+                 <a href="{{pomspath}}/mark_campaign_hold/{{session_experiment}}/{{session_role}}?ids2HR={{CampaignStage.campaign_stage_id}}&is_hold=Hold&clear_cron=True" 
+                 >
+                    <i class="sign in alternate icon" data-content="Queue Future Launches" data-variation="basic">
+                    </i>Queue future job launches
+                 </a>
+            </div>
+            {% endif %}
+            <!--
+             <div class=item>
+              {# if CampaignStage.active %}
+                 <a href="{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=False" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                 >
+                    <i class="external hide icon" data-content="Mark CampaignStage Inactive" data-variation="basic">
+                   </i>Mark Campaign Stage Inactive
+                 </a>
+              {% else %}
+                  <a href="{{pomspath}}/mark_campaign_active/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&is_active=True" {{"disabled" if (session_role=="analysis"
+                         and CampaignStage.creator!=experimenter_id) or CampaignStage.experimenter_holder_obj}}
+                  >
+                    <i class="external unhide icon" data-content="Mark Campaign Stage Active" data-variation="basic">
+                    </i>Mark Campaign Stage Active
+                  </a>
+              {% endif #}
+             </div>
+            -->
+             <style type="text/css">
+                     a[disabled] {
+                     pointer-events: none;
+                     }
+             </style>
+          </div> <!-- class=menu -->
+   </div>  <!-- class=ui segment raised -->
+
+  </div>
+
+  <div class="ui horizontal segments">
+
+   <div class="ui segment raised">
+    <h3>Campaign Stage</h3>
+    <b>Name</b>: {{CampaignStage.name}}<br/>
+    <b>Id</b>:{{CampaignStage.campaign_stage_id}}<br/>
+    <b>Experiment</b>: {{CampaignStage.experiment}}<br/>
+    {%if CampaignStage.dataset.find(',') > 0 %}
+    <b>Split Data</b>: {{CampaignStage.dataset}}<br/>
+    {% else %}
+    <b>Dataset</b>: {{CampaignStage.dataset}}<br/>
+    {% endif %}
+    <b>Software Version</b>: {{CampaignStage.software_version}}<br/>
+    <b>VO Role</b>: {{CampaignStage.vo_role}}<br/>
+    {% if CampaignStage.param_overrides %}
+    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
+    {% endif %}
+    {% if CampaignStage.test_param_overrides %}
+    <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
+    {% endif %}
+    <b>Split Type</b>: {{CampaignStage.cs_split_type}}<br/>
+    {# currently unused
+    <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br/>
+    #}
+    <b>Last Split</b>: {{CampaignStage.cs_last_split}} <i class="large edit link blue icon" id="edit_last_split_modal_btn" onclick="showEditLastSplitModal()"></i><a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
+    <!-- <b>Active</b>: {{CampaignStage.active}} <br/> -->
+    <b>Created</b>: {{CampaignStage.created}}<br/>
+    <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{CampaignStage.updated}}<br/>
+    <b>Updater</b>: {{CampaignStage.experimenter_updater_obj.username}}<br/>
+    </div>
+
+
+  <div class="ui segment raised ">
+    <h3>Job Type</h3>
+
+    <b>Name</b>: {{Campaign_definition_info.JobType.name}}<br/>
+    <!--<b>experiment</b>: {{Campaign_definition_info.JobType.experiment}}<br/>-->
+    <b>Launch/Setup</b>: {{Campaign_definition_info.JobType.launch_script}}<br/>
+    <b>Definition Parameters</b>: [{% for pair in Campaign_definition_info.JobType.definition_parameters %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
+    <b>Input Files Per Job</b>: {{Campaign_definition_info.JobType.input_files_per_job}}<br/>
+    <b>Output Files Per Job</b>: {{Campaign_definition_info.JobType.output_files_per_job}}<br/>
+    <b>Output File Patterns</b>: {{Campaign_definition_info.JobType.output_file_patterns}}<br/>
+    <b>Creator</b>: {{Campaign_definition_info.Experimenter.username}}<br/>
+    <b>Created</b>: {{Campaign_definition_info.JobType.created}}<br/>
+    <b>Updater</b>: {{Campaign_definition_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{Campaign_definition_info.JobType.updated}}<br/>
+    <b>
+    </div>
+  </div>
+    <div class="ui segment raised">
+    <h3>Launch/Setup</h3>
+    <b>Name</b>: {{login_setup_info.LoginSetup.name}}<br/>
+    <b>Experiment</b>: {{CampaignStage.experiment}}<br/>
+    <b>Launch Host</b>: {{login_setup_info.LoginSetup.launch_host}}<br/>
+    <b>Launch Account</b>: {{login_setup_info.LoginSetup.launch_account}}<br/>
+    <b>Launch Setup</b>: {{login_setup_info.LoginSetup.launch_setup}}<br/>
+    <b>Creator</b>: {{login_setup_info.Experimenter.username}}<br/>
+    <b>Created</b>: {{login_setup_info.LoginSetup.created}}<br/>
+    <b>Updater</b>: {{login_setup_info.Experimenter.username}}<br/>
+    <b>Updated</b>: {{login_setup_info.LoginSetup.updated}}<br/>
+    </div>
+
+   <div class="ui segment raised">
+    <h3>Immediate Dependencies</h3>
+    <br/>
+      {{dep_svg|safe}}
+  </div>
+
+
+ <div class="ui segment raised">
+   <h3>Recent Launch Outputs </h3>
+   <ul>
+   {%for f in launch_flist|sort(reverse=True)%}
+      <li>
+      <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
+      {%if f|length > 22 %}
+          {%set submission_id = f.split('_')[3]|default('0')|int %}
+          {%if submission_id != 0 %}
+          <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
+          {%if recent_submissions[submission_id]|default(9999) == 2000 %}
+            <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
+           {%else%}
+             <button class="mini ui button"><i class="ui fire extinguisher icon grey"></i></button>&nbsp;
+          {%endif%}
+          {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
+    
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><button class="mini ui button"> <i class="ui pause icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><button class="mini ui button"><i class="ui play icon"></i></button></a>&nbsp;
+              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><button class=mini ui button"><i class="ui trash icon"></i></button></a>
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
+                    
+          {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+                    <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><button class="mini ui button"><i class="ui forward icon"></i></button></a>
+          {%else%}
+               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
+          {%endif%}
+          {%endif%}
+      {%endif%}
+   {%endfor%}
+   </ul>
+ </div>
+
+
+{%endblock%}
+
