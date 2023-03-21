@@ -9,7 +9,7 @@ config.read(os.environ["WEB_CONFIG"])
 
 
 def experiment_list():
-    resp = requests.get('%s/poms/experiment_list' % config.get("localhost"))
+    resp = requests.get('%s/poms/experiment_list' % config.get("global", "localhost"))
     e_l = resp.json()
     resp.close()
     print("instead of %s returning samdev for debugging" % repr(e_l))
@@ -17,7 +17,7 @@ def experiment_list():
     return e_l
 
 def campaign_stage_datasets():
-    resp = requests.get('%s/poms/campaign_stage_datasets' % config.get("localhost"))
+    resp = requests.get('%s/poms/campaign_stage_datasets' % config.get("global", "localhost"))
     a_m = resp.json()
     resp.close()
     return a_m
