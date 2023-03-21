@@ -565,11 +565,11 @@ class SubmissionsPOMS:
                 )
 
                 if job_data:
-                    res.append("found job log for %s!" % submission_id)
-                    logit.log("found job log for %s!" % submission_id)
+                    res.append("found job log for %s!" % submission.submission_id)
+                    logit.log("found job log for %s!" % submission.submission_id)
 
                     if len(job_data["completed"]) == len(job_data["idle"]):
-                        self.update_submission_status(ctx, submission_id, status="Completed")
+                        self.update_submission_status(ctx, submission.submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
 
@@ -989,7 +989,7 @@ class SubmissionsPOMS:
         c = ctx.db.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).one()
         if hold == "hold":
             c.hold_experimenter_id = experimenter.experimenter_id
-            c.role_held_wtih = role
+            c.role_held_wtih = ctx.role
         else:
             c.hold_experimenter_id = None
             c.role_held_wtih = None
@@ -1592,8 +1592,6 @@ class SubmissionsPOMS:
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
-            "source /etc/profile;",
-            "printenv;"
         ])
 
         cleanup_cmdl = [

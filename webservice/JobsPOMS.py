@@ -114,6 +114,9 @@ class JobsPOMS:
             if act == "kill":
                 subcmd = "rm"
                 status_set = "Removed"
+            elif act == "cancel":
+                subcmd = "rm"
+                status_set = "Cancelled"
             elif act in ("hold", "release"):
                 subcmd = act
             else:

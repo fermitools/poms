@@ -38,10 +38,32 @@ Confirm {{act}} request {%include 'help_button.html'%}
        "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&submission_id={{submission_id}}&act={{act}}"
      {% endif %}
    >
+   {% if act == "kill" %}
+      <button class="ui button">
+         {{act}} them, and mark as "Removed".
+      </button>
+   {% else %}
       <button class="ui button">
          Yes, {{act}} them
       </button>
+   {% endif %}
   </a>
+
+  {% if act == "kill" %}
+  <a href=
+     {% if campaign_id %}
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_id={{campaign_id}}&act=cancel"
+     {% elif campaign_stage_id %}
+     "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&campaign_stage_id={{campaign_stage_id}}&act=cancel"
+     {% elif submission_id %}
+       "{{pomspath}}/kill_jobs/{{session_experiment}}/{{session_role}}?confirm=y&submission_id={{submission_id}}&act=cancel"
+     {% endif %}
+   >
+      <button class="ui button">
+         {{act}} them, and mark as "Cancelled".
+      </button>
+   </a>
+   {% endif %}
 
   <a onclick="window.history.back()">
      <button class="ui button">

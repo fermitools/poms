@@ -17,11 +17,12 @@ CVS
 *.txt*
 *.diff
 poms.dbs
+*.swp
 *.ini
 *.cfg
+*.conf
 /test/data/*
 poms.egg-info/
-
 tmp
 .DS_Store
 __pycache__

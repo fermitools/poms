@@ -19,13 +19,11 @@ import threading
 from subprocess import Popen, PIPE
 import logging
 import configparser
+import argparse
 
-config = configparser.ConfigParser()
-config.read(os.environ["WEB_CONFIG"])
 
 logit = logging.getLogger()
 
-import prometheus_client as prom
 
 #
 # define a couple of clone classes of dict so we can see which one(s) we're using/leaking
@@ -51,24 +49,23 @@ class jobsub_q_scraper:
        at the fifebatchhead nodes.
     """
 
-    def __init__(self, debug=0, poms_uri="http://127.0.0.1:8080/poms/"):
+    def __init__(self, config, debug, poms_uri):
 
         self.poms_uri = poms_uri
+        self.config = config
         gc.enable()
 
         self.statusmap = {"0": "Unexpanded", "1": "Idle", "2": "Running", "3": "Removed", "4": "Completed", "5": "Held", "6": "Cancelled"}
-
         self.psess = requests.Session()
         self.psess.headers.update({'X-Shib-Userid':'poms'})
         self.known_submissions = {}
-        self.jobsub_q_cmd = "condor_q -pool %s -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID" % config.get("FNAL", "condor_collector_pool")
+        self.jobsub_q_cmd = "condor_q -G icarus -pool " + self.config.get("submission_agent", "condor_collector_pool") + " -global -constraint 'regexp(\".*POMS_TASK_ID=.*\",Env)' -format '%s;JOBSTATUS=' Env -format '%d;CLUSTER=' Jobstatus -format '%d;PROCESS=' ClusterID -format '%d;' ProcID -format 'GLIDEIN_SITE=%s;' MATCH_EXP_JOB_GLIDEIN_Site -format 'REMOTEHOST=%s;' RemoteHost -format 'NumRestarts=%d;' NumRestarts -format 'HoldReason=%.30s;' HoldReason -format 'RemoteUserCpu=%f;' RemoteUserCpu  -format 'EnteredCurrentStatus=%d;' EnteredCurrentStatus -format 'RemoteWallClockTime=%f;' RemoteWallClockTime -format 'Args=\"%s\";' Args -format 'JOBSUBJOBID=%s;' JobsubJobID -format 'xxx=%d\\n' ProcID"
 
     def update_submission(self, submission_id, jobsub_job_id, project=None, status=None):
         logit.info(
             "update_submission: %s"
             % repr({"submission_id": submission_id, "jobsub_job_id": jobsub_job_id, "project": project, "status": status})
         )
-
         # for submissions, just give the cluster
         if jobsub_job_id.find(".") > 0:
             jobsub_job_id = jobsub_job_id[: jobsub_job_id.find(".")] + jobsub_job_id[jobsub_job_id.find("@") :]
@@ -214,35 +211,35 @@ class jobsub_q_scraper:
             sys.stdout.flush()
 
 
-if __name__ == "__main__":
+def main():
     debug = 0
     testing = 0
-
     requests.packages.urllib3.disable_warnings()
 
-    if len(sys.argv) > 1 and sys.argv[1] == "-d":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-c", "--config", default="./submission_agent.cfg")
+    ap.add_argument("-d", "--debug", action="store_true", default=False)
+    ap.add_argument("-t", "--test", action="store_true", default=False)
+    args = ap.parse_args()
+
+    if args.debug:
         debug = 1
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
         logging.basicConfig(level=logging.DEBUG)
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
     else:
         logging.basicConfig(level=logging.INFO)
 
-    server = "%s/poms" % config.get("localhost")
+    config = configparser.ConfigParser()
+    config.read(args.config)
+    server = "%s/poms" % config.get("submission_agent", "poms_uri")
     nthreads = 8
 
-    if len(sys.argv) > 1 and sys.argv[1] in ["-t", "-o"]:
-        testing = 1
+    if args.test:
+        nthreads = 1
 
-        if sys.argv[1] == "-t":
-            nthreads = 1
-            server = "http://127.0.0.1:8888/poms"
 
-        sys.argv = [sys.argv[0]] + sys.argv[2:]
-
-    js = jobsub_q_scraper(debug=debug)
+    js = jobsub_q_scraper(config, args.debug, server)
     try:
-        if testing:
+        if args.test:
             print("test mode, run one scan\n")
             js.scan()
             print("test mode: done\n")
@@ -250,10 +247,9 @@ if __name__ == "__main__":
             js.poll()
 
     except KeyboardInterrupt:
-        from pympler import summary, muppy
+        print("end of __main__")
+        exit
 
-        sum1 = summary.summarize(muppy.get_objects())
-        summary.print_(sum1)
-
-    jr.cleanup()
     print("end of __main__")
+
+main()

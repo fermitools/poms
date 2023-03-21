@@ -15,7 +15,7 @@ config = ConfigParser()
 config.read(os.environ["WEB_CONFIG"])
 
 try:
-    import requests.packages.urllib3 as urllib3
+    import urllib3 as urllib3
 except ImportError:
     import urllib3
 
@@ -52,7 +52,7 @@ def add_to_listserv(list_owner, new_users):
     listval = 'poms_announce'
     smtp_server = config.get("smtp", "smtp_host")
     fromAddr = '%s' % list_owner
-    toAddr = config.get("listserv_server")
+    toAddr = config.get("global", "listserv_server")
 
     subject = "Add new_users to %s" %(listval)
 
