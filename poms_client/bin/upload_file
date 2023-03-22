@@ -54,15 +54,26 @@ try:
              vo = options.experiment
              if vo == 'samdev':
                  vo = 'fermilab'
+
+             if vo == 'dune':
+                 extrapool = 'dunegpcoll02.fnal.gov'
+             else:
+                 extrapool = ''
+
              os.system('''
-                 export _condor_CREDD_HOST
+                 
+               export _condor_CREDD_HOST
+               export _condor_COLLECTOR_HOST
+               for _condor_COLLECTOR_HOST in gpcollector04.fnal.gov %s
+               do
                  slist=`condor_status -schedd -af name -constraint IsJobsubLite`
                  for _condor_CREDD_HOST in $slist
                  do
                      echo "updating credmon on $_condor_CREDD_HOST"
                      /usr/bin/condor_vault_storer %s
                  done
-             ''' % vo)
+               done
+             ''' % (extrapool, vo))
              os.system("cp /tmp/vt_u%d-%s %s" % (os.getuid(), vo, vaultfile))
         args.append(vaultfile)
 except SystemExit:
