@@ -377,7 +377,7 @@ class CampaignsPOMS:
         return campaign, "\n".join(res), sp_list
 
     def show_watching(self, ctx):
-
+        #self.poms_service.submissionsPOMS.wrapup_tasks(ctx)
         experimenter_id = ctx.get_experimenter().experimenter_id
 
         logit.log(logit.INFO, "entering show_watching: %s" % experimenter_id)
