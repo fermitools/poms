@@ -54,7 +54,15 @@ try:
              vo = options.experiment
              if vo == 'samdev':
                  vo = 'fermilab'
-             os.system('/usr/bin/condor_vault_storer %s' % vo)
+             os.system('''
+                 export _condor_CREDD_HOST
+                 slist=`condor_status -schedd -af name -constraint IsJobsubLite`
+                 for _condor_CREDD_HOST in $slist
+                 do
+                     echo "updating credmon on $_condor_CREDD_HOST"
+                     /usr/bin/condor_vault_storer %s
+                 done
+             ''' % vo)
              os.system("cp /tmp/vt_u%d-%s %s" % (os.getuid(), vo, vaultfile))
         args.append(vaultfile)
 except SystemExit:
