@@ -8,35 +8,55 @@ import logging
 import sys
 import os
 import time
+import datetime
 from http.client import HTTPConnection
 import requests
 import re
 import configparser
 import argparse
+import math
 
 HTTPConnection.debuglevel = 1
 
 LOGIT = logging.getLogger()
+FIRTH={1:"st",2:"nd",3:"rd",21:"st",22:"nd",23:"rd",31:"st",32:"nd",33:"rd",41:"st",42:"nd",43:"rd"}
+def get_elapsed_time(seconds):
+    retval=None
+    intervals={"days":86400,"hours": 3600,"minutes": 60,"seconds": 1}
+    interval_count = lambda sec,interval: (math.floor(sec/interval), sec % interval)
+    for i, (key, interval) in enumerate(intervals.items()):
+        count, seconds = interval_count(seconds, interval)
+        if count != 0:
+            if i == 0 or not retval:
+                retval = "%s %s" % (count, key if count > 1 else key[0:len(key)-1])
+            elif seconds == 0:
+                retval = retval + ", and %s %s." % (count, key if count > 1 else key[0:len(key)-1])
+            else:
+                retval = retval + ", %s %s" % (count, key if count > 1 else key[0:len(key)-1])
+    return retval
 
 def get_status(entry):
     """
         given a dictionary from the Landscape service,
         return the status for our submission
     """
-    if entry["done"] and entry["failed"] * 2 > entry["completed"]:
-        return "Failed"
-    # Only consider a submission as cancelled if every job within it is cancelled, or if user marks it as cancelled when killing it.
-    if entry["done"] and entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
-        return "Cancelled"
-    if entry["done"]:
-        return "Completed"
-    if entry["held"] > 0:
-        return "Held"
-    if entry["running"] == 0 and entry["idle"] != 0:
-        return "Idle"
-    if entry["running"] > 0:
-        return "Running"
-    return "Unknown"
+    try:
+        if entry["done"] and entry["failed"] * 2 > entry["completed"]:
+            return "Failed"
+        # Only consider a submission as cancelled if every job within it is cancelled, or if user marks it as cancelled when killing it.
+        if entry["done"] and entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
+            return "Cancelled"
+        if entry["done"]:
+            return "Completed"
+        if entry["held"] > 0:
+            return "Held"
+        if entry["running"] == 0 and entry["idle"] != 0:
+            return "Idle"
+        if entry["running"] > 0:
+            return "Running"
+    except:
+        pass
+    return None
 
 
 class Agent:
@@ -56,6 +76,7 @@ class Agent:
 
         self.cfg = configparser.ConfigParser()
         self.cfg.read(config)
+        self.submission_update_failures = {}
         
         self.poms_uri = poms_uri if poms_uri else self.cfg.get("submission_agent", "poms_uri")
         self.submission_uri = submission_uri if submission_uri else self.cfg.get("submission_agent", "submission_uri")
@@ -104,23 +125,11 @@ class Agent:
         """
             actually report information on a submission to POMS
         """
-
-        LOGIT.info(
-            "update_submission: %s",
-            repr(
-                {
-                    "submission_id": submission_id,
-                    "jobsub_job_id": jobsub_job_id,
-                    "project": project,
-                    "pct_complete": pct_complete,
-                    "status": status,
-                }
-            ),
-        )
+        
         try:
             sess = requests.session()
             htr = sess.post(
-                "%s/update_submission" % self.poms_uri,
+                "%s/submission_broker_update_submission" % self.poms_uri,
                 {
                     "submission_id": submission_id,
                     "jobsub_job_id": jobsub_job_id,
@@ -147,11 +156,38 @@ class Agent:
             #                      },
             #                      timeout=self.timeouts,
             #                      verify=False)
+        except requests.exceptions as e:
+            LOGIT.exception("An unknown exception occured during an update request: %s" % repr(e))
 
-        if htr.text != "Ok.":
-            LOGIT.error("update_submission: Failed.")
-            LOGIT.error(htr.text)
-
+        if not htr.text or htr.text == "Unknown":
+            # Failed to update
+            if self.submission_update_failures.get(submission_id, {"failures":0})["failures"] == 0:
+                self.submission_update_failures[submission_id] = {"failures":1, "last_attempt": datetime.datetime.now()}
+                LOGIT.error("Failed with to update to submission %d: Could not find submission" % (submission_id))
+            else:
+                self.submission_update_failures[submission_id]["failures"] = self.submission_update_failures[submission_id]["failures"] + 1
+                failures = self.submission_update_failures[submission_id]["failures"]
+                self.submission_update_failures[submission_id]["last_attempt"] = datetime.datetime.now()
+                LOGIT.error("Failed with to update to submission %d: Failed to find submission, this is the %s%s consecutive attempt." % 
+                (submission_id, failures, "th" if failures not in FIRTH else FIRTH[failures]))
+        else:
+            # Success
+            LOGIT.info(
+                "submission_broker: successfully updated submission: %s",
+                repr(
+                    {
+                        "submission_id": submission_id,
+                        "jobsub_job_id": jobsub_job_id,
+                        "project": project,
+                        "pct_complete": pct_complete,
+                        "status": status,
+                    }
+                ),
+            )
+            # Submission successfully updated. Reset failed count if it exists
+            if self.submission_update_failures[submission_id] != None:
+                self.submission_update_failures[submission_id]["failures"] = 0
+                self.submission_update_failures[submission_id]["last_attempt"] = datetime.datetime.now()
         htr.close()
 
     def get_individual_submission(self, jobsubjobid):
@@ -230,17 +266,42 @@ class Agent:
         LOGIT.info("found project for %s: %s", entry["pomsTaskID"], res)
         return res
 
-    def maybe_report(self, entry):
+    # Some entries that we receive via lens belong to a different poms webserver, and result in a lot of failures and unnecessary calls to this webserver (ie prod vs dev)
+    # In this segment, we are ensuring that consistant failures are being processed less often, and if these submissions consistently fail
+    # for over 30 days, we stop processing them altogether since it is reasonable to conclude that they do not belong here.
+    # Over time, this will be depracated, because we will be specifying the 'POMS_HOST' in future submissions.
+    def can_update(self, pomsTaskID):
+        if pomsTaskID in self.submission_update_failures:
+            failures = self.submission_update_failures[pomsTaskID]["failures"]
+            elapsed_time = (datetime.datetime.now() - self.submission_update_failures[pomsTaskID]["last_attempt"]).total_seconds()
+            # Last failure for this submission occured within the last 5 seconds. Skip
+            if elapsed_time < 5:
+                return False
+            if failures >= 10 and failures < 40:
+                if elapsed_time < 86400: # seconds in 24 hours
+                    LOGIT.info("Submission %d is marked as a consistent failure with %s consecutive failed attempts to update. Ignoring attempts to update this submission for '%s'" % 
+                    (pomsTaskID, self.submission_update_failures[pomsTaskID]["failures"], get_elapsed_time(86400 - elapsed_time)))
+                    return False
+            elif failures >= 40:
+                if "stop" not in self.submission_update_failures[pomsTaskID]:
+                    self.submission_update_failures[pomsTaskID]["stop"] = True
+                    LOGIT.info("Submission %d has failed to update for 30 consecutive days. This submission will no longer be processed." % (pomsTaskID))
+                return False
+        return True
+
+
+    def maybe_report(self, entry, report_status):
 
         if entry == None or entry['pomsTaskID'] == None:
-            return
+            return None, None
 
+        if entry['pomsEnv'] != '' and entry['pomsEnv'] != self.cfg.get("submission_agent", "poms_env"):
+            return None, None
+            
         if entry["done"] == self.known["status"].get(entry["pomsTaskID"], None):
             report_status_flag = False
         else:
             report_status_flag = True
-
-        report_status = get_status(entry)
 
         self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry["id"]
 
@@ -272,21 +333,14 @@ class Agent:
 
         report_project = self.get_project(entry)
 
-        #
-        # actually report it if there's anything changed...
-        #
+        
+        # report it if anything changed.
         if report_status_flag or report_project_flag or report_pct_complete_flag:
-            self.update_submission(
-                entry["pomsTaskID"],
-                jobsub_job_id=entry["id"],
-                pct_complete=report_pct_complete,
-                project=report_project,
-                status=report_status,
-            )
-
-        #
+            may_report=True
+        else:
+            may_report = False
+        
         # now update our known status if available
-        #
         self.known["poms_task_id"][entry["pomsTaskID"]] = entry["id"]
         if entry["pomsTaskID"] not in self.known["status"] or report_status:
             self.known["status"][entry["pomsTaskID"]] = entry["done"]
@@ -296,6 +350,11 @@ class Agent:
 
         if entry["pomsTaskID"] not in self.known["pct"] or report_pct_complete:
             self.known["pct"][entry["pomsTaskID"]] = report_pct_complete
+
+        if may_report:
+            return report_project, report_pct_complete
+        else:
+            return None, None
 
     def get_running_submissions_LENS(self, group, since):
 
@@ -332,7 +391,7 @@ class Agent:
             ddict = {}
             pass
 
-        print( "ddict: %s" % repr(ddict))
+        print("ddict: %s" % repr(ddict))
         if ddict:
             return ddict.get("data",{}).get("submissions",[])
         else:
@@ -366,13 +425,16 @@ class Agent:
         sublist.extend( self.get_running_submissions_POMS(group))
 
         LOGIT.info("%s data: %s", group, repr(sublist))
-
         sublist.sort(key=(lambda x: x.get("pomsTaskID", "")))
 
         for entry in sublist:
 
             # skip if we don't have a pomsTaskID...
-            if not entry.get("pomsTaskID", None):
+            if not entry.get("pomsTaskID", None) or entry.get("pomsTaskID", 0) == 0:
+                continue
+
+            # skip if we don't have a pomsTaskID...
+            if entry.get("pomsEnv", '') != self.cfg.get("submission_agent", "poms_env") and entry.get("pomsEnv", '') != '':
                 continue
 
             # don't get confused by duplicate listings
@@ -380,6 +442,9 @@ class Agent:
                 continue
 
             thispass.add(entry.get("pomsTaskID"))
+
+            if not self.can_update(entry['pomsTaskID']):
+                continue
 
             id = entry.get('id')
             pomsTaskID = entry.get('pomsTaskID')
@@ -389,13 +454,14 @@ class Agent:
 
             fullentry = self.get_individual_submission(id)
 
-            if fullentry and 'data' in fullentry:
-                 fullentry = fullentry['data'] 
-
-            self.maybe_report(fullentry)
-
-            if fullentry and fullentry["done"]:
-                self.update_submission(pomsTaskID, jobsub_job_id=id, status=get_status(fullentry))
+            if fullentry:
+                if 'data' in fullentry:
+                    fullentry = fullentry['data']
+                if fullentry['pomsTaskID'] or fullentry['data']:
+                    report_status = get_status(fullentry)
+                    report_project, report_pct_complete = self.maybe_report(fullentry, report_status)
+                    if self.can_update(pomsTaskID) and (report_project or report_pct_complete or report_status):
+                        self.update_submission(pomsTaskID, jobsub_job_id=id, pct_complete=report_pct_complete, project=report_project, status=report_status)
 
         self.last_seen[group] = thispass
 

@@ -826,6 +826,31 @@ class SubmissionsPOMS:
 
         ctx.db.commit()
         return "Ok."
+    # h3. update_submission
+    def submission_broker_update_submission(self, ctx, submission_id, jobsub_job_id, pct_complete=None, status=None, project=None):
+        
+        #logit.log("submission_id=%s | Jobsub_job_id=%s" % (str(submission_id), str(jobsub_job_id)))
+        s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
+        if not s:
+            return "Unknown"
+
+        if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
+            s.jobsub_job_id = jobsub_job_id
+            ctx.db.add(s)
+
+        if project and s.project != project:
+            s.project = project
+            ctx.db.add(s)
+
+        # amend status for completion percent
+        if status == "Running" and pct_complete and float(pct_complete) >= s.campaign_stage_snapshot_obj.completion_pct:
+            status = "Completed"
+
+        if status is not None:
+            self.update_submission_status(ctx, submission_id, status=status)
+
+        ctx.db.commit()
+        return status
 
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
@@ -1571,7 +1596,7 @@ class SubmissionsPOMS:
             
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
+            'UPS_OVERRIDE="" setup /home/poms/poms_jobsub_wrapper, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
@@ -1592,6 +1617,7 @@ class SubmissionsPOMS:
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
+            "export POMS_ENV=%s" % ctx.web_config.get("POMS", "poms_env") 
         ])
 
         cleanup_cmdl = [

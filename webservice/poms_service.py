@@ -812,6 +812,14 @@ class PomsService:
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
 
+    # h4. submission_broker_update_submission
+    @poms_method(p=[{"p": "can_do", "t": "Submission", "item_id": "submission_id"}])
+    def submission_broker_update_submission(self, **kwargs):
+        res = self.submissionsPOMS.submission_broker_update_submission(**kwargs)
+        if kwargs.get("redirect", None):
+            raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
+        return res
+
     # h3. File upload management for Analysis users
     #
     # h4. file_uploads

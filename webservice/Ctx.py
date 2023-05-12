@@ -46,8 +46,11 @@ class Ctx:
         self.config_get = config_get if config_get else cherrypy.config.get
         if not os.environ.get("WEB_CONFIG", None):
             os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
-        self.web_config = web_config if web_config else ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+        if cherrypy.request.web_config:
+            self.web_config = cherrypy.request.web_config
+        else:
+            self.web_config = web_config if web_config else ConfigParser()
+            self.web_config.read(os.environ["WEB_CONFIG"])
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
         self.experiment = (

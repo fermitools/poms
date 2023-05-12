@@ -419,7 +419,7 @@ class samweb_lite:
         text = None
         retries = 3
         for i in range(retries + 1):
-            logit.log("create_defintition try %d" % i)
+            logit.log("create_definition try %d" % i)
             try:
                 with requests.Session() as sess:
                     res = sess.post(

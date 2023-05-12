@@ -8,6 +8,7 @@ version of functions in poms_service.py written by Marc Mengel, Michael Gueith a
 
 import os
 import re
+import cherrypy
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from .poms_model import Submission, SubmissionHistory, CampaignStage, JobType
@@ -32,6 +33,25 @@ class JobsPOMS:
         exp = j.submission_obj.campaign_stage_snapshot_obj.experiment
         cid = j.submission_obj.campaign_stage_snapshot_obj.campaign_stage_id
         sam_specifics(ctx).update_project_description(projname, "POMS CampaignStage %s Submission %s" % (cid, sid))
+    
+    def try_get_pool(self, jobsub_job_id, refreshed=False):
+        try:
+            schedd = jobsub_job_id.split("@")[1]
+            if not bool(cherrypy.request.condor_hosts):
+                cherrypy.request.refresh_hosts(False)
+                refreshed = True
+            if cherrypy.request.condor_hosts.get(schedd, None):
+                logit.log("kill_jobs | try_get_pool | success: '%s' within the '%s' condor collector host." % (schedd, cherrypy.request.condor_hosts[schedd]))
+                return "--pool %s" % cherrypy.request.condor_hosts[schedd]
+            elif not refreshed:
+                cherrypy.request.refresh_hosts(init=False)
+                self.try_get_pool(jobsub_job_id, True)
+            else:
+                logit.log("kill_jobs | try_get_pool | error: '%s' is not within our known list of condor collector hosts." % schedd)
+        except IndexError:
+            logit.log("kill_jobs | try_get_pool | index error: '%s' does not contain a valid schedd." % jobsub_job_id)
+        return None
+
 
     # h3. kill_jobs
     def kill_jobs(self, ctx, campaign_id=None, campaign_stage_id=None, submission_id=None, job_id=None, confirm=None, act="kill"):
@@ -89,12 +109,21 @@ class JobsPOMS:
         else:
             jjids = []
             sids = []
-
+        
+        lts = cs.login_setup_obj
+        condor_hosts = []
         if jjids and jjids[0][0]:
             jidbits = "--jobid=%s" % ",".join(jjids)
+            # If the user did not specify condor_host in their launch script, 
+            # determine and set the condor pool the schedd belongs to, if any.
+            if "_condor_COLLECTOR_HOST" not in lts.launch_setup:
+                for jjid in jjids:
+                    condor_host = self.try_get_pool(jjid)
+                    if condor_host and condor_host not in condor_hosts:
+                        condor_hosts.append(condor_host)
         else:
             jidbits = what
-
+        
         if confirm is None:
             if jidbits != what:
                 what = "%s %s" % (what, jidbits)
@@ -104,7 +133,6 @@ class JobsPOMS:
             # finish up the jobsub job_id query, and make a --jobid=list
             # parameter out of it.
 
-            lts = cs.login_setup_obj
             if group == "samdev":
 
                 group = "fermilab"
@@ -187,32 +215,26 @@ class JobsPOMS:
                 "htgettoken %s; " % (htgettokenopts),
                 "setup jobsub_client v_lite;"
             ]
+            
             token_string = ""
             for cmd in token_logic:
                 token_string += cmd
-
             
-        
+            jobsub_command = ""
+            if len(condor_hosts) == 0:
+                jobsub_command = "jobsub_%s -G %s --role %s %s ; jobsub_%s -G %s --role %s %s ;" % (
+                    subcmd,group,cs.vo_role,what,subcmd,group,cs.vo_role,jidbits)
+            else:
+                for pool in condor_hosts:
+                    jobsub_command = jobsub_command + " jobsub_%s -G %s --role %s %s ; jobsub_%s -G %s --role %s %s %s ;" % (
+                        subcmd,group,cs.vo_role,what,subcmd,group,cs.vo_role,pool,jidbits)
+                
             cmd = """
                 exec 2>&1;
                 export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;
                 kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;
-                ssh %s@%s '%s; set -x; %s jobsub_%s -G %s --role %s %s ;   jobsub_%s -G %s --role %s %s ; '
-            """ % (
-                group,
-                lts.launch_account,
-                lts.launch_host,
-                launch_setup,
-                token_string,
-                subcmd,
-                group,
-                cs.vo_role,
-                what,
-                subcmd,
-                group,
-                cs.vo_role,
-                jidbits,
-            )
+                ssh %s@%s '%s; set -x; %s %s'
+            """ % (group,lts.launch_account,lts.launch_host,launch_setup,token_string,jobsub_command)
 
             cmd = cmd % {
                 "dataset": cs.dataset,

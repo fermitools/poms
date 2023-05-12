@@ -48,9 +48,9 @@ do
 done
 
 case "x$POMS_TEST" in
-xint*) baseurl=$(awk -F "=" '/poms_base_url_int/ {print $2}' $WEB_CONFIG) ;;
-x1*)   baseurl=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG) ;;
-x*)    baseurl=$(awk -F "=" '/poms_base_url_prod/ {print $2}' $WEB_CONFIG) ;;
+xint*) baseurl="https://poms-int.fnal.gov:8443/poms" ;;
+x1*)   baseurl="https://fermicloud210.fnal.gov:8443/poms" ;;
+x*)    baseurl="https://pomsgpvm01.fnal.gov:8443/poms" ;;
 esac
 
 
@@ -78,4 +78,4 @@ esdata="$esdata }"
 
 echo "posting elasticsearch data: $esdata"
 
-curl -XPOST $(awk -F "=" '/elasticsearch_post_url/ {print $2}' $WEB_CONFIG) -d "$esdata"
+curl -XPOST https://landscape.fnal.gov/ingest/poms_jobsub/_doc -d "$esdata"

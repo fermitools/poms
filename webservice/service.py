@@ -10,11 +10,13 @@ import urllib.parse
 import argparse
 import logging
 import logging.config
+import subprocess
 from markupsafe import Markup
 
 import cherrypy
 from cherrypy.process import plugins
 
+from configparser import ConfigParser
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
@@ -98,16 +100,45 @@ class SATool(cherrypy.Tool):
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
+        if not os.environ.get("WEB_CONFIG", None):
+            os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
+        self.web_config = ConfigParser()
+        self.web_config.read(os.environ["WEB_CONFIG"])
+        self.condor_hosts = {}
+        self.refresh_hosts()
+        
+        
 
     def _setup(self):
         cherrypy.Tool._setup(self)
         cherrypy.request.hooks.attach("on_end_resource", self.release_session, priority=80)
+        
+    def refresh_hosts(self, init = True):
+        hosts = {}
+        for host in self.web_config.get("FNAL", "condor_hosts").replace("[","").replace("]","").split(","):
+            try:
+                pp = subprocess.Popen("condor_status -schedd  -pool  %s --json | grep -i '\"Name\"'" % host, shell=True, stdout=subprocess.PIPE)
+                out, err = pp.communicate()
+                for pool in str(out).strip(" '/b'\t\n\r").replace("\"", "").replace("\\n", "").replace("Name:", "").split(","):
+                    if pool.strip() not in hosts and pool.strip():
+                        hosts[pool.strip()] = host.replace("\"","")
+            except:
+                continue
+        if init:
+            print("Setting condor_hosts: %s" % hosts)
+        else:
+            print("Refreshing condor_hosts: %s" % hosts)
+        self.condor_hosts = hosts
+        cherrypy.request.condor_hosts = hosts
 
     def bind_session(self):
         cherrypy.engine.publish("bind", self.session)
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        cherrypy.request.web_config = self.web_config
+        cherrypy.request.condor_hosts = self.condor_hosts
+        cherrypy.request.refresh_hosts = self.refresh_hosts
         try:
             # Disabiling pylint false positives
             self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101

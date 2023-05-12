@@ -9,7 +9,7 @@
 export POMS_CAMPAIGN_ID=${POMS_CAMPAIGN_ID:-14}
 
 export POMS_CAMPAIGN_TAGS=${POMS_CAMPAIGN_TAGS:-}
-
+export POMS_ENV=${POMS_ENV:-$(awk -F "=" '/poms_env/ {print $2}' $WEB_CONFIG)}
 if [ "$POMS_CAMPAIGN_TAGS" != "" ] 
 then
    $POMS_CAMPAIGN_TAGS=",$POMS_CAMPAIGN_TAGS"
@@ -45,8 +45,10 @@ export POMS_TASK_ID=`echo "$result" | sed -e 's/.*=//'`
 $JOBSUB_CLIENT_DIR/jobsub_submit \
         -e POMS_CAMPAIGN_ID \
         -e POMS_TASK_ID \
-        -l "+FIFE_CATEGORIES='\"POMS_TASK_ID_$POMS_TASK_ID,POMS_CAMPAIGN_ID_$POMS_CAMPAIGN_ID$POMS_CAMPAIGN_TAGS\"'" \
+        -e POMS_ENV \
+        -l "+FIFE_CATEGORIES='\"POMS_ENV_$POMS_ENV,POMS_TASK_ID_$POMS_TASK_ID,POMS_CAMPAIGN_ID_$POMS_CAMPAIGN_ID$POMS_CAMPAIGN_TAGS\"'" \
         -l "+POMS_TASK_ID=$POMS_TASK_ID" \
+        -l "+POMS_ENV=$POMS_ENV" \
         -l "+POMS_CAMPAIGN_ID=$POMS_CAMPAIGN_ID" \
         -l "+POMS_LAUNCHER=$POMS_LAUNCHER" \
         -l "+POMS_CAMPAIGN_NAME='\"$POMS_CAMPAIGN_NAME\"'" \
