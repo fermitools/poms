@@ -1505,7 +1505,7 @@ class SubmissionsPOMS:
             "exec 2>&1;",
             "set -x;",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
-            "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
+            "kinit -kt /run/secrets/poms.keytab `klist -kt /run/secrets/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
             scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
             tok_permissions if do_tokens else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))

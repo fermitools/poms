@@ -12,7 +12,7 @@ class Mail:
     def __get_smtp_info(self):
         logit.log("Mail: in %s" % os.environ["POMS_DIR"])
         config = configparser.ConfigParser()
-        config.read("../webservice/poms.ini")
+        config.read("/run/secrets/poms.ini")
         server = config.get("smtp", "server").strip('"')
         sender = config.get("smtp", "sender").strip('"')
         debug = config.getint("smtp", "debug")

@@ -615,7 +615,7 @@ class UtilsPOMS:
         os.environ["$KRB5CCNAME"] = "/tmp/krb5cc_poms_auth_%s" % ctx.experiment
         os.environ["$X509_USER_PROXY"] = "/home/poms/uploads/%s/%s/x509up_voms_%s_Analysis_%s" % (ctx.experiment, ctx.username, ctx.experiment, ctx.username)
         os.environ["$REQUESTS_CA_BUNDLE"] = os.environ["$X509_USER_PROXY"]
-        os.system("kinit -X X509_user_identity=$X509_USER_PROXY -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;")
+        os.system("kinit -X X509_user_identity=$X509_USER_PROXY -kt /run/secrets/poms.keytab `klist -kt /run/secrets/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;")
         
         krb5_config = None #"/etc/krb5.conf"
         

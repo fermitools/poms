@@ -420,7 +420,7 @@ def main():
     """
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--config", default="./submission_agent.cfg")
+    ap.add_argument("-c", "--config", default="/run/secrets/submission_agent.cfg")
     ap.add_argument("-d", "--debug", action="store_true")
     ap.add_argument("--since", type=str)
     ap.add_argument("-t", "--test", action="store_true", default=False)

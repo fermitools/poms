@@ -219,8 +219,8 @@ def parse_command_line():
 # if __name__ == '__main__':
 run_it = True
 if run_it:
-
-    configfile = "poms.ini"
+    
+    configfile = os.environ["WEB_CONFIG"]
     parser, args = parse_command_line()
     if args.config:
         configfile = args.config
