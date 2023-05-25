@@ -345,7 +345,7 @@ class Agent:
             flist = htr.json()
             LOGIT.info("poms running_submissions: ", repr(flist))
             ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[2] == group]
-            LOGIT.info("poms running_submissions for " , group,  ": ", repr(ddict))
+            LOGIT.info("poms running_submissions for %s : %s" , group, repr(ddict))
             htr.close()
             return ddict
         except:
