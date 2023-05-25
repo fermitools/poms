@@ -13,7 +13,7 @@ class Mail:
         logit.log("Mail: in %s" % os.environ["POMS_DIR"])
         config = configparser.ConfigParser()
         if not os.environ.get("WEB_CONFIG", None):
-            config.read("/run/secrets/poms.ini")
+            config.read("/home/poms/private/config/poms.ini")
         else:
             config.read(os.environ['WEB_CONFIG'])
         server = config.get("smtp", "server").strip('"')

@@ -45,7 +45,7 @@ class Ctx:
             self.backend_pid = pid
         self.config_get = config_get if config_get else cherrypy.config.get
         if not os.environ.get("WEB_CONFIG", None):
-            os.environ["WEB_CONFIG"] = "/run/secrets/poms.ini"
+            os.environ["WEB_CONFIG"] = "/home/poms/private/config/poms.ini"
         self.web_config = web_config if web_config else ConfigParser()
         self.web_config.read(os.environ["WEB_CONFIG"])
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get

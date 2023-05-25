@@ -57,7 +57,7 @@ def get_config(config=None):
     if config == None:
         config = fakeconfig()
     if not os.environ.get("WEB_CONFIG", None):
-        configfile = "/run/secrets/poms.ini"
+        configfile = "/home/poms/private/config/poms.ini"
     else: 
         configfile = os.environ['WEB_CONFIG']
     confs = dedent(
@@ -120,7 +120,7 @@ def setUpPoms():
         f = open("webservice.out", "w")
         print("************* SETTING UP POMS *************", file=f)
         proc = subprocess.Popen(
-            ["coverage", "run", "--rcfile=.web_coveragerc", "../webservice/service.py", "--no-wsgi", "-cs", "/run/secrets/poms.ini"], stdout=f, stderr=f
+            ["coverage", "run", "--rcfile=.web_coveragerc", "../webservice/service.py", "--no-wsgi", "-cs", os.environ['WEB_CONFIG']], stdout=f, stderr=f
         )
         print("PID =", proc.pid, file=f)
     except OSError as e:

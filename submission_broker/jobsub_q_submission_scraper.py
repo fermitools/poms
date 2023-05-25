@@ -217,7 +217,7 @@ def main():
     requests.packages.urllib3.disable_warnings()
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--config", default="/run/secrets/submission_agent.cfg")
+    ap.add_argument("-c", "--config", default="/home/poms/private/config/uwsgi-poms-submission-agent.ini")
     ap.add_argument("-d", "--debug", action="store_true", default=False)
     ap.add_argument("-t", "--test", action="store_true", default=False)
     args = ap.parse_args()
