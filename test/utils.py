@@ -56,8 +56,10 @@ def get_config(config=None):
 
     if config == None:
         config = fakeconfig()
-
-    configfile = "/run/secrets/poms.ini"
+    if not os.environ.get("WEB_CONFIG", None):
+        configfile = "/run/secrets/poms.ini"
+    else: 
+        configfile = os.environ['WEB_CONFIG']
     confs = dedent(
         """
        [DEFAULT]

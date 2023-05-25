@@ -97,8 +97,8 @@ def update_them():
 
 # setup session with cert authentication...
 
-cert="%s/private/gsi/pomscert.pem" % os.environ['HOME']
-key="%s/private/gsi/pomskey.pem" % os.environ['HOME']
+cert=os.environ['X509_USER_CERT']
+key=os.environ['X509_USER_KEY']
 rs = requests.Session()
 rs.cert = (cert, key)
 rs.verify = False

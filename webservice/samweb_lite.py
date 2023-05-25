@@ -138,8 +138,8 @@ class samweb_lite:
                         data={"group": experiment},
                         verify=False,
                         cert=(
-                            "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                            "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                            os.environ['X509_USER_CERT'],
+                            os.environ['X509_USER_KEY'],
                         ),
                     )
                     res.raise_for_status()
@@ -279,8 +279,8 @@ class samweb_lite:
                 data={"description": desc},
                 verify=False,
                 cert=(
-                    "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                    "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                    os.environ['X509_USER_CERT'],
+                    os.environ['X509_USER_KEY'],
                 ),
             )
             status = res.status_code
@@ -427,8 +427,8 @@ class samweb_lite:
                         data=pdict,
                         verify=False,
                         cert=(
-                            "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                            "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                            os.environ['X509_USER_CERT'],
+                            os.environ['X509_USER_KEY'],
                         ),
                     )
                     res.raise_for_status()
@@ -478,8 +478,8 @@ class samweb_lite:
                     url,
                     verify=False,
                     cert=(
-                        "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                        "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                        os.environ['X509_USER_CERT'],
+                        os.environ['X509_USER_KEY'],
                     ),
                 )
                 res.raise_for_status()

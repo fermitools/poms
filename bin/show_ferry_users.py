@@ -27,7 +27,7 @@ def parse_command_line():
 def query_ferry(cert, ferry_url, exp, role):
     results = {}
     url = ferry_url + "/getAffiliationMembersRoles?experimentname=%s&rolename=/%s/Role=%s" % (exp, exp, role)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, cert=(os.environ['X509_USER_CERT'], os.environ['X509_USER_KEY']))
     if r.status_code != requests.codes.get('ok'):
         print("get_ferry_experiment_users -- error status_code: %s  -- %s" % (r.status_code, url))
     else:
@@ -43,7 +43,7 @@ def query_superusers(cert, ferry_url, exp, anal_users):
     # not provide the same data back that getAffiliationMemberRoles does.  Supposedly they will fix all this.
     results = []
     url = ferry_url + "/getSuperUserList?unitname=%s" % (exp)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, cert=(os.environ['X509_USER_CERT'], os.environ['X509_USER_KEY']))
     for row in r.json():
         uname = row.get('uname')
         su = {}

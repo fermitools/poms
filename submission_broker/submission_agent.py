@@ -420,7 +420,7 @@ def main():
     """
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--config", default="/run/secrets/submission_agent.cfg")
+    ap.add_argument("-c", "--config", default="/run/secrets/uwsgi-poms-submission-agent.ini")
     ap.add_argument("-d", "--debug", action="store_true")
     ap.add_argument("--since", type=str)
     ap.add_argument("-t", "--test", action="store_true", default=False)
@@ -434,7 +434,7 @@ def main():
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
     if args.test:
-        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
+        agent = Agent(poms_uri="httpd", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
         for exp in agent.elist:
             agent.check_submissions(exp, since=args.since)
     elif args.one_time:

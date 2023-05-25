@@ -138,11 +138,12 @@ class PomsService:
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")
-        self.sam_base = self.web_config.get("SAM", "sam_base")
+        print(os.environ["WEB_CONFIG"])
         self.landscape_base = self.web_config.get("FNAL", "landscape_base")
         self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
         self.servicenow = self.web_config.get("FNAL", "servicenow")
         self.redmine_url = self.web_config.get("FNAL", "redmine_url")
+        self.sam_base = self.web_config.get("SAM", "sam_base")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version

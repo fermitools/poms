@@ -84,7 +84,7 @@ def query_ferry(cert, ferry_url, exp, role):
     logging.debug("query_ferry for experiment: %s  role: %s", exp, role)
     url = ferry_url + "/getAffiliationMembersRoles?unitname=%s&role=%s" % (exp, role)
     logging.debug("query_ferry: requested url: %s", url)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, cert=(os.environ['X509_USER_CERT'], os.environ['X509_USER_KEY']))
     payload = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
@@ -97,7 +97,7 @@ def query_ferry(cert, ferry_url, exp, role):
 def query_superusers(cert, ferry_url, exp, anal_users):
     results = []
     url = ferry_url + "/getGroupMembers?grouptype=BatchSuperusers&groupname=%s" % (exp)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, cert=(os.environ['X509_USER_CERT'], os.environ['X509_USER_KEY']))
     payload  = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
@@ -136,7 +136,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 def get_voms_data(cert, exp):
     logging.debug("get_voms_data for: %s", exp)
     payload = {"accountName": "%spro" % exp}
-    req = requests.get(config.get("VOMS", "data_url"), params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    req = requests.get(config.get("VOMS", "data_url"), params=payload, verify=False, cert=(os.environ['X509_USER_CERT'], os.environ['X509_USER_KEY']))
     users = {}
     for line in req.iter_lines():
         line = line.decode('utf-8')
