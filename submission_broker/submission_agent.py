@@ -85,7 +85,8 @@ class Agent:
             "Origin": self.cfg.get("submission_agent", "lens_server"),
         }
         self.ssess.headers.update(self.submission_headers)
-
+        logging.log("Headers: %s" % self.headers)
+        logging.log("Submission Headers: %s" % self.submission_headers)
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
         self.timeouts = (300, 300)
@@ -332,7 +333,7 @@ class Agent:
             ddict = {}
             pass
 
-        print( "ddict: %s" % repr(ddict))
+        logging.log( "ddict: %s" % repr(ddict))
         if ddict:
             return ddict.get("data",{}).get("submissions",[])
         else:
@@ -343,9 +344,9 @@ class Agent:
         try:
             htr = self.psess.get(url)
             flist = htr.json()
-            print("poms running_submissions: ", repr(flist))
+            logging.log("poms running_submissions: ", repr(flist))
             ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[2] == group]
-            print("poms running_submissions for " , group,  ": ", repr(ddict))
+            logging.log("poms running_submissions for " , group,  ": ", repr(ddict))
             htr.close()
             return ddict
         except:
