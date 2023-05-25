@@ -15,7 +15,7 @@ import configparser
 import argparse
 
 HTTPConnection.debuglevel = 1
-
+HTTPConnection.port = os.environ['SA_PORT']
 LOGIT = logging.getLogger()
 
 def get_status(entry):
@@ -68,7 +68,7 @@ class Agent:
         self.known["maxjobs"] = {}
         self.known["poms_task_id"] = {}
         self.known["jobsub_job_id"] = {}
-
+        
         self.psess = requests.Session()
         self.ssess = requests.Session()
         self.headers = {
@@ -85,8 +85,7 @@ class Agent:
             "Origin": self.cfg.get("submission_agent", "lens_server"),
         }
         self.ssess.headers.update(self.submission_headers)
-        logging.log("Headers: %s" % self.headers)
-        logging.log("Submission Headers: %s" % self.submission_headers)
+        
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
         self.timeouts = (300, 300)
@@ -333,7 +332,7 @@ class Agent:
             ddict = {}
             pass
 
-        logging.log( "ddict: %s" % repr(ddict))
+        LOGIT.info("ddict: %s", repr(ddict))
         if ddict:
             return ddict.get("data",{}).get("submissions",[])
         else:
@@ -344,9 +343,9 @@ class Agent:
         try:
             htr = self.psess.get(url)
             flist = htr.json()
-            logging.log("poms running_submissions: ", repr(flist))
+            LOGIT.info("poms running_submissions: ", repr(flist))
             ddict = [ {'pomsTaskID': x[0], 'id': x[1]} for x in flist if x[2] == group]
-            logging.log("poms running_submissions for " , group,  ": ", repr(ddict))
+            LOGIT.info("poms running_submissions for " , group,  ": ", repr(ddict))
             htr.close()
             return ddict
         except:
@@ -421,7 +420,7 @@ def main():
     """
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--config", default="/run/secrets/uwsgi-poms-submission-agent.ini")
+    ap.add_argument("-c", "--config", default="/home/poms/private/config/uwsgi-poms-submission-agent.ini")
     ap.add_argument("-d", "--debug", action="store_true")
     ap.add_argument("--since", type=str)
     ap.add_argument("-t", "--test", action="store_true", default=False)
@@ -435,7 +434,7 @@ def main():
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
 
     if args.test:
-        agent = Agent(poms_uri="httpd", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
+        agent = Agent(poms_uri="http://poms_webservice:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
         for exp in agent.elist:
             agent.check_submissions(exp, since=args.since)
     elif args.one_time:
