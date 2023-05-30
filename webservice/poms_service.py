@@ -39,6 +39,7 @@ import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 import sqlalchemy.exc
+import data_dispatcher
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
@@ -157,6 +158,8 @@ class PomsService:
         self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
         self.permissions = Permissions.Permissions()
+        self.data_dispatcher = data_dispatcher()
+        self.dd_client = None
 
     def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers
@@ -198,6 +201,14 @@ class PomsService:
 
     ####################
     # UtilsPOMS
+    
+    @poms_method(
+        help_page="experimenters_corner/data_dispatcher",
+        t="data_dispatcher_test.html",
+    )
+    def data_dispatcher(self, ctx, **kwargs):
+        dd_client = self.data_dispatcher_client.set_client(ctx)
+        return {"login_status": dd_client.login(kwargs.get(['username'], None), kwargs.get(['password'], None))}
 
     # h4. quick_search
     @poms_method()
