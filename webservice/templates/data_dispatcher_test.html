@@ -1,0 +1,51 @@
+{%extends "layout.html" %}
+
+{%block title%}
+<title>POMS Data Dispatcher testing page (temporary)</title>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+{%endblock%}
+
+{%block header%}
+<h1 class="ui header">
+          Tests of the data dispatcher api should be done here
+
+          <div class="sub header">
+              see dependencies
+          </div>
+</h1>
+{%endblock%}
+
+{%block content %}
+
+<div class="ui horizontal segments">
+	<div class="ui segment raised">
+		<h3>Login Status</h3>
+		<div class=menu>
+            <form method="post" action="/poms/login_data_dispatcher">
+                <div class="item">
+                    <label for="password">Status:</label>
+                    <a id="login_status"><i id="status_indicator" class="round icon"> </i>{{login_status}}</i></a>
+                </div>
+                <div class="item"></div>
+                    <label for="username">Username</label>
+                    <input id="username" type="text">
+                </div>
+                <div class="item">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" >
+                </div>
+                <div class="item">
+                    <button type="submit">Login</button>
+                </div>
+            </form>
+		</div>
+	</div>
+    <div class="ui segment raised">
+		<h3>Coming soon</h3>
+		<div class=menu>
+		</div> 
+	</div> 
+</div>  
+
+{%endblock%}
