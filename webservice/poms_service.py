@@ -39,7 +39,7 @@ import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 import sqlalchemy.exc
-import data_dispatcher
+import DataDispatcherService
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
@@ -158,7 +158,7 @@ class PomsService:
         self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
         self.permissions = Permissions.Permissions()
-        self.data_dispatcher = data_dispatcher()
+        self.data_dispatcher = DataDispatcherService()
         self.dd_client = None
 
     def post_initialize(self):

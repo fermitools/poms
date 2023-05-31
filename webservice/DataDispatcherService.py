@@ -1,29 +1,16 @@
 import configparser
-from collections import deque
-import urllib.request
-import urllib.parse
-import urllib.error
-import time
-import datetime
-import concurrent.futures
 import os
-import sys
-
-import traceback
-
-# TODO add to spack later 
-#sys.path.append("/home/poms/packages/spack/rollout2/NULL/var/spack/environments/poms_production2/.spack-env/view/lib/python3.8/site-package")
-#sys.path.append("/home/poms/.local/lib/python3.8/site-packages")
 
 import poms.webservice.logit as logit
 from data_dispatcher.api import DataDispatcherClient
+
 config = configparser.ConfigParser()
 config.read(os.environ.get("WEB_CONFIG","/home/poms/poms/webservice/poms.ini"))
 
 #config = configparser.ConfigParser()
 #config.read(os.environ["WEB_CONFIG"])
 
-class data_dispatcher:
+class DataDispatcherService:
     def __init__(self):
         self.client=None
         
