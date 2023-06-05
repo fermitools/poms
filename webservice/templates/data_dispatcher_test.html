@@ -17,35 +17,167 @@
 {%endblock%}
 
 {%block content %}
-
+<input id="tokenLifespan" value="{{timestamp}}" hidden>
 <div class="ui horizontal segments">
-	<div class="ui segment raised">
-		<h3>Login Status</h3>
+	<div class="ui segment raised" style="width: 40%;">
+		<h3>Sign in</h3>
 		<div class=menu>
-            <form method="post" action="/poms/login_data_dispatcher">
-                <div class="item">
-                    <label for="password">Status:</label>
-                    <a id="login_status"><i id="status_indicator" class="round icon"> </i>{{login_status}}</i></a>
-                </div>
-                <div class="item"></div>
-                    <label for="username">Username</label>
-                    <input id="username" type="text">
-                </div>
-                <div class="item">
-                    <label for="password">Password</label>
-                    <input id="password" type="password" >
-                </div>
-                <div class="item">
-                    <button type="submit">Login</button>
-                </div>
-            </form>
+            <div class="item">
+                <label for="username">Username</label>
+                <input id="username" type="text">
+            </div>
+            <div class="item">
+                <label for="password">Password</label>
+                <input id="password" type="password" >
+            </div>
+            <div class="item">
+                <button id="login_submit">Login</button>
+            </div>
 		</div>
 	</div>
-    <div class="ui segment raised">
-		<h3>Coming soon</h3>
+    <div class="ui segment raised" style="width: 60%;">
+		<h3>Login Status</h3>
 		<div class=menu>
+            <div class="item">
+                <label for="password">Status: </label>
+                <a id="login_status">{{login_status}}</a>
+            </div>
+            <div class="item">
+                <label for="signed-in-user">User: </label>
+                <a id="signed-in-user">{{dd_username if dd_username else 'N/A'}}</a>
+            </div>
+            <div class="item">
+                <label for="experiment">Experiment: </label>
+                <a id="experiment">{{experiment if experiment else 'N/A'}}</a>
+            </div>
+            <div id="timestamp-item" class="item">
+                <label for="timeTillExpire">Token TTL: </label>
+                <a style="width: 400px;" id="timeTillExpire">N/A</a>
+            </div>
 		</div> 
 	</div> 
+</div> 
+<div class="ui horizontal segments">
+	<div class="ui segment raised" style="max-width: 30%;">
+		<h3>List RSEs</h3>
+		<div class=menu>
+            <div class="item">
+                <div class=item>
+                    <button style="width: 120px;">
+                        <a style="width: 100px;" href="{{pomspath}}/get_all_rses">
+                            <i class="chart rocket icon blue" data-content="List RSEs" data-variation="basic"></i>
+                            List RSEs
+                            <i class="chart rocket icon blue" data-content="List RSEs" data-variation="basic"></i>
+                         </a>
+                    </button>
+                </div>
+            </div>
+		</div>
+	</div>
+    <div class="ui segment raised" style="max-width: 70%;">
+		<h3>Results</h3>
+		<div class=menu>
+            <div class="item">
+                <a id="all_rse_result"></a>
+            </div>
+		</div>
+	</div>
 </div>  
+
+<script type="text/javascript">
+    var running=false;
+    var cancelTimestampUpdates=false;
+
+    $("#login_submit").on("click", (e) => {
+        e.preventDefault();
+        $.post("/poms/login_data_dispatcher",{
+            username: $("#username").val(),
+            experiment: $('#session_experiment_id option:selected').html(),
+            password: $("#password").val(),
+          }, (data)=>{
+            data = JSON.parse(data);
+            if (data != null){
+                if (data.login_status != null){
+                    $("#login_status").html(data.login_status);
+                    if (data.login_status != "Logged in"){
+                        cancelTimestampUpdates=true;
+                        running=false;
+                        $("#signed-in-user").html("N/A");
+                        $("#experiment").html("N/A");
+                        $("#tokenLifespan").val("");
+                        $("#timeTillExpire")
+                    }
+                }
+                if (data.dd_username != null){
+                    $("#signed-in-user").html(data.dd_username);
+                }
+                if (data.experiment != null){
+                    $("#experiment").html(data.experiment);
+                }
+                if (data.timestamp != null){
+                    $("#timeTillExpire").html("Loading.");
+                    showLoading();
+                    cancelTimestampUpdates=true;
+                    setTimeout(function() { 
+                        $("#tokenLifespan").val(data.timestamp);
+                        cancelTimestampUpdates=false;
+                        updateTimestamp();
+                     }, 3000);
+                }
+            }
+          });
+    });
+
+    function showLoading(){
+        switch ($("#timeTillExpire").html()){
+            case "Loading.":
+                $("#timeTillExpire").html("Loading..");
+                break;
+            case "Loading..":
+                $("#timeTillExpire").html("Loading...");
+                break;
+            case "Loading...":
+                $("#timeTillExpire").html("Loading.");
+                break;
+            default:
+                return;
+        }
+        setTimeout(function() {
+            showLoading();
+        },500);
+    }
+
+    function updateTimestamp(pageStart=false){
+        if (cancelTimestampUpdates){
+            running = false;
+            return;
+        }
+        if ($("#tokenLifespan").val() != ""){
+            running = true;
+            var date2 = new Date($("#tokenLifespan").val() * 1000);
+            setTimeout(()=>{
+                var date1 = new Date($.now());
+                var diff = date2.getTime() - date1.getTime();
+                var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        
+                diff -=  days * (1000 * 60 * 60 * 24);
+        
+                var hours = Math.floor(diff / (1000 * 60 * 60));
+                diff -= hours * (1000 * 60 * 60);
+        
+                var mins = Math.floor(diff / (1000 * 60));
+                diff -= mins * (1000 * 60);
+        
+                var seconds = Math.floor(diff / (1000));
+                diff -= seconds * (1000);
+                if (!cancelTimestampUpdates){
+                    $("#timeTillExpire").html(days + " days : " + hours + " hours : " + mins + " minutes : " + seconds + " seconds");
+                }
+                updateTimestamp();   
+            }, pageStart?0:1000);
+        }
+    }
+    updateTimestamp(true);
+</script>
 
 {%endblock%}

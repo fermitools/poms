@@ -520,8 +520,8 @@ class SubmissionsPOMS:
         self.init_statuses(ctx)
         now = datetime.now(utc)
 
-        cert = ctx.web_config.get("Elasticsearch", "cert")
-        key = ctx.web_config.get("Elasticsearch", "key")
+        cert = cherrypy.config.get("elasticsearch_cert")
+        key = cherrypy.config.get("elasticsearch_key")
 
         newtups = (
             ctx.db.query(

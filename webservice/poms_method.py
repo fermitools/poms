@@ -275,9 +275,9 @@ def poms_method(
                 if not redict.get("exp_obj", None):
                     redict["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
                 if not redict.get("poms_servicenow_url", None):
-                    redict["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
+                    redict["poms_servicenow_url"] = cherrypy.config.get("poms_servicenow_url")
                 if not redict.get("servicenow", None):
-                    redict["servicenow"] = ctx.web_config.get("FNAL","servicenow")
+                    redict["servicenow"] = cherrypy.config.get("servicenow")
                 redict["poms_path"] = self.path
                 redict["hostname"] = self.hostname
                 redict["experiment"] = ctx.experiment
@@ -297,9 +297,9 @@ def poms_method(
                 if not values.get("exp_obj", None):
                     values["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
                 if not values.get("poms_servicenow_url", None):
-                    values["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
+                    values["poms_servicenow_url"] = cherrypy.config.get("poms_servicenow_url")
                 if not values.get("servicenow", None):
-                    values["servicenow"] = ctx.web_config.get("FNAL", "servicenow")
+                    values["servicenow"] = cherrypy.config.get("servicenow")
                 values["help_page"] = help_page
                 # a few templates want to format times, etc.
                 values["datetime"] = datetime

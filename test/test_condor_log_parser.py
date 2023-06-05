@@ -2,14 +2,15 @@ import DBHandle
 from poms.webservice.condor_log_parser import get_joblogs
 from utils import get_config
 import logging
+import cherrypy
 
 logger = logging.getLogger("cherrypy.error")
 
 dbh = DBHandle.DBHandle()
 
 config = get_config()
-cert = eval(config.get("Elasticsearch", "cert"))
-key = eval(config.get("Elasticsearch", "key"))
+cert = cherrypy.config.get("elasticsearch_cert")
+key = cherrypy.config.get("elasticsearch_key")
 
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())

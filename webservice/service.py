@@ -2,6 +2,7 @@
 import sys
 import os
 import os.path
+from os.path import expanduser
 import socket
 import atexit
 from textwrap import dedent
@@ -53,12 +54,20 @@ class SAEnginePlugin(plugins.SimplePlugin):
         print("destroy worker")
 
     def start(self):
+        
+        # If using only one connection in pgpass
+        #with open(expanduser('~/.pgpass'), 'r') as f:
+        #    dbhost, dbport, db, dbuser = f.read().split(':')[0:4]
+        #db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+
+        # Otherwise
         section = self.app.config["Databases"]
         db = section["db"]
         dbuser = section["dbuser"]
         dbhost = section["dbhost"]
         dbport = section["dbport"]
         db_path = "postgresql://%s:@%s:%s/%s" % (dbuser, dbhost, dbport, db)
+        
         self.sa_engine = create_engine(
             db_path,
             echo=False,
@@ -95,7 +104,7 @@ class SATool(cherrypy.Tool):
         cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
-            cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
+            cherrypy.config.get("elasticsearch_cert"), cherrypy.config.get("elasticsearch_key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
 
@@ -182,8 +191,11 @@ def augment_params():
             pomspath=root.path,
             docspath=root.docspath,
             sam_base = root.sam_base,
+            redmine_url = root.redmine_url,
             landscape_base = root.landscape_base,
             fifemon_base = root.fifemon_base,
+            servicenow = root.servicenow,
+            poms_servicenow_url = root.poms_servicenow_url,
             hostname=socket.gethostname(),
             all_roles=roles,
             ExperimentsExperimenters=ExperimentsExperimenters,

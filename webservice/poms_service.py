@@ -39,10 +39,10 @@ import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 import sqlalchemy.exc
-import DataDispatcherService
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
+
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -61,6 +61,7 @@ from . import (
     Permissions,
     logit,
     version,
+    DataDispatcherService
 )
 
 #
@@ -90,10 +91,10 @@ def error_response():
     template = jinja_env.get_template("error_response.html")
     path = cherrypy.config.get("pomspath", "/poms")
     docspath = cherrypy.config.get("docspath", "/docs")
-    redmine_url = web_config.get("FNAL", "redmine_url")
-    servicenow = web_config.get("FNAL", "servicenow")
-    poms_servicenow_url = web_config.get("POMS", "poms_servicenow_url")
-    body = template.render(message=message, pomspath=path, dump=dump, version=global_version, docspath=docspath, servicenow=servicenow)
+    redmine_url = cherrypy.config.get("redmine_url")
+    servicenow = cherrypy.config.get("servicenow")
+    poms_servicenow_url = cherrypy.config.get("poms_servicenow_url")
+    body = template.render(redmine_url=redmine_url,message=message,poms_servicenow_url=poms_servicenow_url, pomspath=path, dump=dump, version=global_version, docspath=docspath, servicenow=servicenow)
     cherrypy.response.status = 500
     cherrypy.response.headers["content-type"] = "text/html"
     cherrypy.response.body = body.encode()
@@ -139,12 +140,12 @@ class PomsService:
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")
-        print(os.environ["WEB_CONFIG"])
-        self.landscape_base = self.web_config.get("FNAL", "landscape_base")
-        self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
-        self.servicenow = self.web_config.get("FNAL", "servicenow")
-        self.redmine_url = self.web_config.get("FNAL", "redmine_url")
-        self.sam_base = self.web_config.get("SAM", "sam_base")
+        self.landscape_base = cherrypy.config.get("landscape_base")
+        self.fifemon_base = cherrypy.config.get("fifemon_base")
+        self.servicenow = cherrypy.config.get("servicenow")
+        self.poms_servicenow_url = cherrypy.config.get("poms_servicenow_url")
+        self.redmine_url = cherrypy.config.get("redmine_url")
+        self.sam_base = cherrypy.config.get("sam_base")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -159,8 +160,7 @@ class PomsService:
         self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
         self.permissions = Permissions.Permissions()
-        self.data_dispatcher = DataDispatcherService()
-        self.dd_client = None
+        self.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
 
     def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers
@@ -200,17 +200,27 @@ class PomsService:
         return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
     
 
+    
     ####################
-    # UtilsPOMS
+    # Data Dispatcher
     
     @poms_method(
         help_page="experimenters_corner/data_dispatcher",
         t="data_dispatcher_test.html",
     )
-    def data_dispatcher(self, ctx, **kwargs):
-        dd_client = self.data_dispatcher_client.set_client(ctx)
-        return {"login_status": dd_client.login(kwargs.get(['username'], None), kwargs.get(['password'], None))}
+    def data_dispatcher_test(self, ctx, **kwargs):
+        return self.data_dispatcher.get_login_status()
+    
+    @cherrypy.expose
+    def login_data_dispatcher(self, username=None, experiment=None, password=None):
+        # Assuming user is either logging in the first time, or signing in as someone else,
+        # hence, we will reinitialize the service and clear out any session info.
+        self.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        return self.data_dispatcher.login_with_password(experiment, username, password)
 
+    ####################
+    # UtilsPOMS
+    
     # h4. quick_search
     @poms_method()
     def quick_search(self, **kwargs):
