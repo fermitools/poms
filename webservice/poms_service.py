@@ -197,7 +197,6 @@ class PomsService:
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
         return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
     
-
     
     ####################
     # Data Dispatcher
