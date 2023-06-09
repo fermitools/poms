@@ -66,6 +66,7 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
+        self.data_dispatcher = None
 
         if self.experiment == None or self.role == None:
             e = self.get_experimenter()

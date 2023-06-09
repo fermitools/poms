@@ -39,10 +39,10 @@ import cherrypy
 from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 import sqlalchemy.exc
-import data_dispatcher
 from sqlalchemy.inspection import inspect
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
+
 
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
@@ -61,6 +61,7 @@ from . import (
     Permissions,
     logit,
     version,
+    DataDispatcherService
 )
 
 #
@@ -139,11 +140,11 @@ class PomsService:
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")
-        self.sam_base = self.web_config.get("SAM", "sam_base")
         self.landscape_base = self.web_config.get("FNAL", "landscape_base")
         self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
         self.servicenow = self.web_config.get("FNAL", "servicenow")
         self.redmine_url = self.web_config.get("FNAL", "redmine_url")
+        self.sam_base = self.web_config.get("SAM", "sam_base")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -158,8 +159,6 @@ class PomsService:
         self.filesPOMS = FilesPOMS.FilesStatus(self)
         self.tablesPOMS = None
         self.permissions = Permissions.Permissions()
-        self.data_dispatcher = data_dispatcher()
-        self.dd_client = None
 
     def post_initialize(self):
         # Anything that needs to log data must be called here -- after loggers
@@ -199,17 +198,59 @@ class PomsService:
         return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
     
 
+    
     ####################
-    # UtilsPOMS
+    # Data Dispatcher
     
     @poms_method(
         help_page="experimenters_corner/data_dispatcher",
         t="data_dispatcher_test.html",
+        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
     )
-    def data_dispatcher(self, ctx, **kwargs):
-        dd_client = self.data_dispatcher_client.set_client(ctx)
-        return {"login_status": dd_client.login(kwargs.get(['username'], None), kwargs.get(['password'], None))}
+    def data_dispatcher_test(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        is_logged_in, session_response = ctx.data_dispatcher.session_status(ctx)
+        if is_logged_in:
+            command = kwargs.get("command", None)
+            if command:
+                if command == 'list_rses':
+                    session_response['method'] = 'list_rses'
+                    session_response['all_rses'] = ctx.data_dispatcher.list_rses()
+                    return session_response
+                elif command == 'list_projects':
+                    session_response['method'] = 'list_projects'
+                    session_response['all_projects'] = ctx.data_dispatcher.list_projects()
+                    return session_response
+        session_response['method'] = 'index'
+        return session_response
+    
+    
+    @poms_method(rtype="json")
+    def get_project_handles(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if ctx.data_dispatcher.session_status(ctx)[0]:
+            return ctx.data_dispatcher.get_project_handles(kwargs["project_id"])
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+    
+    @poms_method()
+    def login_data_dispatcher(self, ctx, **kwargs):
+        # Assuming user is either logging in the first time, or signing in as someone else,
+        # hence, we will reinitialize the service and clear out any session info.
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if kwargs.get('method', None) == 'password':
+            return ctx.data_dispatcher.login_with_password(ctx, kwargs.get('username', None), kwargs.get('password', None))
+        elif kwargs.get('method', None) == 'token':
+            return ctx.data_dispatcher.login_with_token(ctx)
+        else:
+            session_details = ctx.data_dispatcher.session_status()[1]
+            session_details['login_method'] = "Attempted login method: %s" % kwargs.get('method', None)
+            return json.dumps(session_details)
 
+    ####################
+    # UtilsPOMS
+    
     # h4. quick_search
     @poms_method()
     def quick_search(self, **kwargs):
