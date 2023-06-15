@@ -8,9 +8,14 @@ import json
 
 import psycopg2
 import requests
+import os
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 try:
-    import requests.packages.urllib3 as urllib3
+    import urllib3 as urllib3
 except ImportError:
     import urllib3
 
@@ -45,9 +50,9 @@ def add_to_listserv(list_owner, new_users):
         return
 
     listval = 'poms_announce'
-    smtp_server = 'smtp.fnal.gov'
+    smtp_server = config.get("smtp", "smtp_host")
     fromAddr = '%s' % list_owner
-    toAddr = 'listserv@listserv.fnal.gov'
+    toAddr = config.get("global", "listserv_server")
 
     subject = "Add new_users to %s" %(listval)
 
@@ -131,7 +136,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 def get_voms_data(cert, exp):
     logging.debug("get_voms_data for: %s", exp)
     payload = {"accountName": "%spro" % exp}
-    req = requests.get("https://gums2.fnal.gov:8443/gums/map_account.jsp", params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    req = requests.get(config.get("VOMS", "data_url"), params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
     users = {}
     for line in req.iter_lines():
         line = line.decode('utf-8')

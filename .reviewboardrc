@@ -1,4 +1,4 @@
-REVIEWBOARD_URL = "https://cdcvs.fnal.gov/rb/"
+REVIEWBOARD_URL = $(awk -F "=" '/reviewboard_url/ {print $2}' $WEB_CONFIG)
 REPOSITORY = "POMS"
 REPOSITORY_TYPE = "git"
 TRACKING_BRANCH = "origin/develop"

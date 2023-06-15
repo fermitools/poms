@@ -143,8 +143,8 @@ class FilesStatus:
                 ],
                 [
                     s.project,
-                    "https://samweb.fnal.gov:8483/station_monitor/%s/stations/%s/projects/%s"
-                    % (cs.experiment, cs.experiment, s.project),
+                    "%s/station_monitor/%s/stations/%s/projects/%s"
+                    % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project),
                 ],
                 [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
                 [s.created.strftime("%Y-%m-%d %H:%M"), None],

@@ -1,5 +1,7 @@
 {%extends "layout.html"%}
-
+{% macro show_hint(anchor, hint) %}
+  {% include 'help_button.html' %}
+{% endmacro %}
 <style>
     .plotWrap {
         display: flex;
@@ -29,7 +31,7 @@ Job Launches: {{launches}}
 
 {%block content%}
 
-{% set url = "https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/POMS_User_Documentation#" %}
+{% set url = docspath + "/user_documentation#" %}
 
  <div class="ui cards">
 
@@ -47,7 +49,7 @@ Job Launches: {{launches}}
                 or superuser. If an account does not have access or needs a different level of access, follow the steps in the help link below.
             </div>
         </div>
-        <a target="_blank" href="{{url}}Getting-access-New-Experiments-New-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}getting-access-new-experiments-new-accounts-users-and-roles">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -70,7 +72,7 @@ Job Launches: {{launches}}
                     provided help link.
             </div>
         </div>
-        <a target="_blank" href="{{url}}POMS-Accounts-Users-and-Roles">
+        <a target="_blank" href="{{url}}getting-access-new-experiments-new-accounts-users-and-roles">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -92,13 +94,13 @@ Job Launches: {{launches}}
                 </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
+            <a target="_blank" href="{{url}}monitoring">
                 <div class="ui button">
                     <i class="question circle icon"></i>
                 </div>
             </a>
                 <div class="ui button"></div>
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000206/poms-campaign-efficiency?from=now-24h&to=now&var-Experiment={{session_experiment}}&var-Campaign=All&orgId=1">
+            <a target="_blank" href="{{fifemon_base}}/monitor/d/000000206/poms-campaign-efficiency?from=now-24h&to=now&var-Experiment={{session_experiment}}&var-Campaign=All&orgId=1">
                 <div class="ui button">
                     Efficency
                 </div>
@@ -120,7 +122,7 @@ Job Launches: {{launches}}
                     by viewing the details of that stage.
             </div>
         </div>
-        <a target="_blank" href="{{url}}Running-the-Campaign-actions-and-monitoring">
+        <a target="_blank" href="{{url}}">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -136,10 +138,10 @@ Job Launches: {{launches}}
                 <div class="meta">
                 </div>
                 <div class="plotWrap">
-                    <iframe src="https://landscape.fnal.gov/monitor/d-solo/QE61LHhik/poms-monitoring?orgId=1&from=now-7d&to=now&var-filter=pool%7C%3D%7Cfifebatch&theme=light&panelId=5" width="250" height="200" frameborder="0"></iframe>
+                    <iframe src="{{landscape_base}}/monitor/d-solo/QE61LHhik/poms-monitoring?orgId=1&from=now-7d&to=now&var-filter=pool%7C%3D%7Cfifebatch&theme=light&panelId=5" width="250" height="200" frameborder="0"></iframe>
                 </div>
             </div>
-            <a target="_blank" href="https://landscape.fnal.gov/monitor/d/QE61LHhik/poms-monitoring?orgId=1&from=now-7d&to=now&var-filter=pool%7C%3D%7Cfifebatch">
+            <a target="_blank" href="{{landscape_base}}/monitor/d/QE61LHhik/poms-monitoring?orgId=1&from=now-7d&to=now&var-filter=pool%7C%3D%7Cfifebatch">
                 <div class="ui bottom attached button">
                     Overview
                 </div>
@@ -160,7 +162,7 @@ Job Launches: {{launches}}
                     with JOBSUB  passing the parameters needed to run the jobs.  Details of this can be found in the the help link below.
             </div>
         </div>
-        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki/Fife_launchfife_wrap">
+        <a target="_blank" href="{{redmine_url}}/projects/fife_utils/wiki/Fife_launchfife_wrap">
             <div class="ui bottom attached button">
                 <i class="question circle icon"></i>
             </div>
@@ -181,13 +183,13 @@ Job Launches: {{launches}}
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000004/experiment-overview?orgId=1&var-experiment={{session_experiment}}">
+            <a target="_blank" href="{{fifemon_base}}/monitor/d/000000004/experiment-overview?orgId=1&var-experiment={{session_experiment}}">
                 <div class="ui button">
                     Overview
                 </div>
             </a>
             <div class="ui button"></div>
-            <a target="_blank" href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
+            <a target="_blank" href="{{landscape_base}}/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{session_experiment}}">
                 <div class="ui button">
                     Shifter
                 </div>
@@ -210,13 +212,13 @@ Job Launches: {{launches}}
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
+            <a target="_blank" href="{{fifemon_base}}/monitor/d/000000122/sam-by-experiment?from=now-24h&to=now-5m&orgId=1&var-experiment={{session_experiment}}">
                 <div class="ui button">
                     Status
                 </div>
             </a>
             <div class="ui button"></div>
-            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/sam-main/wiki/User_Guide_for_SAM">
+            <a target="_blank" href="{{redmine_url}}/projects/sam-main/wiki/User_Guide_for_SAM">
                 <div class="ui button">
                     Wiki
                 </div>
@@ -239,13 +241,13 @@ Job Launches: {{launches}}
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
+            <a target="_blank" href="{{fifemon_base}}/monitor/d/000000053/experiment-batch-details?orgId=1&from=now-7d&to=now-5m&var-experiment={{session_experiment}}">
                 <div class="ui button">
                     Batch Detail
                 </div>
             </a>
             <div class="ui button"></div>
-            <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki">
+            <a target="_blank" href="{{redmine_url}}/projects/jobsub/wiki">
                 <div class="ui button">
                     Wiki
                 </div>
@@ -267,7 +269,7 @@ Job Launches: {{launches}}
             </div>
         </div>
         <div class="ui three bottom attached buttons">
-            <a target="_blank" href="https://fifemon.fnal.gov/monitor/d/000000173/dcache-transfer-overview?orgId=1">
+            <a target="_blank" href="{{fifemon_base}}/monitor/d/000000173/dcache-transfer-overview?orgId=1">
                 <div class="ui button">
                     Overview
                 </div>
@@ -290,7 +292,7 @@ Job Launches: {{launches}}
 
 <div class="ui right aligned grid" style="margin-right: 30px; margin-bottom: 15px">
     <div class="right floated right aligned four wide column">
-        <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Release_Notes">
+        <a target="_blank" href="{{docspath}}/Release_Notes">
             <button class="ui teal small button">
                 <i class="share icon"></i>
                 Release Notes: {{version}}

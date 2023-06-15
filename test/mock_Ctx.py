@@ -3,9 +3,12 @@
    used in testing
 """
 from poms.webservice.poms_model import Experimenter
+from configparser import ConfigParser
 import DBHandle
 import utils
-
+import os
+config = ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 def get_user():
     return "poms"
@@ -30,7 +33,7 @@ fakeheaders = {
     "Upgrade-Insecure-Requests": "1",
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/74.0.3729.108 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
-    "Referer": "https://pingprod.fnal.gov:9031/",
+    "Referer": config.get("FNAL", "pingprod_url"),
     "Accept-Encoding": "gzip, deflate, br",
     "X-Shib-Userid": "mengel",
     "X-Shib-Email": "mengel@fnal.gov",
@@ -38,8 +41,8 @@ fakeheaders = {
     "X-Shib-Name-First": "Marc",
     "X-Forwarded-Proto": "https",
     "X-Forwarded-For": "131.225.80.97",
-    "X-Forwarded-Host": "pomsgpvm01.fnal.gov",
-    "X-Forwarded-Server": "pomsgpvm01.fnal.gov",
+    "X-Forwarded-Host": config.get("POMS", "poms_simple_url_prod"),
+    "X-Forwarded-Server": config.get("POMS", "poms_simple_url_prod"),
     "Connection": "Keep-Alive",
 }
 
@@ -68,6 +71,7 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
+        web_config=None
     ):
 
         # functions take experiment and role, but we steal them out
@@ -77,6 +81,8 @@ class Ctx:
 
         self.db = db if db else DBHandle.DBHandle().get()
         self.config_get = config_get if config_get else utils.get_config().get
+        self.web_config = web_config if web_config else ConfigParser()
+        self.web_config.read(os.environ["WEB_CONFIG"])
         self.headers_get = headers_get if headers_get else fakeheaders.get
         self.sam = sam if sam else None
         self.experiment = experiment if experiment else pathv[2] if len(pathv) >= 4 else None

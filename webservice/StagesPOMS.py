@@ -929,9 +929,7 @@ class StagesPOMS:
         subhist = aliased(SubmissionHistory)
         subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
 
-        config = configparser.ConfigParser()
-        config.read("../webservice/poms.ini")
-        launch_commands = config.get("launch_commands", "projre").split(",")
+        launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
         
         try:
             subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()

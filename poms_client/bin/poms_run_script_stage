@@ -4,13 +4,13 @@
 
 cmd="$0 $*"
 
-host=pomsgpvm01.fnal.gov
+host=$(awk -F "=" '/poms_base_url_prod/ {print $2}' $WEB_CONFIG)
 while :
 do
 case x$1 in
-x--test)   extra="--test=1"; host=fermicloud045.fnal.gov; shift;;
-x--dev)   extra="--test=dev";host=fermicloud045.fnal.gov;  shift;;
-x--int)   extra="--test=int";host=poms-int.fnal.gov;  shift;;
+x--test)   extra="--test=1"; host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG); shift;;
+x--dev)   extra="--test=dev";host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG);  shift;;
+x--int)   extra="--test=int";host=$(awk -F "=" '/poms_base_url_int/ {print $2}' $WEB_CONFIG);  shift;;
 x--debug)  set -x; shift;;
 *) break;;
 esac
@@ -28,7 +28,7 @@ startup() {
 
     export CLUSTER="`date +%s`"
     export PROCESS="0"
-    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@fakebatch1.fnal.gov"
+    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@$(awk -F "=" '/fakebatch1/ {print $2}' $WEB_CONFIG)"
     log_status "Idle"
 
     sleep 1

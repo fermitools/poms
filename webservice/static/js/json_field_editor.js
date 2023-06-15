@@ -139,8 +139,8 @@ json_field_editor.dictstart = function (id) {
     res.push('<table style="border-spacing: 5px; border-collapse: separate; borer: 1px solid gray;">');
     res.push('<thead>');
     res.push('<tr>');
-    res.push('<td>Key <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key"><i class="icon help circle link"></i></a></td>');
-    res.push('<td>Value <a htarget="_blank" ref="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Key <a target="_blank" href="/docs/experimenters_corner/campaign_edit_help#Key"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Value <a htarget="_blank" ref="/docs/experimenters_corner/campaign_edit_help#Value"><i class="icon help circle link"></i></a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
     res.push('</thead>');
@@ -200,9 +200,9 @@ json_field_editor.start = function (id) {
     res.push('<table style="border-spacing: 5px; border-collapse: separate; borer: 1px solid gray;">');
     res.push('<thead>');
     res.push('<tr>');
-    res.push('<td>Key <a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Key"><i class="icon help circle link"></i></a></td>');
-    res.push('<td align="center">Space<a target="_blank" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Space"><i class="icon help circle link"></i></a></td>');
-    res.push('<td>Value <a htarget="_blank" ref="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/CampaignEditHelp#Value"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Key <a target="_blank" href="/docs/experimenters_corner/campaign_edit_help#Key"><i class="icon help circle link"></i></a></td>');
+    res.push('<td align="center">Space<a target="_blank" href="/docs/experimenters_corner/campaign_edit_help#Space"><i class="icon help circle link"></i></a></td>');
+    res.push('<td>Value <a htarget="_blank" ref="/docs/experimenters_corner/campaign_edit_help#Value"><i class="icon help circle link"></i></a></td>');
     res.push('<td>&nbsp;</td>');
     res.push('</tr>');
     res.push('</thead>');

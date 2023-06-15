@@ -7,7 +7,10 @@ import traceback
 from collections import deque
 import requests
 from poms.webservice.logit import log, logstartstop
+import configparser
 
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 class jobsub_fetcher:
     def __init__(self, cert, key):
@@ -41,7 +44,7 @@ class jobsub_fetcher:
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1 :]
 
-        if fifebatch == "fakebatch1.fnal.gov":
+        if fifebatch == config.get("FNAL", "fakebatch1"):
             # don's get confused by test suite...
             return
 
@@ -93,7 +96,7 @@ class jobsub_fetcher:
 
         fifebatch = jobsubjobid[jobsubjobid.find("@") + 1 :]
 
-        if fifebatch == "fakebatch1.fnal.gov":
+        if fifebatch == config.get("FNAL", "fakebatch1"):
             # don's get confused by test suite...
             return
 

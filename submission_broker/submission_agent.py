@@ -18,7 +18,6 @@ HTTPConnection.debuglevel = 1
 
 LOGIT = logging.getLogger()
 
-
 def get_status(entry):
     """
         given a dictionary from the Landscape service,
@@ -26,7 +25,8 @@ def get_status(entry):
     """
     if entry["done"] and entry["failed"] * 2 > entry["completed"]:
         return "Failed"
-    if entry["cancelled"]:
+    # Only consider a submission as cancelled if every job within it is cancelled, or if user marks it as cancelled when killing it.
+    if entry["done"] and entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
         return "Cancelled"
     if entry["done"]:
         return "Completed"
@@ -56,7 +56,7 @@ class Agent:
 
         self.cfg = configparser.ConfigParser()
         self.cfg.read(config)
-
+        
         self.poms_uri = poms_uri if poms_uri else self.cfg.get("submission_agent", "poms_uri")
         self.submission_uri = submission_uri if submission_uri else self.cfg.get("submission_agent", "submission_uri")
         # biggest time window we should ask LENS for
@@ -82,7 +82,7 @@ class Agent:
             "Accept": "*/*",
             "Connection": "keep-alive",
             "DNT": "1",
-            "Origin": "https://landscape.fnal.gov",
+            "Origin": self.cfg.get("submission_agent", "lens_server"),
         }
         self.ssess.headers.update(self.submission_headers)
 
@@ -395,7 +395,7 @@ class Agent:
             self.maybe_report(fullentry)
 
             if fullentry and fullentry["done"]:
-                self.update_submission(pomsTaskID, jobsub_job_id=id, status="Completed")
+                self.update_submission(pomsTaskID, jobsub_job_id=id, status=get_status(fullentry))
 
         self.last_seen[group] = thispass
 

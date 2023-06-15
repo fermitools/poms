@@ -1,8 +1,9 @@
 import cherrypy
+import os
 from .get_user import get_user
 from .poms_model import Experimenter
 from sqlalchemy import text
-
+from configparser import ConfigParser
 
 # h2. Ctx "Context" class
 
@@ -31,6 +32,7 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
+        web_config=None
     ):
 
         # functions take experiment and role, but we steal them out
@@ -42,6 +44,10 @@ class Ctx:
         for pid in self.db.execute(text("select pg_backend_pid();")):
             self.backend_pid = pid
         self.config_get = config_get if config_get else cherrypy.config.get
+        if not os.environ.get("WEB_CONFIG", None):
+            os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
+        self.web_config = web_config if web_config else ConfigParser()
+        self.web_config.read(os.environ["WEB_CONFIG"])
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
         self.experiment = (

@@ -95,7 +95,7 @@ class SATool(cherrypy.Tool):
         cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
         self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
-            cherrypy.config.get("elasticsearch_cert"), cherrypy.config.get("elasticsearch_key")
+            cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
 
@@ -180,6 +180,10 @@ def augment_params():
         dict(
             version=root.version,
             pomspath=root.path,
+            docspath=root.docspath,
+            sam_base = root.sam_base,
+            landscape_base = root.landscape_base,
+            fifemon_base = root.fifemon_base,
             hostname=socket.gethostname(),
             all_roles=roles,
             ExperimentsExperimenters=ExperimentsExperimenters,

@@ -114,6 +114,9 @@ class JobsPOMS:
             if act == "kill":
                 subcmd = "rm"
                 status_set = "Removed"
+            elif act == "cancel":
+                subcmd = "rm"
+                status_set = "Cancelled"
             elif act in ("hold", "release"):
                 subcmd = act
             else:
@@ -160,11 +163,11 @@ class JobsPOMS:
              # Declare where a bearer token should be stored when launch host calls htgettoken
             if ctx.role == "production" and ctx.experiment == "samdev": 
                 # samdev doesn't have a managed token...
-                htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (vaultfile, experimenter_login)
+                htgettokenopts = "-a %s -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"), vaultfile, experimenter_login)
             elif ctx.role == "analysis":
-                htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
+                htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens","vaultserver"),group, vaultfile, experimenter_login)
             else:
-                htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r %s --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, ctx.role, ctx.experiment)
+                htgettokenopts = "-a %s -i %s -r %s --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens","vaultserver"),group, ctx.role, ctx.experiment, ctx.web_config.get("tokens", "managed_tokens_server"))
 
  
       

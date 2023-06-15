@@ -8,6 +8,10 @@ import socket
 import subprocess
 import sys
 from utils import setup_ifdhc
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 setup_ifdhc()
 
@@ -129,7 +133,7 @@ class mock_job:
 
     def run(self, submission_id, i, n_jobs, fileflag=False, dataset=None, projname=None, exit_code=0):
 
-        jid = str(int(time.time()) + i / 10.0) + "@fakebatch1.fnal.gov"
+        jid = str(int(time.time()) + i / 10.0) + "@%s" % config.get("FNAL", "fakebatch1"),
         self.jids.append(jid)
 
         logger.info("launching fake job id %s" % jid)
@@ -308,7 +312,7 @@ class mock_job:
                     print("Trying to find project...", time.asctime())
                     u = do_ifdh("findProject", projname, "samdev")
                     # hostname = socket.gethostname()
-                    hostname = "fnpc3000.fnal.gov"
+                    hostname = config.get("FNAL", "mock_job_hostname")
 
                     # ifdh establishProcess  projecturi  appname  appversion  location  user  appfamily   description   filelimit   schemas
 

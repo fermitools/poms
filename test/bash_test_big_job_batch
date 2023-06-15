@@ -17,8 +17,8 @@ export POMS_DIR=`pwd`/..
 for f in $files
 do
    export CONDOR_Q_OUTPUT=$f
-   echo "starting jobsub_q_scraper.py with `which condor_q` and file $CONDOR_Q_OUTPUT"
-   python jobsub_q_scraper.py -d -o
+   echo "starting jobsub_q_submission_scraper.py with `which condor_q` and file $CONDOR_Q_OUTPUT"
+   python jobsub_q_submission_scraper.py -d -t -c ./submission_agent.cfg
    echo "done condor_q_scraper.py"
    ps -o pid,pcpu,vsz,rss,command
    sleep 1

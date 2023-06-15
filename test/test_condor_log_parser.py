@@ -8,8 +8,8 @@ logger = logging.getLogger("cherrypy.error")
 dbh = DBHandle.DBHandle()
 
 config = get_config()
-cert = eval(config.get("elasticsearch_cert"))
-key = eval(config.get("elasticsearch_key"))
+cert = eval(config.get("Elasticsearch", "cert"))
+key = eval(config.get("Elasticsearch", "key"))
 
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())

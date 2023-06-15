@@ -5,6 +5,10 @@ import poms_client
 import optparse
 import logging
 import os
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 parser = optparse.OptionParser(usage="usage: %prog [options] \n upload file to POMS")
 parser.add_option('--poms_role', type=str, help='use to test the client URL query', default='analysis')
@@ -54,26 +58,7 @@ try:
              vo = options.experiment
              if vo == 'samdev':
                  vo = 'fermilab'
-
-             if vo == 'dune':
-                 extrapool = 'dunegpcoll02.fnal.gov'
-             else:
-                 extrapool = ''
-
-             os.system('''
-                 
-               export _condor_CREDD_HOST
-               export _condor_COLLECTOR_HOST
-               for _condor_COLLECTOR_HOST in gpcollector04.fnal.gov %s
-               do
-                 slist=`condor_status -schedd -af name -constraint IsJobsubLite`
-                 for _condor_CREDD_HOST in $slist
-                 do
-                     echo "updating credmon on $_condor_CREDD_HOST"
-                     /usr/bin/condor_vault_storer %s
-                 done
-               done
-             ''' % (extrapool, vo))
+             os.system('/usr/bin/condor_vault_storer %s' % vo)
              os.system("cp /tmp/vt_u%d-%s %s" % (os.getuid(), vo, vaultfile))
         args.append(vaultfile)
 except SystemExit:
@@ -96,7 +81,7 @@ try:
         proxyfile = "/tmp/x509up_voms_%s_%s_%s" % (options.experiment, options.poms_role.capitalize(),os.environ.get('GRID_USER',os.environ.get('USER','unknown')) )
         if os.environ.get('X509_USER_PROXY', None):
              os.system("cp $X509_USER_PROXY %s" % proxyfile)
-             os.system("cigetcert -n -s fifebatch.fnal.gov")
+             os.system("cigetcert -n -s %s" % config.get("FNAL", "fifebatch_server"))
         else:
              try:
                  os.unlink(proxyfile)
@@ -110,8 +95,7 @@ try:
              os.system("cp %s %s" % (ipf, proxyfile))
         args.append(proxyfile)
         os.system("chmod 400 %s" % proxyfile)
-        os.system("cigetcert -v -n -s fifebatch.fnal.gov")
-        #os.system('myproxy-store -c %s -y %s -s myproxy.fnal.gov -xZ "/DC=org/DC=incommon/C=US/ST=IL/L=Batavia/O=Fermi Research Alliance/OU=Fermilab/CN=fifebatch.fnal.gov" -t 24 -l "`openssl x509 -in %s -noout -subject | cut -d " " -f 2-`"' % (proxyfile, proxyfile,proxyfile))
+        os.system("cigetcert -v -n -s %s" % config.get("FNAL", "fifebatch_server"))
 except SystemExit:
     pass
 except:

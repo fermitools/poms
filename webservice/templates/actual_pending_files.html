@@ -41,7 +41,7 @@ Projects involved
 {% for s in tasklist %}
 <div class="item">
 <div class="ui list">
-<a href="https://samweb.fnal.gov:8483/station_monitor/{{cs.experiment}}/stations/{{cs.experiment}}/projects/{{s.project}}">{{s.project}}</a>
+<a href="{{sam_base}}/station_monitor/{{cs.experiment}}/stations/{{cs.experiment}}/projects/{{s.project}}">{{s.project}}</a>
 <a href="show_task_jobs?submission_id={{s.submission_id}}&tmax={{s.updated.strftime('%Y-%m-%d %H:%M:%S')}}">[task]</a>
 </div>
 </div>

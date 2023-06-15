@@ -22,7 +22,7 @@ Input Files seen
 <ul>
 {%for file in fl%}
    {%if file.file_type == "input"%}
-     <li> <a href="https://samweb.fnal.gov:8483/sam/{{session_experiment}}/api/files/name/{{file.file_name}}/metadata">{{file.file_name}}</a>
+     <li> <a href="{{sam_base}}/sam/{{session_experiment}}/api/files/name/{{file.file_name}}/metadata">{{file.file_name}}</a>
    {%endif%}
 {%endfor%}
 </ul>
@@ -31,7 +31,7 @@ Output Files seen
 <ul>
 {%for file in fl%}
    {%if file.file_type == "output"%}
-     <li> <a href="https://samweb.fnal.gov:8483/sam/{{session_experiment}}/api/files/name/{{file.file_name}}/metadata">{{file.file_name}}</a>
+     <li> <a href="{{sam_base}}/sam/{{session_experiment}}/api/files/name/{{file.file_name}}/metadata">{{file.file_name}}</a>
    {%endif%}
 {%endfor%}
 </ul>

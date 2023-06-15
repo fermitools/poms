@@ -28,7 +28,7 @@ lock
 mv /tmp/wrapup_tasks.html /tmp/wrapup_tasks_old.html || true
 mv /tmp/wt.out /tmp/wt_old.out || true
 date > /tmp/wt.out
-wget --timeout 7200 -t 1 -O /tmp/wrapup_tasks.html http://localhost:8080/poms/wrapup_tasks >> /tmp/wt.out 2>&1 
+wget --timeout 7200 -t 1 -O /tmp/wrapup_tasks.html $(awk -F "=" '/localhost/ {print $2}' $WEB_CONFIG)/poms/wrapup_tasks >> /tmp/wt.out 2>&1 
 date >> /tmp/wt.out
 
 unlock

@@ -18,7 +18,7 @@ Selected Campaign Stages{%include 'help_button.html'%}
     <thead>
         <tr>
             <th colspan=1 align="center" data-sorter="false" data-filter="false"> Campaign Stage
-                <a target="_help" href="https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Glossary#CampaignStage"><i style="float: none" class="grey help circle link icon"></i></a>
+                <a target="_help" href="{{docspath}}/glossary/#campaign-stage"><i style="float: none" class="grey help circle link icon"></i></a>
             </th>
             <th data-sorter="false" data-filter="false">Total</th>
             <th align="center" data-sorter="false" data-filter="false">Active Jobs </th>
@@ -33,13 +33,13 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
             <td>
 
-<iframe scrolling="no" style="width: 100%; min-width: 25em; height: 10em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 100%; min-width: 25em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
             </td>
             <td>
-<iframe scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
             </td>
             <td>
-<iframe  scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
             </td>
          </tr>
      {% endfor %}

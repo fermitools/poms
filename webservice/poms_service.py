@@ -77,8 +77,10 @@ from .Ctx import Ctx
 # we have a routine here we give to cherrypy to format errors
 #
 
-
 def error_response():
+    web_config = ConfigParser()
+    web_config.read(os.environ["WEB_CONFIG"])
+    
     dump = ""
     if cherrypy.config.get("dump", True):
         dump = cherrypy._cperror.format_exc()
@@ -86,7 +88,11 @@ def error_response():
     jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
     template = jinja_env.get_template("error_response.html")
     path = cherrypy.config.get("pomspath", "/poms")
-    body = template.render(message=message, pomspath=path, dump=dump, version=global_version)
+    docspath = cherrypy.config.get("docspath", "/docs")
+    redmine_url = web_config.get("FNAL", "redmine_url")
+    servicenow = web_config.get("FNAL", "servicenow")
+    poms_servicenow_url = web_config.get("POMS", "poms_servicenow_url")
+    body = template.render(message=message, pomspath=path, dump=dump, version=global_version, docspath=docspath, servicenow=servicenow)
     cherrypy.response.status = 500
     cherrypy.response.headers["content-type"] = "text/html"
     cherrypy.response.body = body.encode()
@@ -127,8 +133,16 @@ class PomsService:
         # USE post_initialize if you need to log data!!!
         ##
         global global_version
+        self.web_config = ConfigParser()
+        self.web_config.read(os.environ["WEB_CONFIG"])
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
+        self.docspath = cherrypy.config.get("docspath", "/docs")
+        self.sam_base = self.web_config.get("SAM", "sam_base")
+        self.landscape_base = self.web_config.get("FNAL", "landscape_base")
+        self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
+        self.servicenow = self.web_config.get("FNAL", "servicenow")
+        self.redmine_url = self.web_config.get("FNAL", "redmine_url")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -157,6 +171,8 @@ class PomsService:
     # make them visible etc, and a few that return JSON use extra decorators
     #
     # h4. headers
+    
+    
 
     @poms_method()
     def headers(self, **kwargs):
@@ -172,12 +188,13 @@ class PomsService:
         pass
 
     # h4. index
-    @poms_method(t="index.html", help_page="DashboardHelp")
+    @poms_method(t="index.html", help_page="experimenters_corner/dashboard_help")
     def index(self, **kwargs):
         if len(cherrypy.request.path_info.split("/")) < 3:
             experiment, role = self.utilsPOMS.getSavedExperimentRole(kwargs["ctx"])
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
         return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
+    
 
     ####################
     # UtilsPOMS
@@ -216,7 +233,7 @@ class PomsService:
     # DBadminPOMS
     # h4. raw_tables
 
-    @poms_method(p=[{"p": "is_superuser"}], t="raw_tables.html", help_page="RawTablesHelp")
+    @poms_method(p=[{"p": "is_superuser"}], t="raw_tables.html", help_page="experimenters_corner/raw_tables_help")
     def raw_tables(self, **kwargs):
         return {"tlist": list(self.tablesPOMS.admin_map.keys())}
 
@@ -235,7 +252,7 @@ class PomsService:
 
     @poms_method(
         p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
-        help_page="MembershipHelp",
+        help_page="experimenters_corner/membership_help",
         t="experiment_membership.html",
     )
     def experiment_membership(self, **kwargs):
@@ -245,7 +262,7 @@ class PomsService:
 
     @poms_method(
         p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}],
-        help_page="MembershipHelp",
+        help_page="experimenters_corner/membership_help",
         t="experiment_shifters.html",
     )
     def experiment_shifters(self, **kwargs):
@@ -302,7 +319,7 @@ class PomsService:
     # h4. campaign_deps
 
     @poms_method(
-        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_deps.html", help_page="CampaignDepsHelp"
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_deps.html", help_page="experimenters_corner/campaign_deps_help"
     )
     def campaign_deps(self, **kwargs):
         return {"svgdata": self.campaignsPOMS.campaign_deps_svg(**kwargs)}
@@ -310,14 +327,14 @@ class PomsService:
     # h4. campaign_overview_
 
     @poms_method(
-        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="CampaignDepsHelp"
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="experimenters_corner/campaign_deps_help"
     )
     def campaign_overview(self, **kwargs):
         c, d, sl = self.campaignsPOMS.campaign_overview(**kwargs)
         return {"s": c, "svgdata": d, "slist": sl}
 
     @poms_method(
-        p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="CampaignDepsHelp"
+        p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="experimenters_corner/campaign_deps_help"
     )
     def show_watching(self, **kwargs):
         d, c = self.campaignsPOMS.show_watching(**kwargs)
@@ -419,7 +436,7 @@ class PomsService:
     # h4. campaign_stage_edit
     @poms_method(
         p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
-        help_page="POMS_User_Documentation",
+        help_page="user_documentation",
         t="campaign_stage_edit.html",
     )
     def campaign_stage_edit(self, ctx, **kwargs):
@@ -453,7 +470,7 @@ class PomsService:
     @poms_method(
         p=[{"p": "can_modify", "t": "Campaign", "name": "campaign", "experiment": "experiment"}],
         t="gui_wf_edit.html",
-        help_page="GUI_Workflow_Editor_User_Guide",
+        help_page="gui_workflow_editor_user_guide",
         need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
@@ -467,7 +484,7 @@ class PomsService:
             {"p": "nonexistent", "t": "Campaign", "name": "to", "experiment": "experiment"},
         ],
         t="gui_wf_edit.html",
-        help_page="GUI_Workflow_Editor_User_Guide",
+        help_page="gui_workflow_editor_user_guide",
         need_er=True,
     )
     def gui_wf_clone(self, experiment, role, *args, **kwargs):
@@ -475,7 +492,7 @@ class PomsService:
 
     # h4. sample_workflows
 
-    @poms_method(t="sample_workflows.html", help_page="Sample Workflows")
+    @poms_method(t="sample_workflows.html", help_page="experimenters_corner/sample_workflow")
     def sample_workflows(self, **kwargs):
         import mimetypes
 
@@ -600,7 +617,7 @@ class PomsService:
             "statuses"
         ],
         t="submission_details.html",
-        help_page="SubmissionDetailsHelp",
+        help_page="experimenters_corner/submission_details_help",
     )
     def submission_details(self, **kwargs):
         return self.submissionsPOMS.submission_details(**kwargs)
@@ -632,7 +649,7 @@ class PomsService:
             "recent_submissions",
             "campaign_stage_snapshots"
         ],
-        help_page="POMS_UserDocumentation",
+        help_page="user_documentation",
         t="campaign_stage_info.html",
     )
     def campaign_stage_info(self, **kwargs):
@@ -670,7 +687,7 @@ class PomsService:
         p=[{"p": "can_view", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lines", "do_refresh", "campaign_name", "stage_name"],
         t="launch_jobs.html",
-        help_page="LaunchedJobsHelp",
+        help_page="experimenters_corner/launched_jobs_help",
     )
     def list_launch_file(self, **kwargs):
         return self.filesPOMS.list_launch_file(**kwargs)
@@ -683,7 +700,7 @@ class PomsService:
         p=[{"p": "can_modify", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         t="schedule_launch.html",
         u=["cs", "job", "launch_flist"],
-        help_page="ScheduleLaunchHelp",
+        help_page="experimenters_corner/schedule_launch_help",
     )
     def schedule_launch(self, **kwargs):
         return self.stagesPOMS.schedule_launch(**kwargs)
@@ -730,7 +747,7 @@ class PomsService:
 
     # h4. list_generic
 
-    @poms_method(p=[{"p": "is_superuser"}], t="list_generic.html", help_page="ListGenericHelp")
+    @poms_method(p=[{"p": "is_superuser"}], t="list_generic.html", help_page="experimenters_corner/list_generic_help")
     def list_generic(self, **kwargs):
         return {
             "list": self.tablesPOMS.list_generic(**kwargs),
@@ -754,7 +771,7 @@ class PomsService:
     # h4. edit_screen_for
     # this is a little odd, it gets called sideways
     # (see edit_screen__generic in TablesPOMS...)
-    @poms_method(p=[{"p": "is_superuser"}], t="edit_screen_for.html", help_page="GenericEditHelp", call_args=True)
+    @poms_method(p=[{"p": "is_superuser"}], t="edit_screen_for.html", help_page="experimenters_corner/generic_edit_help", call_args=True)
     def edit_screen_for(self, *args):
         return {"screendata": self.tablesPOMS.edit_screen_for(*args), "action": "./" + args[3], "classname": args[1]}
 
@@ -891,7 +908,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        help_page="launch_campaign",
+        help_page="experimenters_corner/launch_campaign_help",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s" 
         ) 
     def launch_campaign(self, ctx, **kwargs):
@@ -910,7 +927,7 @@ class PomsService:
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
         rtype="redirect",
-        help_page="launch_jobs",
+        help_page="experimenters_corner/launch_jobs_help",
         redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
     )
     def launch_jobs(self, ctx, **kwargs):
@@ -981,7 +998,7 @@ class PomsService:
         p=[{"p": "can_view", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
         u=["cs", "columns", "datarows", "tmins", "tmaxs", "prev", "next", "tdays"],
         t="campaign_task_files.html",
-        help_page="CampaignTaskFilesHelp",
+        help_page="experimenters_corner/campaign_task_files_help",
     )
     def campaign_task_files(self, **kwargs):
         return self.filesPOMS.campaign_task_files(**kwargs)
@@ -1010,13 +1027,13 @@ class PomsService:
     # see &l=webservice/TagsPOMS.py#delete_campaigns_tags&
 
     # h4. search_tags
-    @poms_method(t="search_tags.html", help_page="SearchTagsHelp")
+    @poms_method(t="search_tags.html", help_page="experimenters_corner/search_tags_help")
     def search_tags(self, **kwargs):
         return {"results": self.tagsPOMS.search_tags(kwargs["ctx"], tag_name=kwargs["q"])}
 
     # h4. search_campaigns
 
-    @poms_method(t="search_campaigns.html", help_page="SearchTagsHelp")
+    @poms_method(t="search_campaigns.html", help_page="experimenters_corner/search_tags_help")
     def search_campaigns(self, **kwargs):
         return {"results": self.tagsPOMS.search_campaigns(kwargs["ctx"], kwargs["search_term"])}
 
@@ -1174,7 +1191,7 @@ class PomsService:
         return data
 
     @poms_method(
-        t="held_launches.html", help_page="HeldLaunchesHelp", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}]
+        t="held_launches.html", help_page="experimenters_corner/held_launches_help", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}]
     )
     def held_launches(self, **kwargs):
         return self.miscPOMS.held_launches(**kwargs)
@@ -1189,7 +1206,7 @@ class PomsService:
 
     # see &l=webservice/SubmissionsPOMS.py#get_oidc_url&
     @poms_method(
-        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}],t="auth.html", help_page="OidcAuth"
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_auth"}],t="auth.html", help_page="experimenters_corner/oidc_auth"
     )
     def auth(self, ctx, **kwargs):
         logit.log("referer: %s" % ctx.headers_get("Referer", "%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role)))
@@ -1212,7 +1229,7 @@ class PomsService:
         
     # see &l=webservice/SubmissionsPOMS.py#poll_oidc_url&
     @poms_method(
-        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="OidcPoll",rtype="json"
+        p=[{"p": "can_view", "t": "auth", "name": "oidc_poll"}], t="auth.html", help_page="experimenters_corner/oidc_auth",rtype="json"
     )
     def poll_oidc_status(self, **kwargs):
         data =  self.utilsPOMS.poll_oidc_url(**kwargs)

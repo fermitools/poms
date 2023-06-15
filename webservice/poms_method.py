@@ -20,6 +20,8 @@ import datetime
 import time
 import os
 from collections import deque
+import socketserver
+import urllib.parse as urlparse
 
 # h3. locals
 from .Ctx import Ctx
@@ -37,11 +39,14 @@ from . import (
     logit,
     version,
 )
-
+        
+        
 # h2. Error rewrite -- catch assorted errors, and make a short message
 # for users; want to redo this to pass the short  message and the
 # stack trace, and have the error page templates show part of message
 # and unfold it if requested...
+        
+
 
 error_counter = Counter("poms_webservice_response_errors_total", "Number of error reponses", ["error", "code"])
 
@@ -137,11 +142,11 @@ class JSONORMEncoder(json.JSONEncoder):
 
 req_histogram = Histogram("poms_webservice_response_time_seconds", "Time spent handling request", ["method"])
 
-
+    
 def poms_method(
     p=[],
     t=None,
-    help_page="POMS_User_Documentation",
+    help_page="user_documentation",
     rtype="html",
     redirect=None,
     u=[],
@@ -253,7 +258,7 @@ def poms_method(
 
             # stop Chrome from offering to translate half our pages..
             cherrypy.response.headers["Content-Language"] = "en"
-
+            
             if fmtflag == "json" or rtype == "json":
                 cherrypy.response.headers["Content-Type"] = "application/json"
                 if isinstance(values, dict) and "ctx" in values:
@@ -267,6 +272,12 @@ def poms_method(
                     redict = values
                 else:
                     redict = kwargs
+                if not redict.get("exp_obj", None):
+                    redict["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
+                if not redict.get("poms_servicenow_url", None):
+                    redict["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
+                if not redict.get("servicenow", None):
+                    redict["servicenow"] = ctx.web_config.get("FNAL","servicenow")
                 redict["poms_path"] = self.path
                 redict["hostname"] = self.hostname
                 redict["experiment"] = ctx.experiment
@@ -283,10 +294,17 @@ def poms_method(
                 logit.log("values: %s" % repr(values))
                 if not values:
                     values = kwargs
+                if not values.get("exp_obj", None):
+                    values["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
+                if not values.get("poms_servicenow_url", None):
+                    values["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
+                if not values.get("servicenow", None):
+                    values["servicenow"] = ctx.web_config.get("FNAL", "servicenow")
                 values["help_page"] = help_page
                 # a few templates want to format times, etc.
                 values["datetime"] = datetime
                 values["time"] = time
+                
                 return self.jinja_env.get_template(templ).render(**values)
             elif rtype == "html":
                 cherrypy.response.headers["Content-Type"] = "text/html"

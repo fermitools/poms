@@ -15,6 +15,10 @@ from mock_poms_service import mock_poms_service
 from mock_redirect import mock_redirect_exception
 import Mock_jobsub_rm
 import logging
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 logger = logging.getLogger("cherrypy.error")
 # when I get one...
@@ -38,11 +42,11 @@ def test_kill_jobs():
     jid_n = time.time()
 
     # 1 Job in the first submission_id
-    jid1 = "%d.0@fakebatch1.fnal.gov" % jid_n
+    jid1 = "%d.0@%s" % (jid_n, config.get("FNAL", "fakebatch1")) 
     mps.submissionsPOMS.update_submission(ctx, submission_id=submission_id, jobsub_job_id=jid1, status="Running")
 
     # 3Job in a new submission_id but same campaign
-    jid3 = "%d.0@fakebatch1.fnal.gov" % (jid_n + 2)
+    jid3 = "%d.0@%s" % ((jid_n + 2), config.get("FNAL", "fakebatch1")) 
     mps.submissionsPOMS.update_submission(ctx, submission_id=task_id2, jobsub_job_id=jid3, status="Running")
 
     # Control arguments

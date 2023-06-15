@@ -147,7 +147,13 @@ class UtilsPOMS:
 
         ctx.db.commit()
     # Leaving debug on for the time being to find errors if they occur
-    def get_oidc_url(self, ctx, vaultserver = "https://htvaultprod.fnal.gov:8200", oidcpath = "auth/oidc-fermilab/oidc", referer = None, debug = True): 
+    def get_oidc_url(self, ctx, vaultserver = None, oidcpath = None, referer = None, debug = True): 
+        
+        if not vaultserver:
+            vaultserver = ctx.web_config.get("tokens","vaultserverfull")
+        if not oidcpath:
+            oidcpath = ctx.web_config.get("tokens","oidcpath")
+
         logit.log("Attempting OIDC authentication")
         role = "default"
         
@@ -168,7 +174,7 @@ class UtilsPOMS:
         authdata = {
             'role': role,
             'client_nonce': nonce,
-            'redirect_uri': vaultserver + '/v1/https:/cilogon.org/%s/callback' % oidcpath
+            'redirect_uri': ctx.web_config.get("tokens", "redirect_uri").replace("PLACEHOLDER1", oidcpath)
         }
         data = json.dumps(authdata)
         if debug:
@@ -583,6 +589,8 @@ class UtilsPOMS:
         
         return None
     
+    # TODO: If we ever decide to use this, this function will need to be fixed to work.
+    # This functionwas in development before we decided to exclusively use poms_client for analysis tokens.
     def try_kerb_auth(self, ctx, data, vaulthostname, issuer):
          # Try kerberos authentication with vault
         logit.log("try_kerb_auth")

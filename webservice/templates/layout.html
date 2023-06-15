@@ -183,7 +183,7 @@
                 has a bad link, leading to a bad /experiment/role in the url. 
                 <p>
                 Please report the above page to the POMS team
-                <a href="https://fermi.servicenowservices.com/nav_to.do?uri=%2Fcom.glideapp.servicecatalog_cat_item_view.do%3Fsysparm_id%3D993f4a8fa994e0808638daab111d5447%26amp;sysparm_service%3D2deaa5b56f70520032544d1fde3ee40c%26amp;sysparm_affiliation%3D" target="_blank">here</a>,
+                <a href="{{servicenow}}/nav_to.do?uri=%2Fcom.glideapp.servicecatalog_cat_item_view.do%3Fsysparm_id%3D993f4a8fa994e0808638daab111d5447%26amp;sysparm_service%3D2deaa5b56f70520032544d1fde3ee40c%26amp;sysparm_affiliation%3D" target="_blank">here</a>,
                 along with what you clicked on in the page to get here, 
                 so we can get rid of these annoying red boxes.
             {% else %}
@@ -196,7 +196,7 @@
             You can continue your work by manually fixing the experiment 
             and role in the URL bar of your browser, so it is of the form
 
-            <b><tt>https://pomsgpvm01.fnal.gov/poms/</tt><i>some_page/experiment/role</i></b>....
+            <b><tt>{{ctx.web_config.get("POMS", "prod_url_error")}}</tt><i>some_page/experiment/role</i></b>....
 
             <br>
               &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   Thank you.<br>

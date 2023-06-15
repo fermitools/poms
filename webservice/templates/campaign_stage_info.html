@@ -14,7 +14,7 @@
 
 {%block header%}
 Campaign Stages
-    {{ show_hint('#Campaigns-Stages', 'Help page') }}
+    {{ show_hint('#campaign-stages', 'Help page') }}
 {%endblock%}
 
 {%block subheader%}
@@ -38,9 +38,9 @@ all the time...
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
-<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
-<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
-<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="https://fifemon.fnal.gov/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
 
   <br/>
   <span class="info">statistics for last 30 days</span>
@@ -141,10 +141,10 @@ all the time...
          <div class=menu>
               <div class=item>
                  <i class="external icon"></i>
-                 <a href="https://landscape.fnal.gov/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
+                 <a href="{{landscape_base}}/monitor/d/HMj5hqVik/production-shifter?orgId=1&var-vo={{CampaignStage.experiment|replace('samdev','fermilab')}}" target='_blank'>Production Shifter Page (Landscape)</a>
               </div>
               <div class=item>
-               <a href="https://fifemon.fnal.gov/monitor/d/X49EUj3iz/poms-stage?orgId=1&from=now-30d&to=now&var-stage={{CampaignStage.campaign_stage_id}}&var-stage_name={{CampaignStage.name}}" target='_blank'>
+               <a href="{{fifemon_base}}/monitor/d/X49EUj3iz/poms-stage?orgId=1&from=now-30d&to=now&var-stage={{CampaignStage.campaign_stage_id}}&var-stage_name={{CampaignStage.name}}" target='_blank'>
                    <i class="external bar chart icon" data-content="Campaign Stats"></i>Campaign Stage Stats (Landscape)
                </a>
               </div>

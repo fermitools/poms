@@ -2,12 +2,16 @@
 
 import argparse
 import requests
+import os
+import configparser
 try:
     import requests.packages.urllib3 as urllib3
 except ImportError:
     import urllib3
 
 urllib3.disable_warnings()
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 def parse_command_line():
     doc = "Retrives and displays POMS FERRY data of an experiment."
@@ -15,7 +19,7 @@ def parse_command_line():
     parser.add_argument('experiment', help="The experiment FERRY data will be retreived for.")
     parser.add_argument('-c', '--cert', help="Location of certificates - defaults to under ~/private/....")
     parser.add_argument('-s', '--skip_analysis', action="store_true", help='Do not include analysis users.')
-    parser.add_argument('-f', '--ferry', help='FERRY url to use - defaults to https://ferry.fnal.gov:8443.')
+    parser.add_argument('-f', '--ferry', help='FERRY url to use - defaults to %s.' % config.get("Ferry", "default_ferry_url"))
 
     args = parser.parse_args()
     return args
@@ -78,7 +82,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 def main():
     args = parse_command_line()
     cert = args.cert or "/home/poms/private/gsi"
-    ferry_url = args.ferry or "https://ferry.fnal.gov:8443"
+    ferry_url = args.ferry or config.get("Ferry", "default_ferry_url")
     get_ferry_data(cert, ferry_url, args.experiment, args.skip_analysis)
 
 if __name__ == "__main__":

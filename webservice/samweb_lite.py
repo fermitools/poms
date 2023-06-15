@@ -16,6 +16,10 @@ from requests.adapters import HTTPAdapter
 from poms.webservice.utc import utc
 from poms.webservice.poms_model import FaultyRequest
 import poms.webservice.logit as logit
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 # shut up annoying InsecureRequestWarnings
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -122,7 +126,7 @@ class samweb_lite:
             return -1
 
         res = None
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
         retries = 3
         for i in range(retries + 1):
@@ -156,7 +160,7 @@ class samweb_lite:
         if not experiment or not projid or projid == "None":
             return ""
 
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
@@ -174,7 +178,7 @@ class samweb_lite:
         if self.have_cache(experiment, projid):
             return self.proj_cache[experiment + projid]
 
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, experiment, projid)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
@@ -192,7 +196,7 @@ class samweb_lite:
 
     def fetch_info_list(self, task_list, dbhandle=None):
         # ~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         urls = [
             "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
             % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
@@ -263,7 +267,7 @@ class samweb_lite:
             del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/projects/%s/%s/description" % (base, experiment, experiment, projname)
         res = None
         r1 = None
@@ -304,7 +308,7 @@ class samweb_lite:
         return dims
 
     def get_metadata(self, experiment, filename):
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (base, experiment, filename)
         res = requests.get(url, verify=False)
         try:
@@ -313,7 +317,7 @@ class samweb_lite:
             return {}
 
     def plain_list_files(self, experiment, dims):
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
         dims = self.cleanup_dims(dims)
@@ -331,7 +335,7 @@ class samweb_lite:
         return flist
 
     def list_files(self, experiment, dims, dbhandle=None):
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = deque()
         dims = self.cleanup_dims(dims)
@@ -346,7 +350,7 @@ class samweb_lite:
 
     def count_files(self, experiment, dims, dbhandle=None):
         logit.log("INFO", "count_files(experiment=%s, dims=%s)" % (experiment, dims))
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         dims = self.cleanup_dims(dims)
         count = -1
@@ -381,7 +385,7 @@ class samweb_lite:
         if isinstance(experiment, str):
             experiment = [experiment] * len(dims_list)
 
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         urls = [
             "%s/sam/%s/api/files/count?%s"
             % (base, experiment[i], urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])}))
@@ -405,7 +409,7 @@ class samweb_lite:
 
     def create_definition(self, experiment, name, dims):
         logit.log("INFO", "create_definition( %s, %s, %s )" % (experiment, name, dims))
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
@@ -451,7 +455,7 @@ class samweb_lite:
 
     def remove_existing_definition(self, experiment, name):
         logit.log("INFO", "remove_existing_definition( %s, %s )" % (experiment, name))
-        base = "https://samweb.fnal.gov:8483"
+        base = "%s" % config.get("SAM", "sam_base")
         path = "/sam/%s/api/definitions/name/%s" % (experiment, name)
         url = "%s%s" % (base, path)
         res = None

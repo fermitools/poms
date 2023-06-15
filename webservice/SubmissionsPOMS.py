@@ -350,9 +350,7 @@ class SubmissionsPOMS:
         # try to extract the project name from the launch command...
         #
         project = None
-        config = configparser.ConfigParser()
-        config.read("../webservice/poms.ini")
-        launch_commands = config.get("launch_commands", "projre").split(",")
+        launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
         for projre in launch_commands:
             logit.log("projre: %s" % projre)
             m = re.search(projre, command_executed)
@@ -522,8 +520,8 @@ class SubmissionsPOMS:
         self.init_statuses(ctx)
         now = datetime.now(utc)
 
-        cert = ctx.config_get("elasticsearch_cert")
-        key = ctx.config_get("elasticsearch_key")
+        cert = ctx.web_config.get("Elasticsearch", "cert")
+        key = ctx.web_config.get("Elasticsearch", "key")
 
         newtups = (
             ctx.db.query(
@@ -567,11 +565,11 @@ class SubmissionsPOMS:
                 )
 
                 if job_data:
-                    res.append("found job log for %s!" % submission_id)
-                    logit.log("found job log for %s!" % submission_id)
+                    res.append("found job log for %s!" % submission.submission_id)
+                    logit.log("found job log for %s!" % submission.submission_id)
 
                     if len(job_data["completed"]) == len(job_data["idle"]):
-                        self.update_submission_status(ctx, submission_id, status="Completed")
+                        self.update_submission_status(ctx, submission.submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
 
@@ -598,9 +596,7 @@ class SubmissionsPOMS:
             .order_by(SubmissionHistory.created)
             .all()
         )
-        config = configparser.ConfigParser()
-        config.read("../webservice/poms.ini")
-        launch_commands = config.get("launch_commands", "projre").split(",")
+        launch_commands = ctx.web_config.get("launch_commands", "projre").split(",")
         if not submission.project:
             project = None
             for projre in launch_commands:
@@ -993,7 +989,7 @@ class SubmissionsPOMS:
         c = ctx.db.query(CampaignStage).with_for_update().filter(CampaignStage.campaign_stage_id == 0).one()
         if hold == "hold":
             c.hold_experimenter_id = experimenter.experimenter_id
-            c.role_held_wtih = role
+            c.role_held_wtih = ctx.role
         else:
             c.hold_experimenter_id = None
             c.role_held_wtih = None
@@ -1222,7 +1218,7 @@ class SubmissionsPOMS:
             definition_parameters = []
             exp = ctx.experiment
             launch_script = """echo "Environment"; printenv; echo "jobsub is`which jobsub`;  echo "login_setup successful!"""
-            do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
+            do_tokens = True
 
         else:
             if str(campaign_stage_id)[0] in "0123456789":
@@ -1308,20 +1304,18 @@ class SubmissionsPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise PermissionError("non experimenter launch not on localhost")
 
-        if role== "production" and not lt.launch_host.find(exp) >= 0 and not lt.launch_host == "fifeutilgpvm02.fnal.gov" and not lt.launch_host == "fifeutilgpvm01.fnal.gov" and exp != "samdev":
+        if role== "production" and not lt.launch_host.find(exp) >= 0 and lt.launch_host not in ctx.web_config.get("POMS", "non_production_launch_hosts") and exp != "samdev":
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             raise AssertionError(output)
 
-        if role == "analysis" and not (
-            lt.launch_host in ("pomsgpvm01.fnal.gov", "fermicloud210.fnal.gov", "poms-int.fnal.gov", "pomsint.fnal.gov", "fifeutilgpvm01.fnal.gov", "fifeutilgpvm02.fnal.gov")
-        ):
+        if role == "analysis" and lt.launch_host not in ctx.web_config.get("POMS", "non_analysis_launch_hosts"):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
         
         group = exp
         if role == "analysis":
-            if group in ["samdev","accel","accelai", "icarus", "admx","annie","argoneut", "cdms","chips","cms","coupp","darksectorldrd","darkside","ebd","egp","emph","emphatic","fermilab","genie","lariat","larp","magis100","mars","minerva","miniboone","minos","next","noble","nova","numix","patriot","pip2","seaquest","spinquest","test","theory","uboone"]:
+            if group in ctx.web_config.get("FNAL", "fermilab_cilogon_groups"):
                 credmon_group = "fermilab"
         if group == "samdev":
             group = "fermilab"
@@ -1363,7 +1357,6 @@ class SubmissionsPOMS:
         # for the moment, using fifeutilgpvm02 is code for using
         # jobsub_lite and tokens.  This needs a flag on
         # the campaigns and/or experiments instead.
-        #do_tokens = (lt.launch_host == "fifeutilgpvm02.fnal.gov")
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
         
@@ -1476,11 +1469,11 @@ class SubmissionsPOMS:
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if role == "production" and ctx.experiment == "samdev": 
             # samdev doesn't have a managed token...
-            htgettokenopts = "-a htvaultprod.fnal.gov -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (vaultfile, experimenter_login)
+            htgettokenopts = "-a %s -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),vaultfile, experimenter_login)
         elif role == "analysis":
-             htgettokenopts = "-a htvaultprod.fnal.gov -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (group, vaultfile, experimenter_login)
+             htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a htvaultprod.fnal.gov -i %s -r production --credkey=%spro/managedtokens/fifeutilgpvm01.fnal.gov " % (group, exp)
+            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"),group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
 
          # add token logic if not already in login_setup:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
@@ -1599,8 +1592,6 @@ class SubmissionsPOMS:
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
-            "source /etc/profile;",
-            "printenv;"
         ])
 
         cleanup_cmdl = [

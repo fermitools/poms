@@ -2,10 +2,14 @@
 import requests
 import logging
 import os
+import configparser
+
+config = configparser.ConfigParser()
+config.read(os.environ["WEB_CONFIG"])
 
 
 def experiment_list():
-    resp = requests.get('http://localhost:8080/poms/experiment_list')
+    resp = requests.get('%s/poms/experiment_list' % config.get("global", "localhost"))
     e_l = resp.json()
     resp.close()
     print("instead of %s returning samdev for debugging" % repr(e_l))
@@ -13,7 +17,7 @@ def experiment_list():
     return e_l
 
 def campaign_stage_datasets():
-    resp = requests.get('http://localhost:8080/poms/campaign_stage_datasets')
+    resp = requests.get('%s/poms/campaign_stage_datasets' % config.get("global", "localhost"))
     a_m = resp.json()
     resp.close()
     return a_m
@@ -21,21 +25,21 @@ def campaign_stage_datasets():
 def create_definition(exp, defname, dims):
     data = {'defname' : defname, 'dims': dims , 'group':exp, 'user':'poms'}
     logging.debug('definitions/create: data: %s' % repr(data))
-    resp = rs.post("https://samweb.fnal.gov:8483/sam/%s/api/definitions/create" % exp, data = data  )
+    resp = rs.post(config.get("SAM", "create_definition_url").replace("PLACEHOLDER1",exp), data = data  )
     print(resp.text)
 
 def describe_definition(exp, defname):
-    resp = rs.get("http://samweb.fnal.gov:8480/sam/%s/api/definitions/name/%s/?format=json" % (exp, defname))
+    resp = rs.get(config.get("SAM", "describe_definition_url").replace("PLACEHOLDER1",exp).replace("PLACEHOLDER2",defname))
     d_d = resp.json()
     resp.close()
     return d_d
 
 def delete_definition(exp, defname):
-    resp = rs.delete("https://samweb.fnal.gov:8483/sam/%s/api/definitions/name/%s" % (exp, defname))
+    resp = rs.delete(config.get("SAM", "delete_definition_url").replace("PLACEHOLDER1",exp).replace("PLACEHOLDER2",defname))
     print(resp.text)
 
 def campaign_stage_actives(exp):
-    resp = requests.get('http://samweb.fnal.gov:8480/sam/%s/api/definitions/list?defname=poms_campaign_stage_active_%%&format=json' % exp)
+    resp = requests.get(config.get("SAM", "active_campaign_stage_url").replace("PLACEHOLDER1",exp))
     c_s_a = resp.json()
     resp.close()
     return c_s_a
