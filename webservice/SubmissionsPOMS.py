@@ -336,6 +336,7 @@ class SubmissionsPOMS:
         user=None,
         campaign_stage_id=None,
         test=None,
+        full_submission=False
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
@@ -417,7 +418,11 @@ class SubmissionsPOMS:
             ctx.db.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         ctx.db.commit()
-        return s.submission_id
+        
+        if full_submission:
+            return s
+        else:
+            return s.submission_id
 
     # h3. get_last_history
     #
@@ -647,36 +652,51 @@ class SubmissionsPOMS:
         else:
             dataset = None
         
-
-        ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
-        ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
-        dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], submission.campaign_stage_id)
-
-        pattern = "{}/{}*".format(dirname, ds[:-2])
-        flist = glob.glob(pattern)
-        pattern2 = "{}/{}*".format(dirname, ds2[:-2])
-        flist.extend(glob.glob(pattern2))
-
-        logit.log("datestamps: '%s' '%s'" % (ds, ds2))
-        logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
-
+        base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
+        directory = "%s/%s/%s/%s/%s/%s_%s" % (
+                    base_dir,
+                    submission.created.astimezone(utc).date(), # Date of creation
+                    submission.campaign_stage_obj.experiment, # Name of experiment
+                    submission.campaign_stage_obj.campaign_id, # Campaign ID
+                    submission.campaign_stage_id, # Campaign Stage ID
+                    submission.submission_id, # Submission ID
+                    submission.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
+                )
         submission_log_format = 0
-        if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
-            submission_log_format = 3
-        if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
-            ds = ds2
-            submission_log_format = 3
-        elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
-            submission_log_format = 2
-        elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
-            ds = ds2
-            submission_log_format = 2
-        elif "{}/{}".format(dirname, ds) in flist:
-            submission_log_format = 1
-        elif "{}/{}".format(dirname, ds2) in flist:
-            ds = ds2
-            submission_log_format = 1
+        
+        if os.path.exists(directory):
+            submission_log_format = 4
+            ds = (submission.created.astimezone(utc).strftime("%Y%m%d_%H%M%S"))
+        if submission_log_format == 0:
+            ds = (submission.created.astimezone(utc)).strftime("%Y%m%d_%H%M%S")
+            ds2 = (submission.created - timedelta(seconds=0.5)).strftime("%Y%m%d_%H%M%S")
+            dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], submission.campaign_stage_id)
+
+            pattern = "{}/{}*".format(dirname, ds[:-2])
+            flist = glob.glob(pattern)
+            pattern2 = "{}/{}*".format(dirname, ds2[:-2])
+            flist.extend(glob.glob(pattern2))
+
+            logit.log("datestamps: '%s' '%s'" % (ds, ds2))
+            logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
+
+            if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                submission_log_format = 3
+            if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                ds = ds2
+                submission_log_format = 3
+            elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
+                submission_log_format = 2
+            elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
+                ds = ds2
+                submission_log_format = 2
+            elif "{}/{}".format(dirname, ds) in flist:
+                submission_log_format = 1
+            elif "{}/{}".format(dirname, ds2) in flist:
+                ds = ds2
+                submission_log_format = 1
        
+        print("Log format: %s" %submission_log_format)
         statuses = []
         cs = submission.campaign_stage_snapshot_obj.campaign_stage
         listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
@@ -723,11 +743,13 @@ class SubmissionsPOMS:
             ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
             ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
         ]
-
         
+        data_dispatcher_projects = None
+        campaign = submission.campaign_stage_obj.campaign_obj
+        if campaign.data_handling_service == "data_dispatcher":
+            data_dispatcher_projects = ctx.data_dispatcher.list_filtered_projects(ctx, campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
 
-
-        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects
 
     # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):
@@ -1106,20 +1128,32 @@ class SubmissionsPOMS:
             return True
 
     # h3. get_output_dir_file
-    def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id=None, submission_id=None, test_login_setup=None):
+    def get_output_dir_file(self, ctx, launch_time, username, campaign_id=None, campaign_stage_id=None, submission_id=None, test_login_setup=None):
         ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
-
-        if test_login_setup:
-            subdir = "template_tests_%d" % int(test_login_setup)
-        else:
-            subdir = "campaign_%s" % campaign_stage_id
+        if campaign_id:
             assert submission_id
+            subdir = "%s/%s/%s/%s" % (
+                        launch_time.astimezone(utc).date(), # Date of creation
+                        ctx.experiment, # Name of experiment
+                        campaign_id, # Campaign ID
+                        campaign_stage_id, # Campaign Stage ID
+                    )
+            outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
+            os.system("mkdir -p %s" % outdir)
+            outfile = "%s_%s" % (submission_id, ds)
+        else:
+            if test_login_setup:
+                subdir = "template_tests_%d" % int(test_login_setup)
+            
+            else:
+                subdir = "campaign_%s" % campaign_stage_id
+                assert submission_id
 
-        outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
-        outfile = "%s_%s" % (ds, username)
+            outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
+            outfile = "%s_%s" % (ds, username)
 
-        if submission_id:
-            outfile = "%s_%s" % (outfile, submission_id)
+            if submission_id:
+                outfile = "%s_%s" % (outfile, submission_id)
 
         outfullpath = "%s/%s" % (outdir, outfile)
 
@@ -1134,7 +1168,7 @@ class SubmissionsPOMS:
         """
         submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id
+            ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_obj.campaign_id, submission.campaign_stage_id, submission_id
         )
         re1 = re.compile("== process_id: ([0-9]+) ==")
         re2 = re.compile("== completed: ([0-9]+) ==")
@@ -1177,6 +1211,7 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
+        dd_project_id=None,
         **kwargs,
     ):
 
@@ -1359,7 +1394,9 @@ class SubmissionsPOMS:
         # the campaigns and/or experiments instead.
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
-        
+
+        do_data_dispatcher = ctx.data_dispatcher_is_logged_in and cs.campaign_obj.data_handling_service == "data_dispatcher"
+        logit.log("Data dispatcher launch | Logged in: %s" % ctx.data_dispatcher_is_logged_in)
         proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         if allheld or csheld or proxyheld:
 
@@ -1409,9 +1446,10 @@ class SubmissionsPOMS:
             poms_test = "1"
 
         # allocate task to set ownership
+        submission = None
         if not test_login_setup:
-            sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
-
+            submission = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time, full_submission=True)
+            sid = submission.submission_id
             #
             # keep some bookkeeping flags
             #
@@ -1433,7 +1471,7 @@ class SubmissionsPOMS:
             sam_specifics(ctx).declare_approval_transfer_datasets(sid)
 
             outdir, outfile, outfullpath = self.get_output_dir_file(
-                ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup
+                ctx, launch_time, ctx.username, cid, campaign_stage_id, sid, test_login_setup=test_login_setup
             )
             lcmd = "await_approval"
             logit.log("trying to record launch in %s" % outfullpath)
@@ -1501,6 +1539,48 @@ class SubmissionsPOMS:
         ]
         # END TOKEN LOGIC
         
+        # BEGIN DATA_DISPATCHER LOGIC
+        data_dispatcher_logic = []
+        if do_data_dispatcher:
+            project = None
+            dd_project_id = cs.data_dispatcher_project_id
+            dd_dataset_query = cs.data_dispatcher_dataset_query
+            if dd_project_id:
+                project = ctx.data_dispatcher.get_project_for_submission(ctx, dd_project_id,
+                                                    experiment= exp,
+                                                    role=cs.vo_role,
+                                                    campaign_id=cid, 
+                                                    campaign_stage_id=csid, 
+                                                    campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                    submission_id=sid, 
+                                                    depends_on_submission=submission.depends_on,
+                                                    recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                    project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,
+                                                    split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                    creator=cs.experimenter_creator_obj.experimenter_id,
+                                                    creator_name=cs.experimenter_creator_obj.username,
+                                                    last_split=cs.cs_last_split)
+            
+            if dd_dataset_query and not project:
+                project = ctx.data_dispatcher.create_project(ctx,dd_dataset_query,
+                                                    experiment= exp,
+                                                    role=cs.vo_role,
+                                                    campaign_id=cid, 
+                                                    campaign_stage_id=csid, 
+                                                    campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                    submission_id=sid, 
+                                                    depends_on_submission=submission.depends_on,
+                                                    recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                    project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,
+                                                    split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                    creator=cs.experimenter_creator_obj.experimenter_id,
+                                                    creator_name=cs.experimenter_creator_obj.username,
+                                                    last_split=cs.cs_last_split)
+            if project:
+                data_dispatcher_logic.append("export POMS_USER=%s;" % experimenter_login),
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % project.project_id)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_NAME=\"%s\";" % project.project_name)
+        
         cmdl = [
             "exec 2>&1;",
             "set -x;",
@@ -1549,7 +1629,7 @@ class SubmissionsPOMS:
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
             "source /grid/fermiapp/products/common/etc/setups;",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             (
                 lt.launch_setup
@@ -1568,6 +1648,8 @@ class SubmissionsPOMS:
        
         if not tokens_defined_in_login_setup and do_tokens:
             cmdl.extend(token_logic)
+        
+        
             
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
@@ -1575,6 +1657,8 @@ class SubmissionsPOMS:
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
+            
+            "export POMS4_HOST=%s;" % self.poms_service.hostname ,
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
             'export POMS4_CAMPAIGN_STAGE_NAME="%s";' % csname,
             "export POMS4_CAMPAIGN_STAGE_TYPE=%s;" % cstype,
@@ -1583,6 +1667,7 @@ class SubmissionsPOMS:
             "export POMS4_SUBMISSION_ID=%s;" % sid,
             "export POMS4_CAMPAIGN_ID=%s;" % cid,
             "export POMS4_TEST_LAUNCH=%s;" % test_launch_flag,
+            "export POMS_ENV=%s;" % self.poms_service.hostname,
             "export POMS_CAMPAIGN_ID=%s;" % csid,
             'export POMS_CAMPAIGN_NAME="%s";' % ccname,
             "export POMS_PARENT_TASK_ID=%s;" % (parent_submission_id if parent_submission_id else ""),
@@ -1593,6 +1678,8 @@ class SubmissionsPOMS:
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
         ])
+        if do_data_dispatcher and data_dispatcher_logic:
+            cmdl.extend(data_dispatcher_logic)
 
         cleanup_cmdl = [
             # we made either a token or a proxy copy just for
@@ -1664,7 +1751,7 @@ class SubmissionsPOMS:
 
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
+            ctx, launch_time, ctx.username, campaign_id=cid,campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
         )
 
         logit.log("trying to record launch in %s" % outfullpath)
@@ -1681,7 +1768,7 @@ class SubmissionsPOMS:
         logit.log("started launch ssh")
    
         
-        return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
+        return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile), sid
 
     def get_file_upload_path(self, ctx, filename):
         return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)

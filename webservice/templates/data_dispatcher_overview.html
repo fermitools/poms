@@ -1,0 +1,105 @@
+{%extends "layout.html" %}
+
+{%block title%}
+<title>POMS Data Dispatcher Overview</title>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+{%endblock%}
+
+{%block header%}
+<div class="dd-banner">
+    This is a fixed top banner.
+</div>
+<h1 class="ui header">POMS Data Dispatcher testing page (temporary)</h1>
+<h2 class="sub header">Method Called: {{method}}</h2>
+<script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
+{%endblock%}
+
+{%block content %}
+<input id="tokenLifespan" value="{{timestamp}}" hidden>
+<div class="ui horizontal segments">
+	<div class="ui segment raised" style="width: 20%;">
+		<h3>Sign in with password</h3>
+		<div class=menu>
+            <div class="item">
+                <label for="username">Username</label>
+                <input id="username" type="text">
+            </div>
+            <div class="item">
+                <label for="password">Password</label>
+                <input id="password" type="password" >
+            </div>
+            <div class="item">
+                <button class="login_submit" id="login_password">Login</button>
+            </div>
+		</div>
+	</div>
+    <div class="ui segment raised" style="width: 20%;">
+		<h3>Sign in as poms</h3>
+		<div class=menu>
+            <div class="item">
+                <button class="login_submit" id="login_token">Login</button>
+            </div>
+		</div>
+	</div>
+    <div class="ui segment raised" style="width: 60%;">
+		<h3>Login Status</h3>
+		<div class=menu>
+            <div class="item">
+                <label for="login_method">Login Method: </label>
+                <a id="login_method">{{login_method if login_method else 'N/A'}}</a>
+            </div>
+            <div class="item">
+                <label for="login_status">Status: </label>
+                <a id="login_status">{{login_status}}</a>
+            </div>
+            <div class="item">
+                <label for="signed-in-user">User: </label>
+                <a id="signed-in-user">{{dd_username if dd_username else 'N/A'}}</a>
+            </div>
+            <div class="item">
+                <label for="experiment">Environment: </label>
+                <a id="experiment">{{dd_experiment if dd_experiment else 'N/A'}}</a>
+            </div>
+            <div id="timestamp-item" class="item">
+                <label for="timeTillExpire">Token TTL: </label>
+                <a style="width: 400px;" id="timeTillExpire">N/A</a>
+            </div>
+		</div> 
+	</div> 
+</div>
+<h3>Get data for this experiment</h3>
+<div class="ui horizontal segments">
+    <div class="ui segment raised" style="max-width: 25%;">
+		<h3>List RSEs</h3>
+		<div class=menu>
+            <div class="item">
+                <button style="width: 120px;">
+                    <a style="width: 100px;" href="{{pomspath}}/data_dispatcher_overview/{{session_experiment}}/{{session_role}}/{{username}}?command=list_rses">
+                        <i class="chart rocket icon blue" data-content="List RSEs" data-variation="basic"></i>
+                        List RSEs
+                        <i class="chart rocket icon blue" data-content="List RSEs" data-variation="basic"></i>
+                        </a>
+                </button>
+            </div>
+		</div>
+	</div>
+	<div class="ui segment raised" style="max-width: 25%;">
+        <h3>List Projects</h3>
+        <div class=menu>
+            <div class="item">
+                <button style="width: 150px;">
+                    <a style="width: 120px;" href="{{pomspath}}/data_dispatcher_overview/{{session_experiment}}/{{session_role}}/{{username}}?command=list_projects">
+                        <i class="chart rocket icon blue" data-content="List Projects" data-variation="basic"></i>
+                        List Projects
+                        <i class="chart rocket icon blue" data-content="List Projects" data-variation="basic"></i>
+                        </a>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'data_dispatcher_rses.html' %}
+{% include 'data_dispatcher_projects.html' %}
+{% include 'data_dispatcher_project_controller.html' %}
+{%endblock%}

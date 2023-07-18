@@ -23,7 +23,7 @@ from . import logit
 from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign
 from .utc import utc
 from .SAMSpecifics import sam_specifics
-
+import shutil
 
 class FilesStatus:
     """
@@ -293,13 +293,83 @@ class FilesStatus:
             logit.log("get_launch_sandbox failed to link items from upload_path %s into the sandbox: %s" % (upload_path, repr(e)))
             return ctx.config_get("base_uploads_dir")
             
+            
+            
+    def is_date_older_than_six_months(self, date_string):
+        # Convert the date string to a datetime object
+        date_format = "%Y%m%d_%H%M%S"
+        date = datetime.strptime(date_string, date_format)
+        six_months_ago = datetime.now() - timedelta(days=6*30)
+        if date < six_months_ago:
+            return True
+        else:
+            return False
+
+    
+    def refactor_launch_directory(self, ctx):
+        final_destinations = {}
+        submission_paths = {}
+        submission_dates = {}
+        #files_to_remove = []
+        doesnt_satisfy = []
+        for root, dirs, ignore in os.walk("/home/poms/private/logs/poms/launches"):
+            for dir in dirs:
+                if "_" in dir:
+                    for pwd, subdirs, files in os.walk(os.path.join(root, dir)):
+                        for file in files:
+                            splitFile = file.split("_")
+                            if len(splitFile) < 3:
+                                doesnt_satisfy.append(os.path.join(pwd, file))
+                            #elif len(splitFile) > 1 and self.is_date_older_than_six_months("%s_%s" % (splitFile[0], splitFile[1])):
+                            #    files_to_remove.append(file)
+                            else:
+                                if len(splitFile) == 4:
+                                    submission_paths[splitFile[3]] = os.path.join(pwd, file)
+                                    submission_dates[splitFile[3]] = datetime.strptime("%s_%s" % (splitFile[0], splitFile[1]), "%Y%m%d_%H%M%S")
         
+        results = (
+                ctx.db.query(Submission)
+                #.filter(CampaignStage.campaign_stage_id in campaign_stage_submissions.keys())
+                .filter(Submission.submission_id.in_(list(submission_dates.keys())))
+                .all()
+            )
+        result_ids = {}
+        for result in results:
+            submission_id = '%s' % result.submission_id
+            result_ids[submission_id] = submission_id in submission_dates
+            # {{date_of_submission}}/{{experiment}}/{{campaign_id}}/{{campaign_stage_id}}/{{submission_id}}_{{submission_timestamp}}
+            if submission_id in submission_dates and submission_id in submission_paths:
+                # Create the new directory if it does not yet exist
+                directory = "/home/poms/private/logs/poms/launches/%s/%s/%s/%s" % (
+                    submission_dates[submission_id].date(), # Date of creation
+                    result.campaign_stage_obj.experiment, # Name of experiment
+                    result.campaign_stage_obj.campaign_id, # Campaign ID
+                    result.campaign_stage_id, # Campaign Stage ID
+                )
+                # Create the directory
+                try:
+                     shutil.rmtree(directory)
+                except:
+                    pass
+                os.makedirs(directory)
+                # ensures correct new path for old files
+                final_destinations[submission_paths[submission_id]] = "%s/%s_%s" % (
+                    directory,
+                    submission_id, # Submission ID
+                    result.created.strftime('%Y%m%d_%H%M%S') # Submission Timestamp
+                    )
+                # Copy the file to the destination directory
+                shutil.copy2(submission_paths[submission_id], final_destinations[submission_paths[submission_id]])
+
+               
+                            
 
     # h3. list_launch_file
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname=None, login_setup_id=None, submission_id=None):
         """
             get launch output file and return the lines as a list
         """
+        #self.refactor_launch_directory(ctx)
         if campaign_stage_id and campaign_stage_id != "None":
             q = (
                 ctx.db.query(CampaignStage, Campaign)
@@ -312,19 +382,48 @@ class FilesStatus:
         else:
             campaign_name = "-"
             stage_name = "-"
-        if login_setup_id:
-            dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
+        
+        if submission_id:
+            result = (
+                ctx.db.query(Submission)
+                .filter(Submission.submission_id == submission_id)
+                .first()
+            )
+            base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
+            directory = "%s/%s/%s/%s/%s/%s_%s" % (
+                        base_dir,
+                        result.created.astimezone(utc).date(), # Date of creation
+                        result.campaign_stage_obj.experiment, # Name of experiment
+                        result.campaign_stage_obj.campaign_id, # Campaign ID
+                        result.campaign_stage_id, # Campaign Stage ID
+                        result.submission_id, # Submission ID
+                        result.created.astimezone(utc).strftime('%Y%m%d_%H%M%S')
+                    )
+            logit.log("Attempting to open log file at: %s" %directory)
+            if os.path.exists(directory):
+                lf = open(directory, "r", encoding="utf-8", errors="replace")
+            else:
+                lf = None
         else:
-            dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
-        lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
-        sb = os.fstat(lf.fileno())
-        lines = lf.readlines()
-        lf.close()
-        # if file is recent set refresh to watch it
-        if (time.time() - sb[8]) < 5:
-            refresh = 3
-        elif (time.time() - sb[8]) < 30:
-            refresh = 10
+            if login_setup_id:
+                dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
+            else:
+                dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
+            lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
+        if lf:
+            sb = os.fstat(lf
+                          .fileno())
+            lines = lf.readlines()
+            lf.close()
+            # if file is recent set refresh to watch it
+            if (time.time() - sb[8]) < 5:
+                refresh = 3
+            elif (time.time() - sb[8]) < 30:
+                refresh = 10
+            else:
+                refresh = 0
         else:
+            lines = ["No log records exist for this submission"]
             refresh = 0
+        
         return lines, refresh, campaign_name, stage_name

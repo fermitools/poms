@@ -189,14 +189,32 @@
     margin-bottom: 10px;
     border: 1px solid #ccc;
   }
+
+  .initial{
+    background-color: rgba(255, 165, 0, 0.9) !important;
+    background-color: rgba(255, 255, 0, 0.9) !important;
+  }
+  .done{
+    background-color: rgba(81, 178, 172, 0.9) !important;
+  }
+  .failed{
+    background-color: rgba(255, 0, 0, 0.9) !important;
+    color: whitesmoke !important;
+  }
+  .reserved{
+    background-color: rgba(255, 165, 0, 0.9) !important;
+  }
+
   .dd-results-card-header {
     overflow-wrap: break-word;
     flex-wrap: wrap;
     text-align: center;
     font-weight: bold;
-    background-color: rgba(81, 178, 172, 0.9);
     padding: 5px;
+    background-color: rgba(81, 178, 172, 0.9);
   }
+  
+
   .dd-results-card-body {
     padding: 5px;
     display: inline-block;

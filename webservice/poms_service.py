@@ -203,35 +203,71 @@ class PomsService:
     
     @poms_method(
         help_page="experimenters_corner/data_dispatcher",
-        t="data_dispatcher_test.html",
+        t="data_dispatcher_overview.html",
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
     )
-    def data_dispatcher_test(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        is_logged_in, session_response = ctx.data_dispatcher.session_status(ctx)
-        if is_logged_in:
+    def data_dispatcher_overview(self, ctx, **kwargs):
+        if ctx.data_dispatcher_is_logged_in:
+            ctx.data_dispatcher_session_response['method'] = 'index'
             command = kwargs.get("command", None)
             if command:
                 if command == 'list_rses':
-                    session_response['method'] = 'list_rses'
-                    session_response['all_rses'] = ctx.data_dispatcher.list_rses()
-                    return session_response
+                    ctx.data_dispatcher_session_response['method'] = 'list_rses'
+                    ctx.data_dispatcher_session_response['all_rses'] = ctx.data_dispatcher.list_rses()
+                    return ctx.data_dispatcher_session_response
                 elif command == 'list_projects':
-                    session_response['method'] = 'list_projects'
-                    session_response['all_projects'] = ctx.data_dispatcher.list_projects()
-                    return session_response
-        session_response['method'] = 'index'
-        return session_response
-    
+                    ctx.data_dispatcher_session_response['method'] = 'list_projects'
+                    ctx.data_dispatcher_session_response['data_dispatcher_projects'] = ctx.data_dispatcher.list_all_projects(ctx, **kwargs)
+                    return ctx.data_dispatcher_session_response
+        return ctx.data_dispatcher_session_response
     
     @poms_method(rtype="json")
     def get_project_handles(self, ctx, **kwargs):
         ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
         if ctx.data_dispatcher.session_status(ctx)[0]:
-            return ctx.data_dispatcher.get_project_handles(kwargs["project_id"])
+            return ctx.data_dispatcher.get_project_handles(int(kwargs["project_id"]))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def test_project_changes(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if ctx.data_dispatcher.session_status(ctx)[0]:
+            return ctx.data_dispatcher.start_pass_fail_files_background_task(kwargs.get("project_id"), kwargs.get("n_pass"),kwargs.get("n_fail"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+    @poms_method(rtype="json")
+    def ping_project_changes_results(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if ctx.data_dispatcher.session_status(ctx)[0]:
+            res = {}
+            res['status'] = ctx.data_dispatcher.check_task(kwargs.get("task_id"), kwargs.get("started"))
+            res['info'] = ctx.data_dispatcher.get_project_handles(int(kwargs["project_id"]))
+            return res
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"info": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def restart_project(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if ctx.data_dispatcher.session_status(ctx)[0]:
+            return ctx.data_dispatcher.restart_project(kwargs.get("project_id"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def activate_project(self, ctx, **kwargs):
+        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+        if ctx.data_dispatcher.session_status(ctx)[0]:
+            return ctx.data_dispatcher.activate_project(kwargs.get("project_id"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
     
     @poms_method()
     def login_data_dispatcher(self, ctx, **kwargs):
@@ -240,8 +276,8 @@ class PomsService:
         ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
         if kwargs.get('method', None) == 'password':
             return ctx.data_dispatcher.login_with_password(ctx, kwargs.get('username', None), kwargs.get('password', None))
-        elif kwargs.get('method', None) == 'token':
-            return ctx.data_dispatcher.login_with_token(ctx)
+        elif kwargs.get('method', None) == 'x509':
+            return ctx.data_dispatcher.login_with_x509(ctx)
         else:
             session_details = ctx.data_dispatcher.session_status()[1]
             session_details['login_method'] = "Attempted login method: %s" % kwargs.get('method', None)
@@ -381,8 +417,8 @@ class PomsService:
         p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="experimenters_corner/campaign_deps_help"
     )
     def campaign_overview(self, **kwargs):
-        c, d, sl = self.campaignsPOMS.campaign_overview(**kwargs)
-        return {"s": c, "svgdata": d, "slist": sl}
+        c, d, sl, dd_projects = self.campaignsPOMS.campaign_overview(**kwargs)
+        return {"s": c, "svgdata": d, "slist": sl, "data_dispatcher_projects": dd_projects}
 
     @poms_method(
         p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="experimenters_corner/campaign_deps_help"
@@ -665,7 +701,8 @@ class PomsService:
             "submission_log_format",
             "recovery_ids",
             "depend_ids",
-            "statuses"
+            "statuses",
+            "data_dispatcher_projects"
         ],
         t="submission_details.html",
         help_page="experimenters_corner/submission_details_help",
@@ -698,7 +735,8 @@ class PomsService:
             "dep_svg",
             "last_activity",
             "recent_submissions",
-            "campaign_stage_snapshots"
+            "campaign_stage_snapshots",
+            "data_dispatcher_projects"
         ],
         help_page="user_documentation",
         t="campaign_stage_info.html",
@@ -957,10 +995,10 @@ class PomsService:
     # h4. launch_campaign
     @poms_method(
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
-        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
+        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile", "submission_id"],
         rtype="redirect",
         help_page="experimenters_corner/launch_campaign_help",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s" 
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&submission_id=%(submission_id)s" 
         ) 
     def launch_campaign(self, ctx, **kwargs):
         self.assert_token(ctx, **kwargs)
@@ -976,10 +1014,10 @@ class PomsService:
 
     @poms_method(
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
-        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
+        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile", "submission_id"],
         rtype="redirect",
         help_page="experimenters_corner/launch_jobs_help",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&submission_id=%(submission_id)s",
     )
     def launch_jobs(self, ctx, **kwargs):
         self.assert_token(ctx, **kwargs)

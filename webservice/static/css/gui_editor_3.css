@@ -80,7 +80,7 @@ div.box.selected {
     margin: 2px;
     padding: 1em;
     opacity: 1;
-    width: 40em;
+    width: 45em;
     box-shadow: 10px 10px 20px grey;
 }
 
@@ -98,7 +98,7 @@ div.box.selected {
 }
 .popup_form label {
     display: inline-block;
-    width: 30%;
+    width: 40%;
 }
 
 .rightbutton {

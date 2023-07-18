@@ -4,6 +4,7 @@ from .get_user import get_user
 from .poms_model import Experimenter
 from sqlalchemy import text
 from configparser import ConfigParser
+from . import DataDispatcherService
 
 # h2. Ctx "Context" class
 
@@ -32,7 +33,12 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
-        web_config=None
+        use_data_dispatcher=False,
+        data_dispatcher=None,
+        data_dispatcher_is_logged_in=False,
+        data_dispatcher_session_response=None,
+        web_config=None,
+        function=None
     ):
 
         # functions take experiment and role, but we steal them out
@@ -66,8 +72,13 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
-        self.data_dispatcher = None
-
+        self.data_dispatcher = data_dispatcher
+        self.data_dispatcher_is_logged_in = data_dispatcher_is_logged_in
+        self.data_dispatcher_session_response = data_dispatcher_session_response
+        if use_data_dispatcher:
+            self.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
+            self.data_dispatcher_is_logged_in, self.data_dispatcher_session_response = self.data_dispatcher.session_status(self)
+            
         if self.experiment == None or self.role == None:
             e = self.get_experimenter()
             self.experiment = e.session_experiment

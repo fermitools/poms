@@ -50,6 +50,14 @@ from . import (
 
 error_counter = Counter("poms_webservice_response_errors_total", "Number of error reponses", ["error", "code"])
 
+DATA_DISPATCHER_PAGES = {
+    "data_dispatcher_overview.html":True,
+    "campaign_overview.html":True,
+    "campaign_stage_info.html": True,
+    "submission_details.html": True,
+    "launch_jobs.html":True,
+    "list_launch_file.html":True
+}
 
 def error_rewrite(f):
     def wrapper(*args, **kwargs):
@@ -194,6 +202,12 @@ def poms_method(
                     kwargs[["experiment", "role", "user"][i]] = args[i]
             # make context with any params in the list
             cargs = {k: kwargs.get(k, None) for k in ("experiment", "role", "tmin", "tmax", "tdays")}
+            if t and t in DATA_DISPATCHER_PAGES:
+                cargs["use_data_dispatcher"]=True
+            elif func.__name__ in DATA_DISPATCHER_PAGES:
+                cargs["use_data_dispatcher"]=True
+            elif redirect and "list_launch_file" in redirect:
+                cargs["use_data_dispatcher"]=True
             ctx = Ctx(**cargs)
             # clean context args out of kwargs
 

@@ -810,14 +810,22 @@ class StagesPOMS:
         campaign_stage = campaign_stage_info[0]
         counts = {}
         counts_keys = {}
-        dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
-        launch_flist = glob.glob("{}/*".format(dirname))
-
-        if len(launch_flist) > 500:
-            launch_flist = launch_flist[:500]
-
-        launch_flist = list(map(os.path.basename, launch_flist))
-
+        base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
+        recent_launch_outputs = (
+            ctx.db.query(Submission)
+            .filter(Submission.campaign_stage_id == campaign_stage_id)
+            .filter(Submission.created > datetime.now() - timedelta(days=6*30))
+            .order_by(desc(Submission.created))
+            .limit(500)
+        )
+        launch_flist = {}
+        for result in recent_launch_outputs:
+            date = result.created.strftime('%A, %b %d, %Y')
+            tuple = (result.submission_id, result.created.strftime('%H:%M:%S %p'), result.experimenter_creator_obj.username)
+            if date not in launch_flist:
+                launch_flist[date] = []
+            launch_flist[date].append(tuple)
+        
         recent_submission_list = (
             ctx.db.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
             .filter(SubmissionHistory.submission_id == Submission.submission_id)
@@ -837,7 +845,10 @@ class StagesPOMS:
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
         dep_svg = self.poms_service.campaignsPOMS.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
-
+        data_dispatcher_projects = None
+        if campaign_stage.campaign_obj.data_handling_service == "data_dispatcher":
+            data_dispatcher_projects = ctx.data_dispatcher.list_filtered_projects(ctx, campaign_id = campaign_stage.campaign_obj.campaign_id, campaign_stage_id=campaign_stage_id)
+        
         return (
             campaign_stage_info,
             time_range_string,
@@ -857,7 +868,8 @@ class StagesPOMS:
             dep_svg,
             last_activity,
             recent_submissions,
-            campaign_stage_snapshots
+            campaign_stage_snapshots,
+            data_dispatcher_projects
         )
 
     # h3. campaign_stage_submissions
