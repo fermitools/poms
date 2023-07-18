@@ -29,3 +29,4 @@ poms.egg-info/
 tmp
 .DS_Store
 __pycache__
+fife_wrap.py
