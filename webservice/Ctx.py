@@ -4,7 +4,7 @@ from .get_user import get_user
 from .poms_model import Experimenter
 from sqlalchemy import text
 from configparser import ConfigParser
-from . import DataDispatcherService
+from . import DMRService
 
 # h2. Ctx "Context" class
 
@@ -33,10 +33,7 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
-        use_data_dispatcher=False,
-        data_dispatcher=None,
-        data_dispatcher_is_logged_in=False,
-        data_dispatcher_session_response=None,
+        dmr=None,
         web_config=None,
         function=None
     ):
@@ -72,17 +69,24 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
-        self.data_dispatcher = data_dispatcher
-        self.data_dispatcher_is_logged_in = data_dispatcher_is_logged_in
-        self.data_dispatcher_session_response = data_dispatcher_session_response
-        if use_data_dispatcher:
-            self.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-            self.data_dispatcher_is_logged_in, self.data_dispatcher_session_response = self.data_dispatcher.session_status(self)
             
         if self.experiment == None or self.role == None:
             e = self.get_experimenter()
             self.experiment = e.session_experiment
             self.role = e.session_role
+            
+        self.dmr_service = dmr if dmr else cherrypy.request.dmr_service
+        self.dmr_service.update_config_if_needed(self.db,self.experiment, self.username, self.role)
+        print("self.dmr_service.update_config_if_needed(%s, %s, %s)" % (self.experiment, self.username, self.role))
+        services = self.dmr_service.services_logged_in
+        if services:
+            if not services["data_dispatcher"]:
+                self.dmr_service.begin_services("data_dispatcher")
+            if not services["metacat"]:
+                self.dmr_service.begin_services("metacat")
+        else:
+            self.dmr_service.begin_services()
+        cherrypy.request.dmr_service = self.dmr_service
 
     def get_experimenter(self):
         if not self.experimenter_cache:

@@ -26,6 +26,7 @@ from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
 from poms.webservice import jobsub_fetcher
 from poms.webservice import samweb_lite
+from poms.webservice import DMRService
 from poms.webservice import logging_conf
 from poms.webservice import logit
 
@@ -98,6 +99,7 @@ class SATool(cherrypy.Tool):
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
+        self.dmr_service = DMRService.DMRService() # Data-Dispatcher/Metacat/Rucio
 
     def _setup(self):
         cherrypy.Tool._setup(self)
@@ -108,6 +110,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        cherrypy.request.dmr_service = self.dmr_service
         try:
             # Disabiling pylint false positives
             self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
@@ -128,10 +131,12 @@ class SATool(cherrypy.Tool):
         # flushing here deletes it too soon...
         # cherrypy.request.jobsub_fetcher.flush()
         cherrypy.request.samweb_lite.flush()
+        cherrypy.request.dmr_service.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
+        cherrypy.request.dmr_service = None
         self.session.remove()
 
 

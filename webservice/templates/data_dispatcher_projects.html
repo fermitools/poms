@@ -1,4 +1,4 @@
-{% if data_dispatcher_projects and (data_dispatcher_projects.active_count > 0 or data_dispatcher_projects.inactive_count > 0) %}
+{% if data_dispatcher_projects and (data_dispatcher_projects.projects_active_count > 0 or data_dispatcher_projects.projects_inactive_count > 0 or data_dispatcher_projects.projects_done_count > 0 or data_dispatcher_projects.projects_failed_count > 0 or data_dispatcher_projects.projects_cancelled_count > 0 or data_dispatcher_projects.projects_abandoned_count > 0) %}
     <h3 style="text-align: center;">All Projects<span style='display:inline-block; width: 50%;'></span>Project Handles</h3>
     <div class="ui horizontal segments">
         <div class="ui segment raised" style="max-width: 50%;">
@@ -17,31 +17,33 @@
                         <input class="dd-search" type="text" id="project-owner">
                         <div class="dd-search-result-icon"></div>
                     </div>
+                    <label for="project_state_selector">State</label>
+                    <select id="project_state_selector">
+                        {% for state in ['active', 'done', 'failed','cancelled', 'abandoned'] %}
+                            <option value="{{state}}">{{state}} ({{data_dispatcher_projects['projects_%s_count' % state]}})</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <div class="dd-results-box" id="all_project_result" style="min-height:650px">
-                <div class="dd-results-row-header">
-                    <div class="dd-results-row-label dd-toggle-active project_label"><h2>Active: {{data_dispatcher_projects.active_count}}</h2></div>
-                    <div class="dd-results-row-label dd-toggle-inactive project_label"><h2>Abandoned: {{data_dispatcher_projects.inactive_count}}</h2></div>
-                </div>
                 {% for data_dispatcher_projects_key, data_dispatcher_projects_values  in data_dispatcher_projects.items() if not 'count' in data_dispatcher_projects_key and not "poms_attributes" in data_dispatcher_projects_key %}
                     {% if not 'count' in data_dispatcher_projects_key %}
-                        <div class="dd-results-row dd-row-toggle-inactive project_row" id="{{data_dispatcher_projects_key}}_projects" style="display: none;">
+                        <div class="dd-results-row dd-row-toggle-inactive project_row" id="{{data_dispatcher_projects_key}}" style="display: none;">
                             {% for item in data_dispatcher_projects_values %}
                                 <div class="dd-results-card">
                                     <div class="dd-results-card-header">
-                                        <p>Project ID: <span class="{{data_dispatcher_projects_key}}-projects-project-id">{{item.project_id}}</span></p>
+                                        <p>Project ID: <span class="{{data_dispatcher_projects_key}}-project-id">{{item.project_id}}</span></p>
                                     </div>
                                     <div class="dd-results-card-body">
                                         {% for key, value in item.items() %}
                                             {% if (not (key == "name" or key == "file_handles" or key == "project_id")) and value or value == 0 %}
                                                 {% if (key == "idle_timeout" or key == "created_timestamp" or key == "worker_timeout") %}
-                                                    <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-projects-project-{{key|replace("_", "-")}}' ><script>document.write(get_readable('{{value}}'))</script></span></a><br/>
+                                                    <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' ><script>document.write(get_readable('{{value}}'))</script></span></a><br/>
                                                 {% else %}
                                                     {% if key == "attributes" %}
-                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-projects-project-{{key|replace("_", "-")}}' ><br/><script>document.write(JSON.stringify("{{value}}", customReplacer,2).replaceAll('"',""))</script></span></a><br/>
+                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' ><br/><script>document.write(JSON.stringify("{{value}}", customReplacer,2).replaceAll('"',""))</script></span></a><br/>
                                                     {% else %}
-                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-projects-project-{{key|replace("_", "-")}}' >{{value}}</span></a><br/>
+                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' >{{value}}</span></a><br/>
                                                     {% endif %}
                                                 {% endif %}
                                             {% endif %}
@@ -87,4 +89,16 @@
             <div id="active_project_handles" class="dd-results-row dd-row-toggle-inactive project_handle_row" style="display: none;"></div>
         </div>
     </div>
+    <script type="text/javascript">
+        // Set initial state to active
+        $(document).ready(function() {
+            $("#project_state_selector").val("active");
+            $("#projects_active").removeClass(`dd-row-toggle-inactive`).addClass(`dd-row-toggle-active`);
+            setTimeout(() => {
+                $("#projects_active").slideDown(`0.5s`, complete=function(){
+                    makeElementsUniform($("#projects_active").children(`.dd-results-card`));
+                });
+            },1);
+        });
+    </script>
 {% endif %}

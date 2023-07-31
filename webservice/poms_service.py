@@ -61,7 +61,7 @@ from . import (
     Permissions,
     logit,
     version,
-    DataDispatcherService
+    DMRService
 )
 
 #
@@ -207,44 +207,44 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
     )
     def data_dispatcher_overview(self, ctx, **kwargs):
-        if ctx.data_dispatcher_is_logged_in:
-            ctx.data_dispatcher_session_response['method'] = 'index'
-            command = kwargs.get("command", None)
-            if command:
-                if command == 'list_rses':
-                    ctx.data_dispatcher_session_response['method'] = 'list_rses'
-                    ctx.data_dispatcher_session_response['all_rses'] = ctx.data_dispatcher.list_rses()
-                    return ctx.data_dispatcher_session_response
-                elif command == 'list_projects':
-                    ctx.data_dispatcher_session_response['method'] = 'list_projects'
-                    ctx.data_dispatcher_session_response['data_dispatcher_projects'] = ctx.data_dispatcher.list_all_projects(ctx, **kwargs)
-                    return ctx.data_dispatcher_session_response
-        return ctx.data_dispatcher_session_response
+        if not ctx.dmr_service.services_logged_in or not ctx.dmr_service.services_logged_in.get("data_dispatcher", False):
+            ctx.dmr_service.begin_services("data_dispatcher")
+        retval = ctx.dmr_service.session_status()[1]
+        retval['method'] = 'index'
+        command = kwargs.get("command", None)
+        if command:
+            if command == 'list_rses':
+                retval['method'] = 'list_rses'
+                retval['all_rses'] = ctx.dmr_service.list_rses()
+                return retval
+            elif command == 'list_projects':
+                retval['method'] = 'list_projects'
+                retval['data_dispatcher_projects'] = ctx.dmr_service.list_all_projects(**kwargs)
+                return retval
+        return retval
     
     @poms_method(rtype="json")
     def get_project_handles(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        if ctx.data_dispatcher.session_status(ctx)[0]:
-            return ctx.data_dispatcher.get_project_handles(int(kwargs["project_id"]))
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.get_project_handles(int(kwargs["project_id"]))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
         
     @poms_method(rtype="json")
     def test_project_changes(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        if ctx.data_dispatcher.session_status(ctx)[0]:
-            return ctx.data_dispatcher.start_pass_fail_files_background_task(kwargs.get("project_id"), kwargs.get("n_pass"),kwargs.get("n_fail"))
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.start_pass_fail_files_background_task(kwargs.get("project_id"), kwargs.get("n_pass"),kwargs.get("n_fail"))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
+        
     @poms_method(rtype="json")
     def ping_project_changes_results(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        if ctx.data_dispatcher.session_status(ctx)[0]:
+        if ctx.dmr_service.session_status()[0]:
             res = {}
-            res['status'] = ctx.data_dispatcher.check_task(kwargs.get("task_id"), kwargs.get("started"))
-            res['info'] = ctx.data_dispatcher.get_project_handles(int(kwargs["project_id"]))
+            res['status'] = ctx.dmr_service.check_task(kwargs.get("task_id"), kwargs.get("started"))
+            res['info'] = ctx.dmr_service.get_project_handles(int(kwargs["project_id"]))
             return res
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
@@ -252,18 +252,16 @@ class PomsService:
         
     @poms_method(rtype="json")
     def restart_project(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        if ctx.data_dispatcher.session_status(ctx)[0]:
-            return ctx.data_dispatcher.restart_project(kwargs.get("project_id"))
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.restart_project(kwargs.get("project_id"))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
         
     @poms_method(rtype="json")
     def activate_project(self, ctx, **kwargs):
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
-        if ctx.data_dispatcher.session_status(ctx)[0]:
-            return ctx.data_dispatcher.activate_project(kwargs.get("project_id"))
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.activate_project(kwargs.get("project_id"))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
@@ -273,13 +271,12 @@ class PomsService:
     def login_data_dispatcher(self, ctx, **kwargs):
         # Assuming user is either logging in the first time, or signing in as someone else,
         # hence, we will reinitialize the service and clear out any session info.
-        ctx.data_dispatcher = DataDispatcherService.DataDispatcherService(self)
         if kwargs.get('method', None) == 'password':
-            return ctx.data_dispatcher.login_with_password(ctx, kwargs.get('username', None), kwargs.get('password', None))
+            return ctx.dmr_service.login_with_password(kwargs.get('username', None), kwargs.get('password', None))
         elif kwargs.get('method', None) == 'x509':
-            return ctx.data_dispatcher.login_with_x509(ctx)
+            return ctx.dmr_service.login_with_x509()
         else:
-            session_details = ctx.data_dispatcher.session_status()[1]
+            session_details = ctx.dmr_service.session_status()[1]
             session_details['login_method'] = "Attempted login method: %s" % kwargs.get('method', None)
             return json.dumps(session_details)
 

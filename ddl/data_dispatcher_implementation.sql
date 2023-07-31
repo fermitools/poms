@@ -21,6 +21,7 @@ CREATE TABLE data_dispatcher_projects (
     recovery_type_id                    integer  DEFAULT NULL,
     recovery_tasks_parent_submission    integer  DEFAULT NULL,
     recovery_position                   integer  DEFAULT NULL,
+    job_type_snapshot_id                integer  DEFAULT NULL,
     creator                             integer  NOT NULL,
 	created                             timestamptz  DEFAULT NOW(),
 	updater                             integer  DEFAULT NULL,
@@ -37,6 +38,7 @@ CREATE TABLE data_dispatcher_projects (
     CONSTRAINT fk_dd_projects_campaigns FOREIGN KEY ( campaign_id ) REFERENCES campaigns ( campaign_id ),
     CONSTRAINT fk_dd_projects_campaign_stages FOREIGN KEY ( campaign_stage_id  ) REFERENCES campaign_stages ( campaign_stage_id );
     CONSTRAINT fk_dd_projects_campaign_stage_snapshots FOREIGN KEY ( campaign_stage_snapshot_id ) REFERENCES campaign_stage_snapshots ( campaign_stage_snapshot_id );
+    CONSTRAINT fk_dd_projects_job_type_snapshots FOREIGN KEY ( job_type_snapshot_id ) REFERENCES job_type_snapshots ( job_type_snapshot_id );
     CONSTRAINT fk_dd_projects_submissions FOREIGN KEY ( submission_id ) REFERENCES submissions ( submission_id );
     CONSTRAINT fk_dd_projects_depends_on_submission FOREIGN KEY ( depends_on_submission ) REFERENCES submissions ( submission_id );
     CONSTRAINT fk_dd_projects_recovery_tasks_parent_submission FOREIGN KEY ( recovery_tasks_parent_submission ) REFERENCES submissions ( submission_id );

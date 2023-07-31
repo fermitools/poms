@@ -340,7 +340,6 @@ class sam_specifics:
             all_kids_decl_list = self.ctx.sam.count_files_list(experiment, all_kids_decl_needed)
         subs = set([x.submission_id for x in submission_list])
         existing = self.ctx.db.query(Submission).filter(Submission.submission_id.in_(subs)).all()
-        logit.log("existing, got s: %s" % repr(existing))
         if existing and summary_list:
             for i in range(0,len(submission_list)):
                 logit.log("sub_%d: %s" % (i, submission_list[i]))
@@ -352,6 +351,7 @@ class sam_specifics:
                     self.ctx.db.add(s[0])
                    
         self.ctx.db.commit()
+        
         return (
             summary_list,
             some_kids_decl_needed,

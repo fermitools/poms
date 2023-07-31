@@ -41,6 +41,7 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
+    DataDispatcherProject
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
@@ -699,58 +700,101 @@ class SubmissionsPOMS:
         print("Log format: %s" %submission_log_format)
         statuses = []
         cs = submission.campaign_stage_snapshot_obj.campaign_stage
-        listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
-        (
-            summary_list,
-            some_kids_decl_needed,
-            some_kids_needed,
-            base_dim_list,
-            output_files,
-            output_list,
-            all_kids_decl_needed,
-            some_kids_list,
-            some_kids_decl_list,
-            all_kids_decl_list,
-        ) = sam_specifics(ctx).get_file_stats_for_submissions([submission], cs.experiment)
+        data_handling_service = cs.campaign_obj.data_handling_service 
         
-        i = 0
-        psummary = summary_list[i]
-        partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
-        # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
-        pending = partpending
-      
-        statuses = [
-            ["Available output: ", output_list[i], listfiles % output_files[i]],
-            ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-            ["Delivered to SAM: ",
-                "%d"
-                % (
-                    psummary.get("tot_consumed", 0)
-                    + psummary.get("tot_cancelled", 0)
-                    + psummary.get("tot_failed", 0)
-                    + psummary.get("tot_skipped", 0)
-                    + psummary.get("tot_delivered", 0)
-                ),
-                listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
-            ],
-            ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-            ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-            ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
-            ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-            ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-            ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-            ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-            ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
-            ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
-        ]
-        
+        if data_handling_service == "sam":
+            listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                output_files,
+                output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions([submission], cs.experiment)
+            i = 0
+            psummary = summary_list[i]
+            partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
+            # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+            pending = partpending
+            statuses = [
+                ["Available output: ", output_list[i], listfiles % output_files[i]],
+                ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                ["Delivered to SAM: ",
+                    "%d"
+                    % (
+                        psummary.get("tot_consumed", 0)
+                        + psummary.get("tot_cancelled", 0)
+                        + psummary.get("tot_failed", 0)
+                        + psummary.get("tot_skipped", 0)
+                        + psummary.get("tot_delivered", 0)
+                    ),
+                    listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
+                ],
+                ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+                ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
+                ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+                ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+                ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+                ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
+                ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+            ]
+        elif data_handling_service == "data_dispatcher":
+            dd_submissions = ctx.db.query(DataDispatcherProject).filter(
+                    DataDispatcherProject.experiment == cs.experiment,
+                    DataDispatcherProject.submission_id == submission.submission_id
+                ).all()
+            listfiles = "%s/show_dimension_files/%s/%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
+            (
+                all_files_queries,
+                done_files_queries,
+                failed_files_queries,
+                reserved_files_queries,
+                unknown_files_queries,
+                submitted_files_queries,
+                parent_files_needed_queries,
+                available_parent_files_queries,
+                children_produced_queries,
+                available_children_queries,
+                statistics
+            ) = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
+            
+            i = 0
+            statuses = [
+                ["Percent Completed: ", statistics[i].get("pct_complete", "0%"), listfiles + "?mc_query=" + available_children_queries[i]],
+                ["Available output: ",statistics[i].get("children_available", 0), listfiles + "?mc_query=" + available_children_queries[i]],
+                ["Parent Files Needed: ",statistics[i].get("parents_needed", 0), listfiles + "?mc_query=" + parent_files_needed_queries[i]],
+                ["Parent Files Located: ",statistics[i].get("parents_available", 0), listfiles  + "?mc_query=" + available_parent_files_queries[i]],
+                ["Submitted: ",statistics[i].get("submitted", 0), listfiles  + "?mc_query=" + submitted_files_queries[i]],
+                ["Total Files in Project: ",statistics[i].get("total", 0), listfiles  + "?mc_query=" + (all_files_queries[i])],
+                ["Not Located: ", statistics[i].get("unknown", 0), listfiles  + "?mc_query=" + unknown_files_queries[i]],
+                ["Done: ", statistics[i].get("done", 0), listfiles  + "?mc_query=" + done_files_queries[i]],
+                ["Failed: ", statistics[i].get("failed", 0), listfiles  + "?mc_query=" + failed_files_queries[i]],
+                ["Children declared: ", statistics[i].get("children_produced", 0), listfiles  + "?mc_query=" + children_produced_queries[i]],
+                ["Children Located: ", statistics[i].get("children_available", 0), listfiles  + "?mc_query=" + available_children_queries[i]],
+                ["Reserved: ", statistics[i].get("reserved", 0), listfiles  + "?mc_query=" + reserved_files_queries[i]],
+            ]
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
         if campaign.data_handling_service == "data_dispatcher":
-            data_dispatcher_projects = ctx.data_dispatcher.list_filtered_projects(ctx, campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
 
         return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects
 
+    def flatten_submission_ids(self, submission_ids):
+        if all(isinstance(item, int) for item in submission_ids):
+            # The result is already a flat list of integers, return it as is
+            return submission_ids
+        else:
+            # The result is a list of tuples, extract the first element of each tuple
+            return [sid for (sid,) in submission_ids]
+        
     # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):
 
@@ -758,13 +802,13 @@ class SubmissionsPOMS:
 
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
         sq = (
-            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label("latest"))
+            ctx.db.query(SubmissionHistory.submission_id, func.coalesce(func.max(SubmissionHistory.created),func.min(SubmissionHistory.created)).label("latest"))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
             .subquery()
         )
 
-        running_sids = (
+        running_sids_results = (
             ctx.db.query(SubmissionHistory.submission_id)
             .join(SubmissionStatus, SubmissionStatus.status_id == SubmissionHistory.status_id)
             .join(sq, SubmissionHistory.submission_id == sq.c.submission_id)
@@ -772,10 +816,12 @@ class SubmissionsPOMS:
             .all()
         )
 
+        running_sids =  self.flatten_submission_ids(running_sids_results)
+
         if cl and cl != "None":
 
             ccl = (
-                ctx.db.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
+                ctx.db.query(CampaignStage.campaign_id, func.coalesce(func.count(Submission.submission_id), 0))
                 .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                 .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids))
                 .group_by(CampaignStage.campaign_id)
@@ -797,6 +843,7 @@ class SubmissionsPOMS:
             res = list(
                 ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment)
                 .filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id)
+                .filter(Submission.jobsub_job_id != None)
                 .filter(Submission.submission_id.in_(running_sids))
             )
 
@@ -1395,8 +1442,8 @@ class SubmissionsPOMS:
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
 
-        do_data_dispatcher = ctx.data_dispatcher_is_logged_in and cs.campaign_obj.data_handling_service == "data_dispatcher"
-        logit.log("Data dispatcher launch | Logged in: %s" % ctx.data_dispatcher_is_logged_in)
+        do_data_dispatcher = ctx.dmr_service_is_logged_in and cs.campaign_obj.data_handling_service == "data_dispatcher"
+        logit.log("Data dispatcher launch | Logged in: %s" % ctx.dmr_service_is_logged_in)
         proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         if allheld or csheld or proxyheld:
 
@@ -1546,7 +1593,7 @@ class SubmissionsPOMS:
             dd_project_id = cs.data_dispatcher_project_id
             dd_dataset_query = cs.data_dispatcher_dataset_query
             if dd_project_id:
-                project = ctx.data_dispatcher.get_project_for_submission(ctx, dd_project_id,
+                project = ctx.dmr_service.get_project_for_submission(ctx, dd_project_id,
                                                     experiment= exp,
                                                     role=cs.vo_role,
                                                     campaign_id=cid, 
@@ -1555,6 +1602,7 @@ class SubmissionsPOMS:
                                                     submission_id=sid, 
                                                     depends_on_submission=submission.depends_on,
                                                     recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                    job_type_snapshot_id = submission.job_type_snapshot_id,
                                                     project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,
                                                     split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
                                                     creator=cs.experimenter_creator_obj.experimenter_id,
@@ -1562,13 +1610,14 @@ class SubmissionsPOMS:
                                                     last_split=cs.cs_last_split)
             
             if dd_dataset_query and not project:
-                project = ctx.data_dispatcher.create_project(ctx,dd_dataset_query,
+                project = ctx.dmr_service.create_project(ctx,dd_dataset_query,
                                                     experiment= exp,
                                                     role=cs.vo_role,
                                                     campaign_id=cid, 
                                                     campaign_stage_id=csid, 
                                                     campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
                                                     submission_id=sid, 
+                                                    job_type_snapshot_id = submission.job_type_snapshot_id,
                                                     depends_on_submission=submission.depends_on,
                                                     recovery_tasks_parent_submission = submission.recovery_tasks_parent,
                                                     project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,

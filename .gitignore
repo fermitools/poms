@@ -28,5 +28,8 @@ poms.dbs
 poms.egg-info/
 tmp
 .DS_Store
+.data_dispatcher_worker_id
 __pycache__
 fife_wrap.py
+fife_wrap
+submission_broker/submission_broker_uwsgi.ini

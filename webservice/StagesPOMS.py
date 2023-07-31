@@ -42,6 +42,7 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
+    DataDispatcherProject
 )
 from .utc import utc
 from .SAMSpecifics import sam_specifics
@@ -847,7 +848,7 @@ class StagesPOMS:
         dep_svg = self.poms_service.campaignsPOMS.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
         data_dispatcher_projects = None
         if campaign_stage.campaign_obj.data_handling_service == "data_dispatcher":
-            data_dispatcher_projects = ctx.data_dispatcher.list_filtered_projects(ctx, campaign_id = campaign_stage.campaign_obj.campaign_id, campaign_stage_id=campaign_stage_id)
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign_stage.campaign_obj.campaign_id, campaign_stage_id=campaign_stage_id)
         
         return (
             campaign_stage_info,
@@ -942,26 +943,33 @@ class StagesPOMS:
         subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
 
         launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
-        
+        subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()
+        dd_submissions = ctx.db.query(DataDispatcherProject).filter(DataDispatcherProject.campaign_stage_id.in_(campaign_stage_ids)).all()
+        dd_submission_ids = [sub.submission_id for sub in dd_submissions]
+        data_handlers = {sub.submission_id: "sam" for sub in subs }
+        for sub in dd_submission_ids:
+            data_handlers[sub] = "data_dispatcher"
+             
+        has_sam = "sam" in data_handlers.values()
         try:
-            subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()
             for sub in subs:
                 if not sub.project:
-                    logit.log("no project: %s" % sub.submission_id)
                     project = None
-                    for projre in launch_commands:
-                        logit.log("command executed: %s" % sub.command_executed)
-                        m = re.search(projre, sub.command_executed)
-                        if m:
-                            project = m.group(1)
-                            logit.log("project name: %s" % project)
-                            break
+                    if data_handlers[sub.submission_id] == "sam":
+                        logit.log("sam project: %s" % sub.submission_id)
+                        for projre in launch_commands:
+                            m = re.search(projre, sub.command_executed)
+                            if m:
+                                project = m.group(1)
+                                logit.log("project name: %s" % project)
+                                break
                     if project:
                         sub.project = project
                         ctx.db.add(sub)
                         ctx.db.flush()
         except Exception as e:
             logit.log("Error fetching/saving project name: %s" % repr(e))
+            
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
             .join("experimenter_creator_obj")
@@ -1009,29 +1017,50 @@ class StagesPOMS:
         data["depends"] = depends
         data["depth"] = depth
         data["darrow"] = darrow
-
-        (
-            summary_list,
-            some_kids_decl_needed,
-            some_kids_needed,
-            base_dim_list,
-            output_files,
-            output_list,
-            all_kids_decl_needed,
-            some_kids_list,
-            some_kids_decl_list,
-            all_kids_decl_list,
-        ) = sam_specifics(ctx).get_file_stats_for_submissions(slist, ctx.experiment, just_output=True)
-
+        output_files = []
+        output_list = []
         submissions = []
+        sub_jobs = {tup.Submission.submission_id: tup.Submission.jobsub_job_id for tup in tuples if tup.Submission.jobsub_job_id}
+        if has_sam:
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                output_files,
+                output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions([sub for sub in slist if data_handlers[sub.submission_id] == "sam"], ctx.experiment, just_output=True)
+            
+        if dd_submission_ids:
+            updated_dd_jsid = False
+            system_id = ctx.db.query(Experimenter.experimenter_id).filter(Experimenter.username == 'poms').scalar()
+
+            for dd_sub in dd_submissions:
+                if not dd_sub.jobsub_job_id and sub_jobs.get(dd_sub.submission_id, None):
+                    dd_sub.jobsub_job_id = sub_jobs.get(dd_sub.submission_id)
+                    dd_sub.updated = datetime.now()
+                    dd_sub.updater = system_id
+                    updated_dd_jsid = True
+            if updated_dd_jsid:
+                ctx.db.commit()
+            (output_files2, output_list2) = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
+
         i = 0
+        if output_files and output_files2:
+            output_files.extend(output_files2)
+        if output_list and output_list2:
+            output_list.extend(output_list2)
         for tup in tuples:
             jjid = tup.Submission.jobsub_job_id
             full_jjid = jjid
             if not jjid:
                 jjid = "s" + str(tup.Submission.submission_id)
                 full_jjid = "unknown.0@unknown.un.known"
-            else:
+            else: 
                 jjid = "s%s<br>%s" % (
                     str(tup.Submission.submission_id),
                     str(jjid).replace("fifebatch", "").replace(".fnal.gov", ""),
@@ -1046,8 +1075,9 @@ class StagesPOMS:
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],
                 "campaign_stage_name": tup.Submission.campaign_stage_obj.name,
-                "available_output": output_list[i],
+                "available_output": output_list[i] if len(output_list) > i else None,
                 "output_dims": output_files[i],
+                "handler": data_handlers[tup.Submission.submission_id]
             }
             submissions.append(row)
             data["submissions"] = submissions

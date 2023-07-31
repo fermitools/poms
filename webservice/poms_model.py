@@ -112,6 +112,8 @@ class CampaignStage(Base):
         secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
         backref="consumers",
     )
+    
+    
 class DataDispatcherProject(Base):
     __tablename__ = "data_dispatcher_projects"
     data_dispatcher_project_idx = Column(Integer, primary_key=True, server_default="")
@@ -120,9 +122,10 @@ class DataDispatcherProject(Base):
     experiment = Column(Text, nullable=False)
     vo_role = Column(Text, nullable=False)
     campaign_id = Column(Integer)
-    campaign_stage_id = Column(Integer)
+    campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=True, index=True)
     campaign_stage_snapshot_id = Column(Integer)
     submission_id = Column(Integer)
+    job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
     split_type = Column(Integer)
     last_split = Column(Integer)
     depends_on_submission = Column(Integer)
@@ -138,7 +141,11 @@ class DataDispatcherProject(Base):
     worker_timeout = Column(Integer)
     idle_timeout = Column(Integer)
     active = Column(Boolean, nullable=False, default=True)
-
+    jobsub_job_id = Column(Text)
+    
+    campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
+    job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
+    
 class Experimenter(Base):
     __tablename__ = "experimenters"
 
@@ -259,7 +266,7 @@ class Submission(Base):
     job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey("submissions.submission_id"), index=True)
-    jobsub_job_id = Column(Text, nullable=False)
+    jobsub_job_id = Column(Text)
 
     campaign_stage_obj = relationship("CampaignStage")
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="Submission.creator == Experimenter.experimenter_id")
@@ -278,6 +285,7 @@ class SubmissionHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status_id = Column(ForeignKey("submission_statuses.status_id"), nullable=False, index=True)
 
+    submission_obj = relationship("Submission", foreign_keys=submission_id)
     status_type = relationship("SubmissionStatus", primaryjoin="SubmissionHistory.status_id == SubmissionStatus.status_id")
 
 

@@ -5,7 +5,6 @@
 POMS:Submission #{{submission.submission_id}}: {{submission.jobsub_job_id}} Details
 {%endblock%}
 
-<script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
 {%block header%}
 Submission Details {%include 'help_button.html'%}
 {%endblock%}
@@ -25,6 +24,7 @@ Submission Details {%include 'help_button.html'%}
 </style>
 {%endblock%}
 {%block content%}
+<script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
 <script>
  function confirm_call(msg, url, icon = null) {
     var r = confirm(msg);

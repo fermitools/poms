@@ -276,7 +276,7 @@ class CampaignsPOMS:
         
         data_dispatcher_projects = None
         if campaign.data_handling_service == "data_dispatcher":
-            data_dispatcher_projects = ctx.data_dispatcher.list_filtered_projects(ctx, campaign_id = campaign.campaign_id)
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id)
 
         pct_complete = 0.0
         c_ids = deque()
@@ -881,12 +881,12 @@ class CampaignsPOMS:
             cidl1 = (
                 ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
-                .all()
+                .values()
             )
             cidl2 = (
                 ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
-                .all()
+                .values()
             )
             s = set([campaign_stage_id])
             s.update(cidl1)
