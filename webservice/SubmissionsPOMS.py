@@ -482,6 +482,37 @@ class SubmissionsPOMS:
 
         logit.log("get_last_history: sub_id %s returns %s" % (submission_id, lasthist))
         return lasthist
+    
+    # Returns a dictionary of {submission_id:last_history} given a list of submission_ids 
+    def get_last_histories(self, ctx, submission_ids):
+        sq = (
+            ctx.db.query(
+                SubmissionHistory.submission_id,
+                func.max(SubmissionHistory.created).label("latest")
+            )
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .group_by(SubmissionHistory.submission_id)
+            .subquery()
+        )
+
+        submission_id_to_lasthist = (
+            ctx.db.query(SubmissionHistory)
+            .join(sq, and_(
+                SubmissionHistory.submission_id == sq.c.submission_id,
+                SubmissionHistory.created == sq.c.latest
+            ))
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .all()
+        )
+        
+        result_dict = {
+            lasthist.submission_id: lasthist
+            for lasthist in submission_id_to_lasthist
+        }
+        
+        logit.log("get_last_histories: sub_ids %s return %s" % (submission_ids, result_dict))
+        return result_dict
+
 
     # h3. update_submission_status
     def update_submission_status(self, ctx, submission_id, status, when=None):
@@ -913,7 +944,6 @@ class SubmissionsPOMS:
 
         #logit.log("submission_id=%s | Jobsub_job_id=%s" % (str(submission_id), str(jobsub_job_id)))
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
-            
         if not s:
             return "Unknown."
         
@@ -941,6 +971,137 @@ class SubmissionsPOMS:
 
         ctx.db.commit()
         return "Ok."
+    
+     # h3. update_submissions
+    def update_submissions(self, ctx, data=None):
+        try:
+            retval = {}
+            submission_ids = list(map(int,data.keys()))
+            logit.log("SubmissionsPOMS | update_submissions | All submission_ids: %s" % submission_ids)
+            dd_project_ids = [val.get("dd_project_id") for val in data.values() if val.get("dd_project_id", None)]
+            submissions = ctx.db.query(Submission).filter(Submission.submission_id in submission_ids).with_for_update(read=True).all()
+            dd_projects = {
+                project.project_id: project for project in ctx.db.query(DataDispatcherSubmission).filter(
+                and_(
+                    DataDispatcherSubmission.submission_id in submission_ids,  
+                    DataDispatcherSubmission.project_id in dd_project_ids
+                    )
+                ).all()
+                }
+            if submissions:
+                submission_statuses_to_update = {}
+                for submission in submissions:
+                    retval[submission.submission_id] = True
+                    data = data[submission.submission_id]
+                    dd_project = dd_projects[data("dd_project_id")] if data("dd_project_id", None) else None
+                    
+                    status = data("status", None)
+                    if status == "Running" and data("pct_complete", None) and float(data("pct_complete")) >= submission.campaign_stage_snapshot_obj.completion_pct:
+                        status = "Completed"
+                    if status is not None:
+                        submission_statuses_to_update[submission.submission_id] = status
+                    
+                    def update_fields(item=None, fields=None, field_aliases=None):
+                        changes_made = False
+                        if item and fields:
+                            for field in fields:
+                                data_field = field_aliases.get(field, field) if field_aliases else field
+                                if data(field, None) and getattr(item, data_field) != data(field):
+                                    setattr(item, data_field, data(field))
+                                    logit.log("SubmissionsPOMS | update_submissions | submission_id: %s | updated %s to %s" % (submission.submission_id, data_field, data(field)))
+                                    changes_made = True
+                            if changes_made:
+                                setattr(item, "updated", datetime.now())
+                                ctx.db.add(item)
+                        return changes_made
+                    
+                    
+                    # Update submission and data dispatcher projects as needed
+                    if (update_fields(submission, ["jobsub_job_id", "project", "pct_complete"]) or 
+                        update_fields(dd_project, ["jobsub_job_id","pct_complete", "dd_status"], {"dd_status", "status"})):
+                        ctx.db.commit()
+                    
+                    del data[submission.submission_id]
+            
+                if len(submission_statuses_to_update) > 0:
+                    self.update_submission_statuses(ctx, submission_statuses_to_update)
+            
+            for unprocessed in list(data.keys()):
+                retval[unprocessed] = False
+        except Exception as e:
+            logit.log("SubmissionsPOMS | update_submissions | exception: %s" % e)
+            return {"status": "Fail", "response": e}
+        logit.log("SubmissionsPOMS | update_submissions | done | submissions found/processed: %s" % len(submissions))
+        return {"status": "Success", "response": retval}
+    
+    
+    # h3. update_submission_status
+    def update_submission_statuses(self, ctx, data, when=None):
+        self.init_statuses(ctx)
+        if when == None:
+            when = datetime.now(utc)
+
+        submissions = (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id in list(data.keys()))
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
+            .all()
+        )
+        
+        known_statuses = {status.status:status.status_id for status in ctx.db.query(SubmissionStatus).all()}
+        latest_submission_histories = self.get_last_histories(ctx, list(data.keys()))
+        
+        for submission in submissions:
+            # don't mark recovery jobs Failed -- they get just
+            # the jobs that didn't pass the original submission,
+            # the recovery is still a success even if they all fail again.
+            
+            lasthist = latest_submission_histories.get(submission.submission_id, None)
+                
+            status = data[submission.submission_id]
+            if status == "Failed" and submission.recovery_tasks_parent:
+                status = "Completed"
+            status_id = known_statuses.get(status, None)
+            if not status_id:
+                # not a known status, go to next entry
+                continue
+
+            logit.log(
+                "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
+                % (submission.submission_id, status_id, lasthist.status_id if lasthist else "", lasthist.created if lasthist else "")
+            )
+        
+
+            # don't roll back Located, Failed, or Removed (final states)
+            # note that we *intentionally don't* have LaunchFailed here, as we
+            # *could*  have a launch that took a Really Long Time, and we might
+            # have falsely concluded that the launch failed...
+            final_states = (self.status_Located, self.status_Removed, self.status_Failed)
+            if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
+                return
+
+            # don't roll back Completed
+            if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
+                return
+
+            # don't put in duplicates
+            if lasthist and lasthist.status_id == status_id:
+                return
+
+            sh = SubmissionHistory()
+            sh.submission_id = submission.submission_id
+            sh.status_id = status_id
+            sh.created = when
+            ctx.db.add(sh)
+
+            #
+            # update Submission.updated *only* if this is a final state, as
+            # this time will be used for the date range on the submission
+            #
+            if status_id in final_states:
+                submission.updated = sh.created
+                ctx.db.add(submission)
 
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
@@ -1512,9 +1673,9 @@ class SubmissionsPOMS:
             if exp == "samdev":
                 vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
             #proxyfile = "/home/poms/cfg/samdevpro.Production.proxy"
-        if role == "analysis":
-            os.system("chmod -R +777 %s;" % sandbox)
-            os.system("chmod +777 %s;" % vaultfile)
+        #if role == "analysis":
+        #    os.system("chmod -R +777 %s;" % sandbox)
+        #    os.system("chmod +777 %s;" % vaultfile)
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1647,7 +1808,7 @@ class SubmissionsPOMS:
         # BEGIN TOKEN LOGIC
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
-        if role == "analysis" or ctx.experiment == "samdev": 
+        if role == "analysis" or ctx.experiment == "samdev":
             tok_permissions = "chmod +rw %s;" % (vaultfile)
             scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
             scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)

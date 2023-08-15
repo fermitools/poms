@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
 
 # from sqlalchemy import Table
 from sqlalchemy.orm import relationship
@@ -143,6 +143,7 @@ class DataDispatcherSubmission(Base):
     active = Column(Boolean, nullable=False, default=True)
     jobsub_job_id = Column(Text)
     named_dataset = Column(Text)
+    pct_complete = Column(Float, nullable=False,default=0)
     status = Column(Text)
     
     submission_obj = relationship("Submission", foreign_keys=submission_id)
@@ -281,7 +282,7 @@ class Submission(Base):
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     status_history = relationship("SubmissionHistory", primaryjoin="Submission.submission_id == SubmissionHistory.submission_id")
-    
+    pct_complete = Column(Float, nullable=False,default=0)
     data_dispatcher_submission_obj = relationship("DataDispatcherSubmission", foreign_keys=data_dispatcher_project_idx)
     
 

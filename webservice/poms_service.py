@@ -907,6 +907,18 @@ class PomsService:
         if kwargs.get("redirect", None):
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
+    
+    # h4. update_submissions
+    @poms_method(p=[{"p": "can_do", "t": "Submission"}], rtype="json")
+    def update_submissions(self, **kwargs):
+        data = kwargs.get("submission_updates", None)
+        if data:
+            res = self.submissionsPOMS.update_submissions(kwargs["ctx"], json.loads(data))
+            del kwargs["submission_updates"]
+            return res
+        else:
+            return {"status": "Failed", "message": "No data in request."}
+    
 
     # h3. File upload management for Analysis users
     #

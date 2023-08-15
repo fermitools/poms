@@ -12,6 +12,7 @@ from http.client import HTTPConnection
 import requests
 import re
 import configparser
+import json
 import argparse
 from datetime import datetime
 
@@ -69,7 +70,10 @@ class Agent:
         self.known["poms_task_id"] = {}
         self.known["jobsub_job_id"] = {}
         self.known["dd_project_id"] = {}
-        self.known["not_on_server"] = {}
+        self.known["not_on_server"] = {
+            "submissions": {},
+            "jobs": {}
+        }
 
         self.psess = requests.Session()
         self.ssess = requests.Session()
@@ -99,7 +103,7 @@ class Agent:
         self.elist.sort()
         htr.close()
         self.lastconn = {}
-        dd_status_map = {
+        self.dd_status_map = {
             "Submitted Pending Start":"Idle" ,
             "Completed with failures": "Completed" ,
             "Failed to Launch":"LaunchFailed",
@@ -112,12 +116,15 @@ class Agent:
         """
             actually report information on a submission to POMS
         """
-        LOGIT.info("Update Submissions: %s" % submissions)
+        LOGIT.info("Submission Agent | update_submissions | Attempting to update submissions: %s" % list(submissions.keys()))
+        LOGIT.info("Submission Agent | update_submissions | Values: %s" % list(submissions.values()))
+        LOGIT.info("Submission Agent | update_submissions | Begin call")
+        start = datetime.now()
         try:
             sess = requests.session()
             htr = sess.post(
-                url="%s/update_submission" % self.poms_uri, 
-                data=submissions,
+                url="%s/update_submissions" % self.poms_uri, 
+                data={"submission_updates": json.dumps(submissions)},
                 headers=self.headers,
                 timeout=self.timeouts,
                 verify=False,
@@ -126,13 +133,32 @@ class Agent:
         except requests.exceptions.ConnectionError:
             LOGIT.exception("Connection Reset! NOT Retrying once...")
 
-        if htr.text != "Ok.":
-            LOGIT.error("update_submission: Failed.")
-            LOGIT.error(htr.text)
             
-        not_on_server = htr.json()
-        for submission_id in not_on_server:
-            self.known["not_on_server"][submission_id] = True
+        response = htr.json()
+        elapsed_time = datetime.now() - start
+        LOGIT.info("Submission Agent | update_submissions | Recieved response from poms | Status: %s | elapsed time: %s.%s seconds" % (response.get("status", "Failed"), elapsed_time.seconds, elapsed_time.microseconds))
+        if response and response.get("status") == "Success":
+            statuses = response.get("response")
+            success = []
+            for submission_id, is_on_server_server in statuses.items():
+                if not is_on_server_server:
+                    jobid = submissions.get(int(submission_id)).get("jobsub_job_id", None)
+                    if submission_id not in self.known["not_on_server"]["submissions"]:
+                        self.known["not_on_server"]["submissions"][submission_id] = True
+                    if jobid and jobid not in self.known["not_on_server"]["jobs"]:
+                        self.known["not_on_server"]["jobs"][jobid] = True
+                        
+                else:
+                    success.append(submission_id)
+            
+            LOGIT.info("Submission Agent | update_submissions | Submissions updated in this run: %s | Submissions: %s" % (len(success), success))
+
+            LOGIT.info("Submission Agent | update_submissions | Submissions not found on server: %s" % (len(submissions) - len(success)))
+                    
+            if len(self.known["not_on_server"]["submissions"]) > 0:
+                LOGIT.info("Submission Agent | update_submissions | Ignoring %d submissions | submission_ids: %s" % (len(self.known["not_on_server"]["submissions"]), list(self.known["not_on_server"]["submissions"].keys())))
+            if len(self.known["not_on_server"]["jobs"]) > 0:
+                LOGIT.info("Submission Agent | update_submissions | Ignoring %d jobs | job_ids: %s" % (len(self.known["not_on_server"]["jobs"]), list(self.known["not_on_server"]["jobs"].keys())))
         htr.close()
 
     def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, project=None, status=None):
@@ -410,6 +436,7 @@ class Agent:
                 timeout=self.timeouts,
             )
             ddict = htr.json()
+            ddict = ddict.get("data",{}).get("submissions",[])
             htr.close()
             # only remember it if we succeed...
             self.lastconn[group] = start
@@ -418,9 +445,10 @@ class Agent:
             ddict = {}
             pass
 
-        print( "ddict: %s" % repr(ddict))
         if ddict:
-            return ddict.get("data",{}).get("submissions",[])
+            return [submission for submission in ddict 
+                    if str(submission.get("pomsTaskID")) not in self.known["not_on_server"]["submissions"] 
+                    and submission.get("id") not in self.known["not_on_server"]["jobs"]]
         else:
             return []
 
@@ -447,7 +475,9 @@ class Agent:
             ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_PROJECT_ID": x[3]} for x in flist if x[2] in exp_list]
             print("poms running_submissions for all experiments: %s" % repr(ddict))
             htr.close()
-            return ddict
+            return [submission for submission in ddict 
+                    if str(submission.get("pomsTaskID")) not in self.known["not_on_server"]["submissions"] 
+                    and submission.get("id") not in self.known["not_on_server"]["jobs"]]
         except:
             logging.exception("running_submissons_POMS")
             return {}
@@ -474,7 +504,7 @@ class Agent:
             update various known bits of info
         """
 
-        LOGIT.info("check_submissions: %s", group)
+        LOGIT.info("check_submissions: %s", group if group else full_list)
 
         thispass = set()
         all_submissions = []
@@ -503,7 +533,7 @@ class Agent:
         start = datetime.now()
         LOGIT.info("Attempting to get data on all running jobs")
         
-        if full_list:
+        if full_list and all_task_ids:
             submissions, jobs, job_index = self.get_all_submissions(all_task_ids)
             elapsed_time = datetime.now() - start
             LOGIT.info("Got data on all running jobs | elapsed time: %s.%s seconds" % (elapsed_time.seconds, elapsed_time.microseconds))
@@ -522,7 +552,7 @@ class Agent:
                     entry["id"] = job["id"]
                     entry["status"] = job["status"]
                     id = entry["id"]
-                    LOGIT.info("Found job for submission: %d | details: %s" % (pomsTaskID, job))
+                    LOGIT.info("Found job for submission_id: %d | job_id: %s" % (pomsTaskID, job.get("id")))
                 else:
                     entry["id"] = self.fix_job_id_if_valid(entry.get('id'))
                     id = entry["id"]
@@ -557,7 +587,8 @@ class Agent:
             if len(submissions_to_update) > 0:
                 self.update_submissions(submissions_to_update)
     
-    
+        else:
+            LOGIT.info("Submission Agent | check_submissions | Nothing to check")
                 
         
         #for entry in sublist:
@@ -698,12 +729,27 @@ class Agent:
         """
         while 1:
             try:
+                LOGIT.info("Submission Agent | Beginning run")
                 self.check_submissions(full_list=self.elist, since=since)
                 #for exp in self.elist:
                 #    self.check_submissions(exp, since=since)
             except:
                 LOGIT.exception("Exception in check_submissions")
-            time.sleep(self.poll_interval)
+            LOGIT.info("Submission Agent | Finished run, next run starts in: %s seconds" % self.poll_interval)
+            i = 0
+            while i < self.poll_interval:
+                time_left = (int(self.poll_interval) - int(i))
+                if i > 0:
+                    LOGIT.info("Next run starts in: %s seconds" % (int(self.poll_interval) - int(i)))
+                if time_left <= 10:
+                    time.sleep(1)
+                    i += 1
+                elif time_left <= 60:
+                    time.sleep(10)
+                    i += 10
+                else:
+                    time.sleep((int(self.poll_interval)/2))
+                    i += int(self.poll_interval/2)
             since = ""
 
 

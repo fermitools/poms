@@ -197,6 +197,7 @@ def poms_method(
 
         @timer.time()
         def method(self, *args, **kwargs):
+            
             if not call_args:
                 for i in range(len(args)):
                     if i > 2:
@@ -210,7 +211,7 @@ def poms_method(
             for k in cargs:
                 if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
-
+            
             # make permission checks
             for perm in p:
                 pargs = {"ctx": ctx}
