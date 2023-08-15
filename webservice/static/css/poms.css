@@ -139,7 +139,10 @@ blockquote .author {
     width: 35px;
     margin-right: 1em;
 }
-
+.fa-circle-question:hover{
+    cursor: pointer;
+    color: #6DFFFF;
+}
 #example #toc > :last-child {
     padding-bottom: 2em;
 }

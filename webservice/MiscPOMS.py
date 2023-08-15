@@ -669,13 +669,13 @@ class MiscPOMS:
                 "login_setup_snapshot_obj",
             ],
         ]:
-
             i = ctx.db.query(func.max(snaptable.updated)).filter(sfield == sid).first()
             j = ctx.db.query(table).filter(field == sid).first()
             if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
                 for fieldname in list(columns.keys()):
+                    
                     setattr(newsnap, fieldname, getattr(j, fieldname))
                 ctx.db.add(newsnap)
             else:

@@ -1,4 +1,10 @@
-import uuid
+import math
+import poms.webservice.logit as logit
+from poms.webservice.poms_model import CampaignStage
+from strip_parser import ConfigParser
+
+config = ConfigParser()
+
 class nfiles:
     """
        This type, when filled out as nfiles(n) or nfiles_n for some integer
@@ -7,11 +13,14 @@ class nfiles:
        contents are changing, for them try "drainingn"
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, dmr_service, dbhandle):
         self.cs = cs
-        self.samhandle = samhandle
+        self.project_id = cs.data_dispatcher_project_id
+        self.dataset_query = cs.data_dispatcher_dataset_query
+        self.metacat_client = dmr_service.metacat_client
+        self.dmr_service = dmr_service
         self.dbhandle = dbhandle
-        self.ds = cs.dataset
+        self.namespace = config.get("Metacat", "SPLIT_TYPE_NAMESPACE")
         try:
             self.n = int(cs.cs_split_type[7:].strip(")"))
         except:
@@ -21,28 +30,49 @@ class nfiles:
         return ["n"]
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
-
-        new = self.cs.dataset + "_slice%d_files%d" % (self.cs.cs_last_split, self.n)
-        self.samhandle.create_definition(
-            self.cs.experiment,
-            new,
-            "defname: %s with limit %d offset %d" % (self.cs.dataset, self.n, self.cs.cs_last_split * self.n),
-        )
-        if self.samhandle.count_files(self.cs.job_type_obj.experiment, "defname:" + new) == 0:
+        
+        total_files = self.metacat_client.query(self.dataset_query, summary="count").get("count", 0)
+        if total_files == 0:
             raise StopIteration
-
-        return new
+        
+        query = "%s ordered skip %d limit %d" % (self.dataset_query, self.cs.cs_last_split * self.n, self.n)
+        project_files = list(self.metacat_client.query(query, with_metadata=True))
+        if len(project_files) == 0:
+            raise StopIteration
+        
+        project_name = "%s | nfiles(%s) slice %d of %d" % (self.cs.name, self.n, self.cs.cs_last_split + 1, math.ceil(total_files/ self.n))
+        
+        
+        
+        return project_name, project_files
 
     def next(self):
-        res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
-        return res
+        self.cs = self.dbhandle.query(CampaignStage).filter(CampaignStage.campaign_stage_id == self.cs.campaign_stage_id).one_or_none()
+        if not self.cs.cs_last_split:
+            self.cs.cs_last_split = 0
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
+        self.dbhandle.commit()
+        
+        project_name, project_files = self.peek()
+        dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
+                                               files=project_files,
+                                               experiment=self.cs.experiment,
+                                               role=self.cs.vo_role,
+                                               project_name=project_name,
+                                               campaign_id=self.cs.campaign_id, 
+                                               campaign_stage_id=self.cs.campaign_stage_id,
+                                               split_type=self.cs.cs_split_type,
+                                               last_split=self.cs.cs_last_split,
+                                               creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                               creator_name=self.cs.experimenter_creator_obj.username)
+        
+        logit.log("nfiles.next(): created data_dispatcher project with id: %s " % dd_project.project_id)
+        
+        return dd_project
 
     def len(self):
-        return self.samhandle.count_files(self.cs.experiment, "defname:" + self.ds) / self.n + 1
-        return res
+        return len(list(self.metacat_client.query(self.dataset_query))) / self.n + 1
 
     def edit_popup(self):
         return "null"

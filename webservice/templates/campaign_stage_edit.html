@@ -64,7 +64,13 @@ Campaign Stages
         <!-- <th> Active {{ show_hint('#Active', 'True/False') }} </th> -->
         <th> VO Role {{ show_hint('#VO-Role', 'Role name') }} </th>
         <th> Software<br>Version {{ show_hint('#Software-Version', 'Version tag') }} </th>
+        <th> Data Handler {{ show_hint('#Data-Handling', 'Data Handling Services') }} </th>
+        {% if data.campaign_stages[0].Campaign.data_handling_service == "data_dispatcher" %}
+        <th> Dataset Query {{ show_hint('#Data-Dispatcher', 'Dataset query') }} </th>
+        <th> Project Id<br>Override {{ show_hint('#Data-Dispatcher', 'Launch Override') }} </th>
+        {% else %}
         <th> Dataset or <br> Split Data {{ show_hint('#Dataset', 'Dataset name') }} </th>
+        {% endif %}
         <th> Split Type {{ show_hint('#Split-Type', 'Type string') }} </th>
         <th> Completion<br>Type {{ show_hint('#Completion-Type', '[complete|located|...]') }} </th>
         <th> Completion<br>Percent {{ show_hint('#Completion-Percent', 'Integer number') }} </th>
@@ -101,7 +107,13 @@ Campaign Stages
         <td id="c_campaign_stage_id_{{loop.index}}">{{row.CampaignStage.campaign_stage_id}}</td>
         <td id="c_vo_role_{{loop.index}}">{{row.CampaignStage.vo_role}}</td>
         <td id="c_software_version_{{loop.index}}">{{row.CampaignStage.software_version}}</td>
-        <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
+        <td id="c_data_handling_service_{{loop.index}}">{{row.Campaign.data_handling_service}}</td>
+        {% if row.Campaign.data_handling_service == "data_dispatcher" %}
+          <td id="c_dd_dataset_query_{{loop.index}}">{{row.CampaignStage.data_dispatcher_dataset_query}}</td>
+          <td id="c_dd_project_id_{{loop.index}}">{{row.CampaignStage.data_dispatcher_project_id}}</td>
+        {% else %}
+          <td id="c_dataset_{{loop.index}}">{{row.CampaignStage.dataset}}</td>
+        {% endif %}
         <td id="c_split_type_{{loop.index}}">{{row.CampaignStage.cs_split_type}}</td>
         <td id="c_completion_type_{{loop.index}}">{{row.CampaignStage.completion_type}}</td>
         <td id="c_completion_pct_{{loop.index}}">{{row.CampaignStage.completion_pct}}</td>
@@ -173,13 +185,23 @@ Campaign Stages
   <div class="ui hidden divider"></div>
   <div class="ui text container">
     <form id="campaign_add_edit_form" class="ui form" method="POST" action="{{pomspath}}/campaign_stage_edit/{{session_experiment}}/{{session_role}}">
-
-      <div class="fields">
-        <label>Campaign Name</label>
-        <input type="text" id="ae_campaign_name" name="ae_campaign_name" value="" readonly>
-        <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
+      <div class="two fields">
+        <div class="field">
+          <label>Campaign Name</label>
+          <input type="text" id="ae_campaign_name" name="ae_campaign_name" value="" readonly>
+          <input type="hidden" id="ae_campaign_id" name="ae_campaign_id" value="0">
+        </div>
+        <div class="field">
+          <label>Data Handling Service 
+            <a target="_blank">
+              <i style="float: none" class="icon small help circle link tooltip">
+                <span class="tooltiptext">Tells the system whether you will be using SAM or Data Dispatcher for launches. Please note that this is a Campaign-level setting, and can only be changed via the campaign editor.</span>
+              </i>
+            </a>
+          </label>
+          <input type="text" id="ae_data_handling_service" name="ae_data_handling_service" readonly>
+        </div>
       </div>
-
       <div class="three fields">
         <div class="field">
             <label>Stage Name</label>
@@ -204,17 +226,54 @@ Campaign Stages
         </div>
       </div>
 
-      <div class="three fields">
-        <div class="field">
+      <div id="dataset-section" class="two fields">
+        <div class="sam-dataset-section field">
             <label>Dataset or Split Data </label>
-            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%"></input>
-
+            <input type="text" id="ae_dataset" name="ae_dataset" placeholder="dataset" style="width: 90%">
             <i class="edit link blue icon split_type_picker_custom_edit" onclick="split_type_picker.custom_edit('ae_split_type','ae_dataset')"></i>
+        </div>
+        <div class="dd-dataset-section field">
+          <label>Dataset Query 
+            <a target="_blank">
+              <i style="float: none" class="icon small help circle link tooltip">
+                <span class="tooltiptext">POMS will use this query to create a new Data Dispatcher Project for each submission. If a split type is selected, POMS will use this as the baseline query, and modify it handle the split type.</span>
+              </i>
+            </a>
+          </label>
+          <input type="text" id="ae_dd_dataset_query" name="ae_dd_dataset_query" placeholder="'files from namespace:name'" >
         </div>
         <div class="field">
             <label>(Dataset) Split Type </label>
-            <input type="text" id="ae_split_type" name="ae_split_type" style="width:90%">
+            <input type="text" id="ae_split_type" name="ae_split_type" style="width: 90%">
             <i class="edit link blue icon" onclick="split_type_picker.start('ae_split_type')"></i>
+        </div>
+        <div class="dd-dataset-section field">
+          <label>Project Id Override
+            <a target="_blank">
+              <i style="float: none" class="icon small help circle link tooltip">
+                <span class="tooltiptext">If a Project ID override is provided, POMS will use this Data Dispatcher Project for each submission. 'Split Type' and 'Dataset Query' will be ignored if this value is set.</span>
+              </i>
+            </a>
+          </label>
+          <input type="number" id="ae_dd_project_id" name="ae_dd_project_id">
+        </div>
+      </div>
+
+      <div class="three fields">
+        <div class="field">
+          <label>Completion Type <a target="_blank">
+            <i style="float: none" class="icon small help circle link tooltip">
+              <span class="tooltiptext">Completion Type is the job submission status which POMS uses to determine when to launch a subsequent campaign stage if applicable. <br>(Default is 'Complete' for data dispatcher)</span>
+            </i>
+          </a></label>
+          <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
+            <option value="located" >Located</option>
+            <option value="complete" >Complete</option>
+          </select>
+        </div>
+        <div class="field">
+            <label>Completion % </label>
+            <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
         </div>
         <div class="field">
           <label>Default Clear Crontab</label>
@@ -224,21 +283,6 @@ Campaign Stages
               <span class="tooltiptext">If enabled, POMS will automatically clear crontab<br> entries when you run out of slices.</span>
             </i>
           </a>
-        
-      </div>
-      </div>
-
-      <div class="two fields">
-        <div class="field">
-          <label>Completion Type </label>
-          <select class="ui dropdown" name="ae_completion_type" id="ae_completion_type">
-            <option value="located" >Located</option>
-            <option value="complete" >Complete</option>
-          </select>
-        </div>
-        <div class="field">
-            <label>Completion % </label>
-            <input type="text" id="ae_completion_pct" name="ae_completion_pct" placeholder="95">
         </div>
       </div>
 
@@ -448,13 +492,30 @@ $('#campaign_add_edit_form')
       ae_vo_role :                'empty',
       ae_active :                 'empty',
       ae_software_version :       'empty',
-      ae_dataset :                'empty',
+      ae_dataset :{
+        identifier: "ae_dataset",
+        rules: [
+          {
+            type: "custom_validation",
+            prompt: "Please fill in at least one field."
+          }
+        ]
+      },
       ae_split_type :             'empty',
       ae_launch_id :              'empty',
       ae_campaign_definition_id : 'empty',
       ae_cronjon:                 'empty',
+    },
+    // Custom validation function
+    custom_validation: function(value, field) {
+      var datasetValue = $("input[name='ae_dataset']").val();
+      var datasetQueryValue = $("input[name='ae_dd_dataset_query']").val();
+      var projectValue = $("input[name='ae_dd_project_id']").val();
+
+      // Return true if at least one of the fields has a value
+      return datasetValue || datasetQueryValue || projectValue;
     }
-  }) ;
+  });
 }
 setup_form_validation()
 //      ae_completion_type :        'empty',
@@ -726,7 +787,6 @@ function edit_campaign(index,clone) {
     $("#ae_stage_name").val( $("#c_name_"+index).text() );
     $("#ae_depends").val( $("#c_depends_"+index).text() );
     $("#ae_depends_text").val( $.trim( $("#c_depends_"+index).text() ));
-    $("#ae_campaign_stage_id").val( $("#c_campaign_stage_id_"+index).text()  );
   } else {
     $("#ae_campaign_stage_id").val(0);
     $("#ae_definition_action").val("add");
@@ -738,8 +798,23 @@ function edit_campaign(index,clone) {
   $("#ae_experiment").text("Campaign Stage Editor ({{ data.curr_experiment if data.curr_experiment is defined}})");
   $("#ae_active").val( $("#c_active_"+index).text() ).trigger('change');
   $("#ae_vo_role").val( $("#c_vo_role_"+index).text() );
-  $("#ae_software_version").val( $("#c_software_version_"+index).text() );
-  $("#ae_dataset").val( $("#c_dataset_"+index).text() );
+  $("#ae_software_version").val( $("#c_software_version_"+index).text());
+  $("#ae_data_handling_service").val($("#c_data_handling_service_"+index).text());
+  $("#ae_dd_dataset_query").val($("#c_dd_dataset_query_"+index).text());
+  $("#ae_dd_project_id").val($("#c_dd_project_id_"+index).text());
+  $("#ae_dataset").val($("#c_dataset_"+index).text());
+  let data_handler = $("#ae_data_handling_service").val();
+  if (data_handler == "data_dispatcher"){
+    $("#dataset-section").removeClass("two").addClass("three");
+    $(".sam-dataset-section").hide();
+    $(".dd-dataset-section").show();
+  }
+  else{
+    $("#dataset-section").removeClass("three").addClass("two");
+    $(".dd-dataset-section").hide();
+    $(".sam-dataset-section").show();
+  }
+  $("#ae_campaign_stage_id").val($("#c_campaign_stage_id_"+index).text());
   $("#ae_split_type").val( $("#c_split_type_"+index).text() );
   $("#ae_param_overrides_text").val( $("#c_param_overrides_"+index).text() );
   $("#ae_param_overrides").val( $("#c_param_overrides_"+index).text() );

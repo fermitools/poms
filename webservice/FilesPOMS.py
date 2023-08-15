@@ -16,11 +16,10 @@ import glob
 import uuid
 from datetime import datetime, timedelta
 import time
-
 from sqlalchemy.orm import joinedload
 
 from . import logit
-from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign, DataDispatcherProject
+from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign, DataDispatcherSubmission
 from .utc import utc
 from .SAMSpecifics import sam_specifics
 import shutil
@@ -179,48 +178,47 @@ class FilesStatus:
                 datarows.append(row)
                 
         elif data_handling_service == "data_dispatcher":
-            dd_submissions = ctx.db.query(DataDispatcherProject).filter(
-                    DataDispatcherProject.experiment == cs.experiment,
-                    DataDispatcherProject.submission_id.in_([sub.submission_id for sub in tl])
+            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(
+                    DataDispatcherSubmission.experiment == cs.experiment,
+                    DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
                 ).all()
             (
-                all_files_queries,
-                done_files_queries,
-                failed_files_queries,
-                reserved_files_queries,
-                unknown_files_queries,
-                submitted_files_queries,
-                parent_files_needed_queries,
-                available_parent_files_queries,
-                children_produced_queries,
-                available_children_queries,
-                statistics
+                total,
+                initial,
+                done,
+                failed,
+                reserved,
+                unknown,
+                submitted,
+                parents,
+                children,
+                statistics,
+                project_id
             ) = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
             
             columns = [
                 "campign<br>stage",
                 "submission<br>jobsub_jobid",
                 "project_id",
-                "query",
+                "project name",
                 "date",
                 "percent<br>complete",
                 "available<br>output",
                 "submitted",
+                "not submitted",
                 "done",
                 "failed",
                 "reserved",
                 "not located",
                 "files in<br>project",
-                "parent files<br>needed",
-                "parent files<br>located",
-                "children<br>declared",
-                "children<br>located",
+                "parents",
+                "children",
             ]
 
             if clear_campaign_column:
                 columns = columns[1:]
 
-            listfiles = "../../show_dimension_files/%s/%s?mc_query=%%s" % (cs.experiment, ctx.role)
+            listfiles = "../../show_dimension_files/%s/%s?project_id=%%s" % (cs.experiment, ctx.role)
             datarows = deque()
             i = -1
             for s in dd_submissions:
@@ -240,24 +238,21 @@ class FilesStatus:
                         "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
                     ],
                     [ #TODO: is there a monitoring page?
-                        s.project_id,
-                        "%s/station_monitor/%s/stations/%s/projects/%s"
-                        % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project_id),
+                        s.project_id,listfiles % project_id[i]
                     ],
-                    [s.campaign_stage_obj.data_dispatcher_dataset_query or "N/A", listfiles % all_files_queries[i]],
+                    [s.project_name or "N/A", listfiles % project_id[i] + "&querying=all&mc_query=%s" % total[i]],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                    [statistics[i].get("pct_complete", "0%"), listfiles + "?mc_query=" + available_children_queries[i]],
-                    [statistics[i].get("children_available", 0), listfiles % available_children_queries[i]],
-                    [statistics[i].get("submitted", 0), listfiles % submitted_files_queries[i]],
-                    [statistics[i].get("done", 0), listfiles % done_files_queries[i]],
-                    [statistics[i].get("failed", 0), listfiles % failed_files_queries[i]],
-                    [statistics[i].get("reserved", 0), listfiles % reserved_files_queries[i]],
-                    [statistics[i].get("unknown", 0), listfiles % unknown_files_queries[i]],
-                    [statistics[i].get("total", 0), listfiles % all_files_queries[i]],
-                    [statistics[i].get("parents_needed", 0), listfiles + "?mc_query=" + parent_files_needed_queries[i]],
-                    [statistics[i].get("parents_available", 0), listfiles  + "?mc_query=" + available_parent_files_queries[i]],
-                    [statistics[i].get("children_produced", 0), listfiles  + "?mc_query=" + children_produced_queries[i]],
-                    [statistics[i].get("children_available", 0), listfiles  + "?mc_query=" + available_children_queries[i]],
+                    [statistics[i].get("pct_complete", "0%"), listfiles % project_id[i] + "&querying=children&mc_query=%s" % children[i]],
+                    [statistics[i].get("children", 0), listfiles % project_id[i] + "&querying=output&mc_query=%s" % children[i]],
+                    [statistics[i].get("submitted", 0), listfiles % project_id[i] + "&querying=submitted&mc_query=%s" % submitted[i]],
+                    [statistics[i].get("initial", 0), listfiles % project_id[i] + "&querying=initial&mc_query=%s" % initial[i]],
+                    [statistics[i].get("done", 0), listfiles % project_id[i] + "&querying=done&mc_query=%s" % done[i]],
+                    [statistics[i].get("failed", 0), listfiles % project_id[i] + "&querying=failed&mc_query=%s" % failed[i]],
+                    [statistics[i].get("reserved", 0), listfiles % project_id[i] + "&querying=reserved&mc_query=%s" % reserved[i]],
+                    [statistics[i].get("unknown", 0), listfiles % project_id[i] + "&querying=unknown&mc_query=%s" % unknown[i]],
+                    [statistics[i].get("total", 0), listfiles % project_id[i] + "&querying=all&mc_query=%s" % total[i]],
+                    [statistics[i].get("parents", 0), listfiles % project_id[i] + "&querying=parents&mc_query=%s" %  parents[i]],
+                    [statistics[i].get("children", 0), listfiles % project_id[i] + "&querying=children&mc_query=%s" % children[i]],
                 ]
         
 
@@ -270,13 +265,22 @@ class FilesStatus:
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     # h3. show_dimension_files
-    def show_dimension_files(self, ctx, dims):
-
+    def show_dimension_files(self, ctx, dims=None, project_id=None,mc_query=None, querying=None):
         try:
-            flist = sam_specifics(ctx).list_files(dims)
+            flist = None
+            fdict = None
+            data_handler = "sam"
+            if dims:
+                flist = sam_specifics(ctx).list_files(dims)
+            if project_id:
+                data_handler = "data_dispatcher"
+                querying = querying.capitalize()
+                fdict, did_all = ctx.dmr_service.list_file_urls(project_id, mc_query)
+                if did_all:
+                    querying = "'%s' files returned with no results. Displaying All" % querying
         except ValueError:
             flist = deque()
-        return flist
+        return flist, data_handler, fdict, querying
 
     # h3. get_file_upload_path
     def get_file_upload_path(self, ctx, filename):

@@ -114,8 +114,8 @@ class CampaignStage(Base):
     )
     
     
-class DataDispatcherProject(Base):
-    __tablename__ = "data_dispatcher_projects"
+class DataDispatcherSubmission(Base):
+    __tablename__ = "data_dispatcher_submissions"
     data_dispatcher_project_idx = Column(Integer, primary_key=True, server_default="")
     project_id = Column(Integer, nullable=False)
     project_name = Column(Text)
@@ -123,12 +123,12 @@ class DataDispatcherProject(Base):
     vo_role = Column(Text, nullable=False)
     campaign_id = Column(Integer)
     campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=True, index=True)
-    campaign_stage_snapshot_id = Column(Integer)
-    submission_id = Column(Integer)
+    campaign_stage_snapshot_id = Column(ForeignKey("campaign_stage_snapshots.campaign_stage_snapshot_id"), nullable=True, index=True)
+    submission_id = Column(ForeignKey("submissions.submission_id"), nullable=True, index=True)
     job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
-    split_type = Column(Integer)
-    last_split = Column(Integer)
-    depends_on_submission = Column(Integer)
+    split_type = Column(Text, nullable=True)
+    last_split = Column(Integer, nullable=True)
+    depends_on_submission = Column(ForeignKey("submissions.submission_id"),  nullable=True, index=True)
     depends_on_project = Column(Integer)
     recovery_type_id = Column(Integer)
     recovery_tasks_parent_submission = Column(Integer)
@@ -142,9 +142,14 @@ class DataDispatcherProject(Base):
     idle_timeout = Column(Integer)
     active = Column(Boolean, nullable=False, default=True)
     jobsub_job_id = Column(Text)
+    named_dataset = Column(Text)
+    status = Column(Text)
     
+    submission_obj = relationship("Submission", foreign_keys=submission_id)
     campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
+    campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
+    
     
 class Experimenter(Base):
     __tablename__ = "experimenters"
@@ -267,7 +272,7 @@ class Submission(Base):
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey("submissions.submission_id"), index=True)
     jobsub_job_id = Column(Text)
-
+    data_dispatcher_project_idx = Column(ForeignKey("data_dispatcher_submissions.data_dispatcher_project_idx"), nullable=True, index=True)
     campaign_stage_obj = relationship("CampaignStage")
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="Submission.creator == Experimenter.experimenter_id")
     experimenter_updater_obj = relationship("Experimenter", primaryjoin="Submission.updater == Experimenter.experimenter_id")
@@ -276,6 +281,8 @@ class Submission(Base):
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     status_history = relationship("SubmissionHistory", primaryjoin="Submission.submission_id == SubmissionHistory.submission_id")
+    
+    data_dispatcher_submission_obj = relationship("DataDispatcherSubmission", foreign_keys=data_dispatcher_project_idx)
     
 
 class SubmissionHistory(Base):

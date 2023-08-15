@@ -85,7 +85,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                         {{rec.available_output}}
                     </a>
                 {% elif rec.handler == 'data_dispatcher' %}
-                    <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?mc_query={{rec.output_dims}}">
+                    <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?{{rec.output_dims}}">
                         {{rec.available_output}}
                     </a>
                 {% endif %}

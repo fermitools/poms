@@ -382,7 +382,7 @@ class CampaignsPOMS:
         return campaign, "\n".join(res), sp_list, data_dispatcher_projects
 
     def show_watching(self, ctx):
-        #self.poms_service.submissionsPOMS.wrapup_tasks(ctx)
+        
         experimenter_id = ctx.get_experimenter().experimenter_id
 
         logit.log(logit.INFO, "entering show_watching: %s" % experimenter_id)
@@ -1410,7 +1410,7 @@ class CampaignsPOMS:
                     obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
                     obj.data_dispatcher_dataset_query = data_dispatcher_dataset_query
-                    obj.data_dispatcher_project_id = data_dispatcher_project_id
+                    obj.data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
@@ -1439,7 +1439,7 @@ class CampaignsPOMS:
                     default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
                     data_dispatcher_dataset_query = data_dispatcher_dataset_query,
-                    data_dispatcher_project_id = data_dispatcher_project_id,
+                    data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,

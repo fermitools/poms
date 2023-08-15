@@ -888,6 +888,16 @@ class PomsService:
             cl = None
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
 
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
+    def calculate_dd_project_completion(self, **kwargs):
+        if kwargs.get("ctx", None) and kwargs.get("project_ids", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(kwargs["project_ids"])
+        elif kwargs.get("ctx", None) and kwargs.get("project_id", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(project_id=kwargs.get("project_id"))
+        else:
+            return {}
+
+
     # see &l=webservice/SubmissionsPOMS.py#running_submissions&
 
     # h4. update_submission
@@ -1095,7 +1105,12 @@ class PomsService:
 
     @poms_method(t="show_dimension_files.html")
     def show_dimension_files(self, **kwargs):
-        return {"flist": self.filesPOMS.show_dimension_files(kwargs["ctx"], kwargs["dims"])}
+        flist, data_handler, fdict, querying = self.filesPOMS.show_dimension_files(kwargs["ctx"], 
+                                                                         dims = kwargs.get("dims", None), 
+                                                                         project_id=kwargs.get("project_id", None), 
+                                                                         mc_query=kwargs.get("mc_query", None),
+                                                                         querying=kwargs.get("querying", None))
+        return {"flist": flist, "data_handler": data_handler, "fdict": fdict, "querying": querying}
 
     # h4. link_tags
     @poms_method(rtype="json", p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])

@@ -25,6 +25,7 @@ from crontab import CronTab
 from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
+from sqlalchemy.orm.attributes import flag_modified
 
 from . import logit
 from .poms_model import (
@@ -42,7 +43,7 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
-    DataDispatcherProject
+    DataDispatcherSubmission
 )
 from .utc import utc
 from .SAMSpecifics import sam_specifics
@@ -116,7 +117,7 @@ class StagesPOMS:
         # email is the info we know about the ctx.username in POMS DB.
         pc_username = kwargs.pop("pc_username", None)
         campaign_id = kwargs.pop("ae_campaign_id", None)
-
+        
         if action == "delete":
             name = kwargs.get("ae_stage_name", kwargs.get("name", None))
             self.poms_service.permissions.can_modify(
@@ -177,6 +178,8 @@ class StagesPOMS:
             software_version = kwargs.pop("ae_software_version")
             dataset = kwargs.pop("ae_dataset")
             campaign_type = kwargs.pop("ae_campaign_type", "test")
+            dd_dataset_query = kwargs.pop("ae_dd_dataset_query", None) 
+            dd_project_id_override = kwargs.pop("ae_dd_project_id", None) 
 
             completion_type = kwargs.pop("ae_completion_type")
             completion_pct = kwargs.pop("ae_completion_pct")
@@ -277,6 +280,8 @@ class StagesPOMS:
                             cs_split_type=split_type,
                             software_version=software_version,
                             dataset=dataset,
+                            data_dispatcher_dataset_query = dd_dataset_query,
+                            data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None,
                             test_param_overrides=test_param_overrides,
                             param_overrides=param_overrides,
                             login_setup_id=login_setup_id,
@@ -293,33 +298,54 @@ class StagesPOMS:
                         ctx.db.commit()
                         campaign_stage_id = c_s.campaign_stage_id
                 elif action == "edit":
-                    columns = {
-                        "name": name,
-                        "vo_role": vo_role,
-                        # "active": active,
-                        "cs_split_type": split_type,
-                        "default_clear_cronjob":default_clear_cronjob,
-                        "software_version": software_version,
-                        "dataset": dataset,
-                        "param_overrides": param_overrides,
-                        "test_param_overrides": test_param_overrides,
-                        "job_type_id": job_type_id,
-                        "login_setup_id": login_setup_id,
-                        "updated": datetime.now(utc),
-                        "updater": experimenter_id,
-                        "completion_type": completion_type,
-                        "completion_pct": completion_pct,
-                        "campaign_id": campaign_id,
-                    }
-
-                    if c_s and split_type != c_s.split_type:
-                        # clear last split if changing split type
-                        columns["cs_last_split"] = None
-                    if c_s and dataset != c_s.dataset:
-                        # clear last split if changing dataset
-                        columns["cs_last_split"] = None
-
-                    ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                    logit.log("Attempting to campaign stage: %s" % campaign_stage_id)
+                    cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                    if cs:
+                        if ((split_type != cs.cs_split_type) or (cs.campaign_obj.data_handling_service == "sam" and dataset != cs.dataset) or
+                            (cs.campaign_obj.data_handling_service == "data_dispatcher" and dd_dataset_query != cs.data_dispatcher_project_id)):
+                            cs.cs_last_split = None
+                        cs.name = name
+                        cs.vo_role = vo_role
+                        cs.cs_split_type = split_type
+                        cs.default_clear_cronjob =default_clear_cronjob
+                        cs.software_version = software_version
+                        cs.dataset = dataset
+                        cs.param_overrides = param_overrides
+                        cs.test_param_overrides = test_param_overrides
+                        cs.data_dispatcher_dataset_query = dd_dataset_query
+                        cs.data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None
+                        cs.job_type_id = job_type_id
+                        cs.login_setup_id = login_setup_id
+                        cs.updated = datetime.now(utc)
+                        cs.updater = experimenter_id
+                        cs.completion_type = completion_type
+                        cs.completion_pct = completion_pct
+                        ctx.db.commit()
+                        logit.log("Updated campaign stage: %s" % campaign_stage_id)
+                    else:
+                        columns = {
+                            "name": name,
+                            "vo_role": vo_role,
+                            # "active": active,
+                            "cs_split_type": split_type,
+                            "default_clear_cronjob":default_clear_cronjob,
+                            "software_version": software_version,
+                            "dataset": dataset,
+                            "param_overrides": param_overrides,
+                            "test_param_overrides": test_param_overrides,
+                            "data_dispatcher_dataset_query": dd_dataset_query,
+                            "data_dispatcher_project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                            "job_type_id": job_type_id,
+                            "login_setup_id": login_setup_id,
+                            "updated": datetime.now(utc),
+                            "updater": experimenter_id,
+                            "completion_type": completion_type,
+                            "completion_pct": completion_pct,
+                            "campaign_id": campaign_id,
+                        }
+                        ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                        logit.log("Updated campaign stage with update(): %s" % campaign_stage_id)
+                    
                 # now redo dependencies
                 (
                     ctx.db.query(CampaignDependency)
@@ -944,7 +970,7 @@ class StagesPOMS:
 
         launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
         subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()
-        dd_submissions = ctx.db.query(DataDispatcherProject).filter(DataDispatcherProject.campaign_stage_id.in_(campaign_stage_ids)).all()
+        dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.campaign_stage_id.in_(campaign_stage_ids)).all()
         dd_submission_ids = [sub.submission_id for sub in dd_submissions]
         data_handlers = {sub.submission_id: "sam" for sub in subs }
         for sub in dd_submission_ids:
@@ -1047,13 +1073,20 @@ class StagesPOMS:
                     updated_dd_jsid = True
             if updated_dd_jsid:
                 ctx.db.commit()
-            (output_files2, output_list2) = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
+            (output_files2, output_list2, project_ids) = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
 
         i = 0
-        if output_files and output_files2:
+        
+        if not output_files and output_files2:
+            output_files = output_files2
+        elif output_files and output_files2:
             output_files.extend(output_files2)
-        if output_list and output_list2:
+        
+        if not output_list and output_list2:
+            output_list = output_list2
+        elif output_list and output_list2:
             output_list.extend(output_list2)
+            
         for tup in tuples:
             jjid = tup.Submission.jobsub_job_id
             full_jjid = jjid
@@ -1085,7 +1118,7 @@ class StagesPOMS:
         return data
 
     # h3. get_dataset_for
-    def get_dataset_for(self, ctx, camp, test_launch):
+    def get_dataset_for(self, ctx, camp, test_launch, do_data_dispatcher=False):
         """
             use the split_type modules to get the next dataset for
             launch for a given campaign
@@ -1094,9 +1127,13 @@ class StagesPOMS:
             split_type = camp.test_split_type
         else:
             split_type = camp.cs_split_type
+        
 
         if not split_type or split_type == "None" or split_type == "none":
-            return camp.dataset
+            if do_data_dispatcher:
+                return camp.data_dispatcher_dataset_query, None
+            else:
+                return camp.dataset, None
 
         # clean up split_type -- de-white-space it
         split_type = split_type.replace(" ", "")
@@ -1118,20 +1155,28 @@ class StagesPOMS:
             p1 = len(split_type)
 
         modname = split_type[0:p1]
-
-        mod = importlib.import_module("poms.webservice.split_types." + modname)
-        split_class = getattr(mod, modname)
-
-        splitter = split_class(camp, ctx.sam, ctx.db)
-
+        
+        
+        if camp.campaign_obj.data_handling_service == "data_dispatcher":
+            mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
+            split_class = getattr(mod, modname)
+            splitter = split_class(camp, ctx.dmr_service, ctx.db)
+        else:
+            mod = importlib.import_module("poms.webservice.split_types." + modname)
+            split_class = getattr(mod, modname)
+            splitter = split_class(camp, ctx.sam, ctx.db)
+        
         try:
-            res = splitter.next()
+            if do_data_dispatcher:
+                res = splitter.next()
+            else:
+                res = splitter.next()
+                
         except StopIteration:
             if camp.default_clear_cronjob:
                 self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
             raise AssertionError("No more splits in this campaign.")
 
-        ctx.db.commit()
         return res
 
     # h3. schedule_launch

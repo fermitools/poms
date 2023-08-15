@@ -41,7 +41,7 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
-    DataDispatcherProject
+    DataDispatcherSubmission
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
@@ -224,7 +224,8 @@ class SubmissionsPOMS:
         self.checker = sam_project_checker(ctx)
 
         completed_projects = []
-        finish_up_submissions = set()
+        finish_up_sam_submissions = set()
+        finish_up_dd_submissions = set()
         mark_located = []
 
         ctx.db.execute("SET SESSION lock_timeout = '450s';")
@@ -232,6 +233,7 @@ class SubmissionsPOMS:
 
         # get completed jobs, lock them, double check
         completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
+        finished_dd_project_indexes = {idx:True for (idx,) in ctx.db.query(DataDispatcherSubmission.data_dispatcher_project_idx).filter(DataDispatcherSubmission.status == "Finished").all()}
         #ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(
         #    Submission.submission_id
         #).with_for_update(read=True).all()
@@ -240,7 +242,7 @@ class SubmissionsPOMS:
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
         # now get the ones with completion_type "complete":
-        # and put them in the finish_up_submissions list
+        # and put them in the finish_up_sam_submissions list
         for s in (
             ctx.db.query(Submission)
             .join(
@@ -250,35 +252,45 @@ class SubmissionsPOMS:
             .all()
         ):
             res.append("completion type completed: %s" % s.submission_id)
-            finish_up_submissions.add(s.submission_id)
+            if s.data_dispatcher_project_idx:
+                if s.data_dispatcher_project_idx not in finished_dd_project_indexes:
+                    finish_up_dd_submissions.add(s.data_dispatcher_project_idx)
+            else:
+                finish_up_sam_submissions.add(s.submission_id)
 
         # now get the ones with completion_type "located":
-        # and decide if they go on the finish_up_submissions list...
+        # and decide if they go on the finish_up_sam_submissions list...
         n_project = 0
         for s in (
             ctx.db.query(Submission)
             .join(
                 CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
             )
-            .filter(Submission.submission_id.in_(completed_sids))
+            .filter(
+                and_(
+                    Submission.submission_id.in_(completed_sids),
+                    Submission.data_dispatcher_project_idx == None # Data dispatcher submissions only get to a completed status, so we will ignore them.
+                )
+            )
             .all()
         ):
 
             res.append("completion type located: %s" % s.submission_id)
             # after two days, call it on time...
             if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get("force_located", False)):
-                finish_up_submissions.add(s.submission_id)
+                finish_up_sam_submissions.add(s.submission_id)
             elif s.project:
                 self.checker.add_project_submission(s)
             else:
                 self.checker.add_non_project_submission(s)
 
-        finish_up_submissions, res = self.checker.check_added_submissions(finish_up_submissions, res)
+        finish_up_sam_submissions, res = self.checker.check_added_submissions(finish_up_sam_submissions, res)
 
-        finish_up_submissions = list(finish_up_submissions)
-        finish_up_submissions.sort()
-
-        for s in finish_up_submissions:
+        finish_up_sam_submissions = list(finish_up_sam_submissions)
+        finish_up_sam_submissions.sort()
+        
+        # Only SAM submissions go into a located status
+        for s in finish_up_sam_submissions:
             res.append("marking submission %s located " % s)
             self.update_submission_status(ctx, s, "Located")
 
@@ -300,12 +312,12 @@ class SubmissionsPOMS:
         # this way we don's keep the rows locked all day
         #
 
-        res.append("finish_up_submissions: %s " % repr(finish_up_submissions))
+        res.append("finish_up_sam_submissions: %s " % repr(finish_up_sam_submissions))
 
-        for submission_id in finish_up_submissions:
+        for submission_id in finish_up_sam_submissions:
             submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
             # get logs for job for final cpu values, etc.
-            msg = "Starting finish_up_submissions items for submission %s" % submission.submission_id
+            msg = "Starting finish_up_sam_submissions items for submission %s" % submission.submission_id
             logit.log(msg)
             res.append(msg)
 
@@ -316,8 +328,30 @@ class SubmissionsPOMS:
                 # finish up any pending changes before the next try
                 ctx.db.commit()
             except Exception as e:
-                logit.logger.exception("exception %s during finish_up_submissions %s" % (e, submission))
+                logit.logger.exception("exception %s during finish_up_sam_submissions %s" % (e, submission))
                 ctx.db.rollback()
+        
+        
+        finish_up_dd_submissions = list(finish_up_dd_submissions)
+        finish_up_dd_submissions.sort()
+        res.append("finish_up_dd_submissions: %s " % repr(finish_up_sam_submissions))
+        for dd_project_idx in finish_up_dd_submissions:
+            dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one()
+            # get logs for job for final cpu values, etc.
+            msg = "Starting finish_up_dd_submissions items for submission %s" % dd_project.submission_id
+            logit.log(msg)
+            res.append(msg)
+
+            try:
+                # take care of any recovery or dependency launches
+                if not self.launch_recovery_if_needed(ctx, dd_project.submission, None):
+                    self.launch_dependents_if_needed(ctx, submission)
+                # finish up any pending changes before the next try
+                ctx.db.commit()
+            except Exception as e:
+                logit.logger.exception("exception %s during finish_up_sam_submissions %s" % (e, submission))
+                ctx.db.rollback()
+        
 
         return res
 
@@ -465,7 +499,7 @@ class SubmissionsPOMS:
             .with_for_update(read=True)
             .first()
         )
-
+        
         # don't mark recovery jobs Failed -- they get just
         # the jobs that didn't pass the original submission,
         # the recovery is still a success even if they all fail again.
@@ -486,6 +520,10 @@ class SubmissionsPOMS:
             "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
             % (submission_id, status_id, lasthist.status_id if lasthist else "", lasthist.created if lasthist else "")
         )
+        
+        # Data dispatcher status is shown for informational purposes, so can update at will
+        if s.data_dispatcher_project_idx:
+            ctx.dmr_service.update_status(ctx, s.data_dispatcher_project_idx, status)
 
         # don't roll back Located, Failed, or Removed (final states)
         # note that we *intentionally don't* have LaunchFailed here, as we
@@ -746,39 +784,40 @@ class SubmissionsPOMS:
                 ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
             ]
         elif data_handling_service == "data_dispatcher":
-            dd_submissions = ctx.db.query(DataDispatcherProject).filter(
-                    DataDispatcherProject.experiment == cs.experiment,
-                    DataDispatcherProject.submission_id == submission.submission_id
-                ).all()
-            listfiles = "%s/show_dimension_files/%s/%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
+            if submission.data_dispatcher_project_idx:
+                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx).all()
+            else:
+                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(
+                        DataDispatcherSubmission.experiment == cs.experiment,
+                        DataDispatcherSubmission.submission_id == submission.submission_id
+                    ).all()
             (
-                all_files_queries,
-                done_files_queries,
-                failed_files_queries,
-                reserved_files_queries,
-                unknown_files_queries,
-                submitted_files_queries,
-                parent_files_needed_queries,
-                available_parent_files_queries,
-                children_produced_queries,
-                available_children_queries,
-                statistics
+                total,
+                initial,
+                done,
+                failed,
+                reserved,
+                unknown,
+                submitted,
+                parents,
+                children,
+                statistics,
+                project_id
             ) = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
-            
             i = 0
+            listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, project_id[i])
             statuses = [
-                ["Percent Completed: ", statistics[i].get("pct_complete", "0%"), listfiles + "?mc_query=" + available_children_queries[i]],
-                ["Available output: ",statistics[i].get("children_available", 0), listfiles + "?mc_query=" + available_children_queries[i]],
-                ["Parent Files Needed: ",statistics[i].get("parents_needed", 0), listfiles + "?mc_query=" + parent_files_needed_queries[i]],
-                ["Parent Files Located: ",statistics[i].get("parents_available", 0), listfiles  + "?mc_query=" + available_parent_files_queries[i]],
-                ["Submitted: ",statistics[i].get("submitted", 0), listfiles  + "?mc_query=" + submitted_files_queries[i]],
-                ["Total Files in Project: ",statistics[i].get("total", 0), listfiles  + "?mc_query=" + (all_files_queries[i])],
-                ["Not Located: ", statistics[i].get("unknown", 0), listfiles  + "?mc_query=" + unknown_files_queries[i]],
-                ["Done: ", statistics[i].get("done", 0), listfiles  + "?mc_query=" + done_files_queries[i]],
-                ["Failed: ", statistics[i].get("failed", 0), listfiles  + "?mc_query=" + failed_files_queries[i]],
-                ["Children declared: ", statistics[i].get("children_produced", 0), listfiles  + "?mc_query=" + children_produced_queries[i]],
-                ["Children Located: ", statistics[i].get("children_available", 0), listfiles  + "?mc_query=" + available_children_queries[i]],
-                ["Reserved: ", statistics[i].get("reserved", 0), listfiles  + "?mc_query=" + reserved_files_queries[i]],
+                ["Total Files in Dataset: ",statistics[i].get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (total[i])],
+                ["Submission % Completed: ", statistics[i].get("pct_complete", "0%"), listfiles],
+                ["Available output: ",statistics[i].get("children", 0), listfiles + "&querying=output&mc_query=%s" % children[i]],
+                ["Parents: ",statistics[i].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % parents[i]],
+                ["Submitted: ",statistics[i].get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % submitted[i]],
+                ["Not Submitted: ",statistics[i].get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % initial[i]],
+                ["Unknown: ", statistics[i].get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % unknown[i]],
+                ["Done: ", statistics[i].get("done", 0), listfiles  + "&querying=done&mc_query=%s" % done[i]],
+                ["Failed: ", statistics[i].get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % failed[i]],
+                ["Children: ", statistics[i].get("children", 0), listfiles  + "&querying=children&mc_query=%s" % children[i]],
+                ["Reserved: ", statistics[i].get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % reserved[i]],
             ]
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
@@ -840,12 +879,11 @@ class SubmissionsPOMS:
 
         else:
 
-            res = list(
-                ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment)
-                .filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id)
-                .filter(Submission.jobsub_job_id != None)
-                .filter(Submission.submission_id.in_(running_sids))
-            )
+            res = [ (s.submission_id, s.jobsub_job_id, s.campaign_stage_obj.experiment, s.data_dispatcher_submission_obj.project_id if s.data_dispatcher_project_idx else '') 
+                   for s in ctx.db.query(Submission)
+                    .filter(Submission.jobsub_job_id != None)
+                    .filter(Submission.submission_id.in_(running_sids))
+                ]
 
         return res
 
@@ -875,15 +913,23 @@ class SubmissionsPOMS:
 
         #logit.log("submission_id=%s | Jobsub_job_id=%s" % (str(submission_id), str(jobsub_job_id)))
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
+            
         if not s:
             return "Unknown."
+        
+        dd_project = s.data_dispatcher_submission_obj
 
         if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
+            if dd_project:
+                dd_project.jobsub_job_id = jobsub_job_id
             ctx.db.add(s)
 
-        if project and s.project != project:
-            s.project = project
+        if (project and s.project != project) or dd_project:
+            if not dd_project:
+                s.project = project
+            else:
+                s.project = dd_project.project_name
             ctx.db.add(s)
 
         # amend status for completion percent
@@ -900,13 +946,17 @@ class SubmissionsPOMS:
     def launch_dependents_if_needed(self, ctx, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
         self.init_statuses(ctx)
-
+        
+        do_data_dispatcher = False
+        if s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher":
+            do_data_dispatcher = True
+        
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
 
         lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status_id != self.status_Located:
-            logit.log("Not launching dependencies because submission is not marked Located")
+        if lasthist.status_id != self.status_Located or (do_data_dispatcher and lasthist.status_id != self.status_Completed) :
+            logit.log("Not launching dependencies because submission is not marked %s" % "Completed" if do_data_dispatcher else "Located" )
             return
 
         if s.parent_obj:
@@ -941,7 +991,32 @@ class SubmissionsPOMS:
                 )
             else:
                 i = i + 1
-                dname = sam_specifics(ctx).dependency_definition(s, cd, i)
+                dd_project = None
+                if do_data_dispatcher:
+                    # doing data dispatcher dependency launch
+                    dname, dd_project = ctx.dmr_service.dependency_definition(s, cd, i)
+                    if not dd_project:
+                        cs = cd.consumer
+                        dd_project = ctx.dmr_service.create_project(username=s.experimenter_creator_obj.username, 
+                                                        dataset="files in %s" % dname,
+                                                        experiment= cs.experiment,
+                                                        role=cs.vo_role,
+                                                        campaign_id=cs.campaign_id, 
+                                                        campaign_stage_id=cs.campaign_stage_id, 
+                                                        campaign_stage_snapshot_id=s.campaign_stage_snapshot_id,
+                                                        submission_id=s.submission_id, 
+                                                        job_type_snapshot_id = s.job_type_snapshot_id,
+                                                        depends_on_submission=s.depends_on,
+                                                        recovery_position = s.recovery_position,
+                                                        recovery_tasks_parent_submission = s.recovery_tasks_parent,
+                                                        project_name=dname,
+                                                        split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                        creator=cs.experimenter_creator_obj.experimenter_id,
+                                                        creator_name=cs.experimenter_creator_obj.username,
+                                                        last_split=cs.cs_last_split,
+                                                        status="created")
+                else:
+                    dname = sam_specifics(ctx).dependency_definition(s, cd, i)
 
                 if s.submission_params and s.submission_params.get("test", False):
                     test_launch = s.submission_params.get("test", False)
@@ -949,8 +1024,7 @@ class SubmissionsPOMS:
                     test_launch = False
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
-
-                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch)
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_id=dd_project.project_id if dd_project else None)
         return 1
 
     # h3. launch_recovery_if_needed
@@ -972,6 +1046,8 @@ class SubmissionsPOMS:
         current_s = s
         if s.parent_obj:
             s = s.parent_obj
+        
+        do_data_dispatcher = current_s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
         logit.log("launch_recovery_if_needed: current_s: %s" %repr(current_s))
         logit.log("launch_recovery_if_needed: s: %s" %repr(s))
 
@@ -1006,10 +1082,17 @@ class SubmissionsPOMS:
             # else we use the current submission as the project because we don't want to re-submit the same files
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
-            if s.recovery_position == 0:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            project_id = None
+            if do_data_dispatcher:
+                if s.recovery_position == 0:
+                    nfiles, rname, project_id = ctx.dmr_service.create_recovery_dataset(s.data_dispatcher_submission_obj, rtype, rlist)
+                else:
+                    nfiles, rname, project_id = ctx.dmr_service.create_recovery_dataset(current_s.data_dispatcher_submission_obj, rtype, rlist)
             else:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
+                if s.recovery_position == 0:
+                    nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+                else:
+                    nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
 
             s.recovery_position = s.recovery_position + 1
 
@@ -1029,6 +1112,7 @@ class SubmissionsPOMS:
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
+                    dd_project_id=project_id
                 )
                 return res
 
@@ -1442,8 +1526,7 @@ class SubmissionsPOMS:
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
 
-        do_data_dispatcher = ctx.dmr_service_is_logged_in and cs.campaign_obj.data_handling_service == "data_dispatcher"
-        logit.log("Data dispatcher launch | Logged in: %s" % ctx.dmr_service_is_logged_in)
+        
         proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         if allheld or csheld or proxyheld:
 
@@ -1478,12 +1561,35 @@ class SubmissionsPOMS:
             lcmd = ""
 
             raise ctx.HTTPError(errnum, output)
-
+            
+        do_data_dispatcher = cs.campaign_obj.data_handling_service == "data_dispatcher"
+        dd_project_override = False
+        # If override is set, we will use the defined project id. Ignoring datasets and split types
+        if not dd_project_id and cs.data_dispatcher_project_id:
+            dd_project_override = True
+            dd_project_id = cs.data_dispatcher_project_id
+        if do_data_dispatcher:
+            if cs.completion_type != "complete":
+                cs.completion_type = "complete"
+                ctx.db.commit()
+            if dd_project_override:
+                dataset = None
+                
+        dd_project = None
         if dataset_override:
             dataset = dataset_override
+            if do_data_dispatcher and dd_project_id and not dd_project_override:
+                # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
+                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.project_id == dd_project_id).one_or_none()
+                    
         else:
-            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch)
-
+            if not do_data_dispatcher:
+                dataset, dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
+            else:
+                if not dd_project_id and not dd_project_override:
+                    # we are here if doing a split type launch
+                    dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, True)
+                    dataset = "Project_ID: %s" % dd_project.project_id
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
@@ -1501,6 +1607,7 @@ class SubmissionsPOMS:
             # keep some bookkeeping flags
             #
             pdict = {}
+            
             if dataset and dataset != "None":
                 pdict["dataset"] = dataset
             if test_launch:
@@ -1508,7 +1615,9 @@ class SubmissionsPOMS:
             if parent:
                 pdict["parent"] = parent
 
+            
             ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
+            
 
         if cs and cs.campaign_stage_type == "approval":
             # special case for approval -- don't need to really launch...
@@ -1589,46 +1698,64 @@ class SubmissionsPOMS:
         # BEGIN DATA_DISPATCHER LOGIC
         data_dispatcher_logic = []
         if do_data_dispatcher:
-            project = None
-            dd_project_id = cs.data_dispatcher_project_id
-            dd_dataset_query = cs.data_dispatcher_dataset_query
-            if dd_project_id:
-                project = ctx.dmr_service.get_project_for_submission(ctx, dd_project_id,
-                                                    experiment= exp,
-                                                    role=cs.vo_role,
-                                                    campaign_id=cid, 
-                                                    campaign_stage_id=csid, 
-                                                    campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
-                                                    submission_id=sid, 
-                                                    depends_on_submission=submission.depends_on,
-                                                    recovery_tasks_parent_submission = submission.recovery_tasks_parent,
-                                                    job_type_snapshot_id = submission.job_type_snapshot_id,
-                                                    project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,
-                                                    split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
-                                                    creator=cs.experimenter_creator_obj.experimenter_id,
-                                                    creator_name=cs.experimenter_creator_obj.username,
-                                                    last_split=cs.cs_last_split)
-            
-            if dd_dataset_query and not project:
-                project = ctx.dmr_service.create_project(ctx,dd_dataset_query,
-                                                    experiment= exp,
-                                                    role=cs.vo_role,
-                                                    campaign_id=cid, 
-                                                    campaign_stage_id=csid, 
-                                                    campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
-                                                    submission_id=sid, 
-                                                    job_type_snapshot_id = submission.job_type_snapshot_id,
-                                                    depends_on_submission=submission.depends_on,
-                                                    recovery_tasks_parent_submission = submission.recovery_tasks_parent,
-                                                    project_name="Data Dispatcher Test | Submission ID: %s" % submission.submission_id,
-                                                    split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
-                                                    creator=cs.experimenter_creator_obj.experimenter_id,
-                                                    creator_name=cs.experimenter_creator_obj.username,
-                                                    last_split=cs.cs_last_split)
-            if project:
+            if dd_project:
+                dd_project.campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id
+                dd_project.depends_on_submission=submission.depends_on
+                dd_project.submission_id=sid
+                dd_project.recovery_position = submission.recovery_position
+                dd_project.recovery_tasks_parent_submission = submission.recovery_tasks_parent
+                dd_project.job_type_snapshot_id = submission.job_type_snapshot_id
+                dd_project.status="created"
+                if dd_project.depends_on_submission:
+                    dd_project.depends_on_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).one_or_none()
+                if dd_project.recovery_tasks_parent_submission:
+                    dd_project.recovery_tasks_parent_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none()
+                
+            else:
+                if dd_project_override: 
+                    dd_project = ctx.dmr_service.get_project_for_submission(dd_project_id,
+                                                        experiment= exp,
+                                                        role=cs.vo_role,
+                                                        campaign_id=cid, 
+                                                        campaign_stage_id=csid, 
+                                                        campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                        submission_id=sid, 
+                                                        depends_on_submission=submission.depends_on,
+                                                        recovery_position = submission.recovery_position,
+                                                        recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                        job_type_snapshot_id = submission.job_type_snapshot_id,
+                                                        project_name="%s: Project ID Override: %s | Campaign Stage ID:  | Submission ID: %s" % (ctx.web_config.get("Metacat", "DEFAULT_NAMESPACE"),dd_project_id, csid, submission.submission_id),
+                                                        split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                        creator=cs.experimenter_creator_obj.experimenter_id,
+                                                        creator_name=cs.experimenter_creator_obj.username,
+                                                        last_split=cs.cs_last_split,
+                                                        status="created")
+                
+                elif dataset or cs.data_dispatcher_dataset_query:
+                    dd_project = ctx.dmr_service.create_project(username=submission.experimenter_creator_obj.username, 
+                                                        dataset=dataset if dataset else cs.data_dispatcher_dataset_query, # should be the same at this point
+                                                        experiment= exp,
+                                                        role=cs.vo_role,
+                                                        campaign_id=cid, 
+                                                        campaign_stage_id=csid, 
+                                                        campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                        submission_id=sid, 
+                                                        job_type_snapshot_id = submission.job_type_snapshot_id,
+                                                        depends_on_submission=submission.depends_on,
+                                                        recovery_position = submission.recovery_position,
+                                                        recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                        project_name="%s: Campaign Stage ID:  | Submission ID: %s" % (ctx.web_config.get("Metacat", "DEFAULT_NAMESPACE"), csid, submission.submission_id),
+                                                        split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                        creator=cs.experimenter_creator_obj.experimenter_id,
+                                                        creator_name=cs.experimenter_creator_obj.username,
+                                                        last_split=cs.cs_last_split,
+                                                        status="created")
+            if dd_project:
                 data_dispatcher_logic.append("export POMS_USER=%s;" % experimenter_login),
-                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % project.project_id)
-                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_NAME=\"%s\";" % project.project_name)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_NAME=\"%s\";" % dd_project.project_name)
+                submission.data_dispatcher_project_idx = dd_project.data_dispatcher_project_idx
+                ctx.db.commit()
         
         cmdl = [
             "exec 2>&1;",
@@ -1678,7 +1805,7 @@ class SubmissionsPOMS:
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
             "source /grid/fermiapp/products/common/etc/setups;",
-            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
+            "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;" if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             (
                 lt.launch_setup
@@ -1702,7 +1829,7 @@ class SubmissionsPOMS:
             
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper

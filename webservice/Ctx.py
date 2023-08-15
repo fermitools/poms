@@ -77,7 +77,6 @@ class Ctx:
             
         self.dmr_service = dmr if dmr else cherrypy.request.dmr_service
         self.dmr_service.update_config_if_needed(self.db,self.experiment, self.username, self.role)
-        print("self.dmr_service.update_config_if_needed(%s, %s, %s)" % (self.experiment, self.username, self.role))
         services = self.dmr_service.services_logged_in
         if services:
             if not services["data_dispatcher"]:
@@ -92,6 +91,11 @@ class Ctx:
         if not self.experimenter_cache:
             self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
         return self.experimenter_cache
+    
+    def get_experimenter_id(self):
+        if not self.experimenter_cache:
+            self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
+        return self.experimenter_cache.experimenter_id
 
     def __repr__(self):
         res = ["<Ctx:"]

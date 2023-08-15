@@ -1,11 +1,13 @@
 ALTER TABLE campaigns ADD COLUMN data_handling_service TEXT NOT NULL DEFAULT 'sam';
 ALTER TABLE campaign_stages ADD COLUMN data_dispatcher_dataset_query TEXT DEFAULT NULL;
 ALTER TABLE campaign_stages ADD COLUMN data_dispatcher_project_id int DEFAULT NULL;
+ALTER TABLE campaign_stage_snapshots ADD COLUMN data_dispatcher_dataset_query TEXT DEFAULT NULL;
+ALTER TABLE campaign_stage_snapshots ADD COLUMN data_dispatcher_project_id int DEFAULT NULL;
 
 CREATE SEQUENCE data_dispatcher_project_idx_seq;
 ALTER SEQUENCE data_dispatcher_project_idx_seq START WITH 1 INCREMENT BY 1;
 
-CREATE TABLE data_dispatcher_projects ( 
+CREATE TABLE data_dispatcher_submissions ( 
 	data_dispatcher_project_idx         serial NOT NULL,
     project_id                          integer NOT NULL,   
     project_name                        text  NOT NULL,
@@ -15,7 +17,7 @@ CREATE TABLE data_dispatcher_projects (
     campaign_stage_id                   integer  DEFAULT NULL,
     campaign_stage_snapshot_id          integer  DEFAULT NULL,
     submission_id                       integer  DEFAULT NULL,                  
-    split_type                          integer  DEFAULT NULL,
+    split_type                          text  DEFAULT NULL,
     last_split                          integer  DEFAULT NULL,
     depends_on_submission               integer  DEFAULT NULL,
     recovery_type_id                    integer  DEFAULT NULL,
@@ -32,7 +34,9 @@ CREATE TABLE data_dispatcher_projects (
     depends_on_project                  integer  DEFAULT NULL,
     recovery_tasks_parent_project       integer  DEFAULT NULL,
     jobsub_job_id                       text DEFAULT NULL,
-
+    named_dataset                       text DEFAULT NULL,
+    status                              text DEFAULT NULL,
+    
 	CONSTRAINT pk_data_dispatcher_projects PRIMARY KEY ( data_dispatcher_project_idx ),
 	CONSTRAINT fk_dd_projects_experimenters FOREIGN KEY ( experiment ) REFERENCES experiments( experiment ),
     CONSTRAINT fk_dd_projects_campaigns FOREIGN KEY ( campaign_id ) REFERENCES campaigns ( campaign_id ),
@@ -48,6 +52,8 @@ CREATE TABLE data_dispatcher_projects (
     CONSTRAINT fk_dd_projects_recovery_tasks_parent_project FOREIGN KEY ( recovery_tasks_parent_project ) REFERENCES data_dispatcher_projects ( data_dispatcher_project_idx );
  );
 
+alter table submissions add column data_dispatcher_project_idx int default null;
+alter table submissions add CONSTRAINT fk_submission_dd_project FOREIGN KEY ( data_dispatcher_project_idx ) REFERENCES data_dispatcher_submissions( data_dispatcher_project_idx );
 
 ALTER TABLE data_dispatcher_projects OWNER TO pomsdev;
 grant select, insert, update, delete on data_dispatcher_projects to pomsdbs;
