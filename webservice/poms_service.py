@@ -1169,7 +1169,7 @@ class PomsService:
     # h4. split_type_javascript
     @poms_method(rtype="rawjavascript")
     def split_type_javascript(self, **kwargs):
-        return self.miscPOMS.split_type_javascript(kwargs["ctx"])
+        return self.miscPOMS.split_type_javascript(kwargs["ctx"], kwargs.get("data_dispatcher", False))
 
     # see &l=webservice/MiscPOMS.py#split_type_javascript&
 

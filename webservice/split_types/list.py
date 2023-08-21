@@ -1,4 +1,3 @@
-import uuid
 class list:
     """
        This split type assumes you have been given a comma-separated list 

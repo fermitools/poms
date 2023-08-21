@@ -1160,7 +1160,7 @@ class StagesPOMS:
         if camp.campaign_obj.data_handling_service == "data_dispatcher":
             mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
             split_class = getattr(mod, modname)
-            splitter = split_class(camp, ctx.dmr_service, ctx.db)
+            splitter = split_class(ctx, camp)
         else:
             mod = importlib.import_module("poms.webservice.split_types." + modname)
             split_class = getattr(mod, modname)

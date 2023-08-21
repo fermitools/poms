@@ -1,4 +1,4 @@
-import uuid
+from datetime import datetime
 class limitn:
     """
        This type, when filled out as limitn(n)  for some integer
@@ -6,12 +6,9 @@ class limitn:
        Useful for analysis users who want a limited set
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, ctx, cs):
         self.cs = cs
-        self.samhandle = samhandle
-        self.dbhandle = dbhandle
-        self.ds = cs.dataset
-        self.id = uuid.uuid4()
+        self.dmr_service = ctx.dmr_service
         try:
             self.n = int(cs.cs_split_type[7:].strip(")"))
         except:
@@ -21,12 +18,24 @@ class limitn:
         return ["n"]
 
     def peek(self):
-        new = self.cs.dataset + "_%s_limit%d" % (str(self.id), self.n)
-        self.samhandle.create_definition(self.cs.experiment, new, "defname: %s with limit %d" % (self.cs.dataset, self.n))
-        if self.samhandle.count_files(self.cs.job_type_obj.experiment, "defname:" + new) == 0:
+        project_name = "%s | limit(%d) | %s " % (self.cs.name, self.n, datetime.now().strftime("%m/%d/%Y %I:%M%p"))
+        query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
+        project_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+        if len(project_files) == 0:
             raise StopIteration
 
-        return new
+        dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
+                                        files=project_files,
+                                        experiment=self.cs.experiment,
+                                        role=self.cs.vo_role,
+                                        project_name=project_name,
+                                        campaign_id=self.cs.campaign_id, 
+                                        campaign_stage_id=self.cs.campaign_stage_id,
+                                        split_type=self.cs.cs_split_type,
+                                        last_split=self.cs.cs_last_split,
+                                        creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                        creator_name=self.cs.experimenter_creator_obj.username)
+        return dd_project
 
     def next(self):
         res = self.peek()

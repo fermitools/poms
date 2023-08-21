@@ -1,6 +1,4 @@
 import json
-import uuid
-
 
 class multiparam:
     """
@@ -20,14 +18,14 @@ class multiparam:
         ...
         c_f_i
         
-        This split_tpe has a custom editor for the list-of-lists dataset value
+        This split_type has a custom editor for the list-of-lists dataset value
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, ctx, cs):
         self.cs = cs
-        self.list = json.loads(cs.dataset)
+        self.dmr_service = ctx.dmr_service
+        self.list = json.loads(cs.data_dispatcher_dataset_query) if cs.data_dispatcher_dataset_query else []
         self.dims = []
-        self.id = uuid.uuid4()
         if self.list:
             for l1 in self.list:
                 self.dims.append(len(l1))

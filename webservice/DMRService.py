@@ -377,10 +377,10 @@ class DMRService:
             raise e
         return {"project_handles": retval, "msg": msg, "stats": self.get_project_stats(handles=retval), "project_details": {k: project_info[k] for k in set(list(project_info.keys())) - set(["file_handles"])}}
     
-    def get_metadata_from_project_id(self, project_id):
+    def get_file_info_from_project_id(self, project_id, metadata=False, hierarchy=False):
         project_info = self.dd_client.get_project(project_id, True, True)
         file_handles = project_info.get("file_handles", []) if project_info else None
-        return list(self.metacat_client.get_files(file_handles, with_metadata=True, with_provenance=True))
+        return list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
     
     def list_file_urls(self, project_id, mc_query=None):
         file_url = "%s/gui/show_file?show_form=no&fid=%%s" % (self.metacat_server_url)
@@ -393,7 +393,7 @@ class DMRService:
                 do_all=True
         if not mc_query or mc_query == "None" or do_all:
             do_all = True
-            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") for file in self.get_metadata_from_project_id(project_id)}
+            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") for file in self.get_file_info_from_project_id(project_id, True, True)}
         
         return fdict, do_all
             

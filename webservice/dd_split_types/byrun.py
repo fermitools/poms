@@ -1,17 +1,18 @@
-import uuid
+import poms.webservice.logit as logit
 class byrun:
     """
        This type, when filled out as byrun(low=2,high=4) will 
        slice the dataset into parts by picking run numbers 2..4
        one run per batch. Bug:  It does not handle empty runs well
     """
-
-    def __init__(self, cs, samhandle, dbhandle):
+    
+        
+    def __init__(self, ctx, cs):
         self.cs = cs
-        self.ds = cs.dataset
+        self.dmr_service = ctx.dmr_service
         self.low = 1
         self.high = 999999
-        self.id = uuid.uuid4()
+        
         parms = cs.cs_split_type[6:].split(",")
         low = 1
         for p in parms:
@@ -22,32 +23,47 @@ class byrun:
             if p.startswith("high="):
                 self.high = int(p[5:])
 
-        self.samhandle = samhandle
-
     def params(self):
         return ["low=", "high="]
 
     def peek(self):
-        if not self.cs.cs_last_split:
+        project_name = "%s | byrun(%s -> %s) | run: %d" % (self.cs.name, self.low, self.high, self.cs.cs_last_split )
+        query = "%s where core.run_number = %s" % (self.cs.data_dispatcher_dataset_query, self.cs.cs_last_split)
+        project_files =  list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+        
+        if len(project_files) == 0:
+            raise StopIteration
+        
+        dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
+                                               files=project_files,
+                                               experiment=self.cs.experiment,
+                                               role=self.cs.vo_role,
+                                               project_name=project_name,
+                                               campaign_id=self.cs.campaign_id, 
+                                               campaign_stage_id=self.cs.campaign_stage_id,
+                                               split_type=self.cs.cs_split_type,
+                                               last_split=self.cs.cs_last_split,
+                                               creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                               creator_name=self.cs.experimenter_creator_obj.username)
+        
+        return dd_project
+
+    def next(self):
+        if self.cs.cs_last_split is None:
             self.cs.cs_last_split = self.low
         if self.cs.cs_last_split >= self.high:
             raise StopIteration
-
-        new = self.cs.dataset + "_%s_run_%d" % (str(self.id),self.cs.cs_last_split)
-        self.samhandle.create_definition(
-            self.cs.job_type_obj.experiment, new, "defname: %s and run_number %d" % (self.ds, self.cs.cs_last_split)
-        )
-        return new
-
-    def next(self):
-        res = self.peek()
+        
+        dd_project = self.peek()
         self.cs.cs_last_split = self.cs.cs_last_split + 1
-        return res
+        
+        logit.log("nfiles.next(): created data_dispatcher project with id: %s " % dd_project.project_id)
+        return dd_project
 
     def prev(self):
         self.cs.cs_last_split = self.cs.cs_last_split - 1
-        res = self.peek()
-        return res
+        dd_project = self.peek()
+        return dd_project
 
     def len(self):
         return self.high - self.low + 1

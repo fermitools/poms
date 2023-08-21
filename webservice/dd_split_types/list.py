@@ -1,25 +1,70 @@
-import uuid
+import poms.webservice.logit as logit
+import ast
+import re
+from sqlalchemy import and_
+from poms.webservice.poms_model import DataDispatcherSubmission
 class list:
     """
        This split type assumes you have been given a comma-separated list 
-       of dataset names to work through in the dataset field, and will
-       submit each one separately
+       of dataset queries, or data dispatcher projects to work through in the dataset field, and will
+       submit each one separately. Please follow the following format: ['files from namespace:name', 'project_id: INTEGER_VALUE']
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, ctx, cs):
         self.cs = cs
-        self.list = cs.dataset.split(",")
-        self.id = uuid.uuid4()
+        self.dmr_service = ctx.dmr_service
+        self.list = ast.literal_eval(cs.data_dispatcher_dataset_query) if cs.data_dispatcher_dataset_query else []
 
     def params(self):
         return []
 
     def peek(self):
-        if self.cs.cs_last_split == None:
+        if self.cs.cs_last_split is None:
             self.cs.cs_last_split = 0
         if self.cs.cs_last_split >= len(self.list):
             raise StopIteration
-        return "%s" % (self.list[self.cs.cs_last_split])
+        
+        query = self.list[self.cs.cs_last_split]
+        dd_project = None
+        project_name = "%s | list | item %d of %d" % (self.cs.name, self.cs.cs_last_split + 1, len(self.list))
+        if "project_id:" in query:
+            match = re.search(r'\b\d+\b', query)
+            project_id = -1
+            if match:
+                project_id = int(match.group())
+            else:
+                raise ValueError("%s contains invalid project_id. Please format as 'project_id: INTEGER_VALUE'")
+            if project_id > 0:
+                dd_project = self.dmr_service.get_project_for_submission(project_id,
+                                                                        username=self.cs.experimenter_creator_obj.username, 
+                                                                        experiment=self.cs.experiment,
+                                                                        role=self.cs.vo_role,
+                                                                        project_name=project_name,
+                                                                        campaign_id=self.cs.campaign_id, 
+                                                                        campaign_stage_id=self.cs.campaign_stage_id,
+                                                                        split_type=self.cs.cs_split_type,
+                                                                        last_split=self.cs.cs_last_split,
+                                                                        creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                                                        creator_name=self.cs.experimenter_creator_obj.username)
+        else:
+            project_files =  list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+            if len(project_files) == 0:
+                raise StopIteration
+            dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
+                                                files=project_files,
+                                                experiment=self.cs.experiment,
+                                                role=self.cs.vo_role,
+                                                project_name=project_name,
+                                                campaign_id=self.cs.campaign_id, 
+                                                campaign_stage_id=self.cs.campaign_stage_id,
+                                                split_type=self.cs.cs_split_type,
+                                                last_split=self.cs.cs_last_split,
+                                                creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                                creator_name=self.cs.experimenter_creator_obj.username)
+        if not dd_project:
+            raise StopIteration
+        
+        return dd_project
 
     def next(self):
         res = self.peek()

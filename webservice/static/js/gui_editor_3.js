@@ -1833,9 +1833,14 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         } else if ( k.includes('keywords')) {
             res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
-        if (k == 'sam_dataset_or_split_data') {
-            res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        if (k == 'data_dispatcher_dataset_query') {
+            
+            res.push(`<button type="button" class="split_type_picker_custom_edit dd_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
+        if (k == 'sam_dataset_or_split_data') {
+            res.push(`<button type="button" class="split_type_picker_custom_edit sam_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        }
+       
         if (k == 'cs_split_type' || k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
         }

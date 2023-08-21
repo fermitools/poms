@@ -448,7 +448,7 @@ class Agent:
         if ddict:
             return [submission for submission in ddict 
                     if str(submission.get("pomsTaskID")) not in self.known["not_on_server"]["submissions"] 
-                    and submission.get("id") not in self.known["not_on_server"]["jobs"]]
+                    and self.format_jobid(submission.get("id")) not in self.known["not_on_server"]["jobs"]]
         else:
             return []
 
@@ -518,11 +518,12 @@ class Agent:
             all_submissions.extend(self.get_all_running_submissions_POMS(full_list))
             for x in all_submissions:
                 if not x.get("pomsTaskID", None) and x.get("id", None):
-                    all_task_ids[jid_sub_id * -1] = x.get("id")
-                    jid_sub_id += 1
+                    if self.format_jobid(x.get("id"))  not in self.known["not_on_server"]["jobs"]:
+                        all_task_ids[jid_sub_id * -1] = self.format_jobid(x.get("id"))
+                        jid_sub_id += 1
                 elif x.get("pomsTaskID", None):
-                  all_task_ids[x.get("pomsTaskID")] = x.get("id", None)
-            LOGIT.info("All task ids: %s" % all_task_ids)
+                  all_task_ids[x.get("pomsTaskID")] = self.format_jobid(x.get("id"))
+            LOGIT.info("\nAll task ids: %s" % all_task_ids)
         elif group:
             sublist = self.get_running_submissions_LENS(group, since)
             sublist.extend(self.get_running_submissions_POMS(group))
@@ -549,12 +550,12 @@ class Agent:
                 job = jobs.get(job_index.get(pomsTaskID), None) if pomsTaskID in job_index else None
                 if job:
                     entry["job"] = job
-                    entry["id"] = job["id"]
+                    entry["id"] = self.format_jobid(job.get('id'))
                     entry["status"] = job["status"]
                     id = entry["id"]
-                    LOGIT.info("Found job for submission_id: %d | job_id: %s" % (pomsTaskID, job.get("id")))
+                    LOGIT.info("Found job for submission_id: %d | job_id: %s" % (pomsTaskID, entry["id"]))
                 else:
-                    entry["id"] = self.fix_job_id_if_valid(entry.get('id'))
+                    entry["id"] = self.format_jobid(entry.get('id'))
                     id = entry["id"]
                     
                 thispass.add(pomsTaskID)
@@ -654,10 +655,13 @@ class Agent:
         
         
         
-    def fix_job_id_if_valid(self, job_id):
-        if ".0@" in job_id:
-            return job_id
-        return ".0@".join(job_id.split("@"))
+    def format_jobid(self, job_id):
+        parts = job_id.split("@")
+        if len(parts) == 2:
+            id = parts[0].replace(".000000.0.000000", "").replace(".0","")
+            schedd = parts[1]
+            job_id = "%s.0@%s" % (id, schedd)
+        return job_id
     
     def get_all_submissions(self, task_jobs):
         job_query_list = []
@@ -669,12 +673,12 @@ class Agent:
         for task_id, job_id in task_jobs.items():
             job_id = task_jobs.get(task_id, None)
             if job_id:
-                job_id = self.fix_job_id_if_valid(job_id)
+                job_id = self.format_jobid(job_id)
                 job_query_list.append("j%d:%s" % (i, self.cfg.get("submission_agent", "append_job") % job_id))
                 job_index[task_id] = "j%d" % i
             
             if task_id < 0:
-                submission_query_list.append("s%d:%s" % (i, self.cfg.get("submission_agent", "append_submission_jid") % self.fix_job_id_if_valid(job_id)))
+                submission_query_list.append("s%d:%s" % (i, self.cfg.get("submission_agent", "append_submission_jid") % self.format_jobid(job_id)))
             else:
                 submission_query_list.append("s%d:%s" % (i, self.cfg.get("submission_agent", "append_submission_sid") % task_id))
             submission_index["s%d" % i] = task_id
@@ -701,7 +705,7 @@ class Agent:
             if "jobs" not in entry and "id" in entry and ".0@" not in entry.get("id"):
                 job_id = job_index.get(entry.get("pomsTaskId"), None)
                 if not job_id:
-                    job_id = self.fix_job_id_if_valid(entry.get("id"))
+                    job_id = self.format_jobid(entry.get("id"))
                     job_query_list.append("j%d:%s" % (i, self.cfg.get("submission_agent", "append_job") % job_id))
                     job_index[entry.get("pomsTaskId")] = "j%d" % i
                     

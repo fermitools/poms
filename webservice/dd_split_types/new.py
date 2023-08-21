@@ -1,6 +1,4 @@
 import time
-import uuid
-
 
 class new:
     """
@@ -24,9 +22,9 @@ class new:
            new(firsttime=1497934800, window=1w)
     """
 
-    def __init__(self, camp, samhandle, dbhandle):
-        self.cs = camp
-        self.samhandle = samhandle
+    def __init__(self, ctx, cs):
+        self.cs = cs
+        self.dmr_service = ctx.dmr_service
         # default parameters
         self.tfts = 1800.0  # half an hour
         self.twindow = 604800.0  # one week
@@ -34,14 +32,13 @@ class new:
         self.tlocaltime = 0  # assume GMT
         self.tfirsttime = None  # override start time
         self.tlasttime = time.time()  # override end time -- default now
-        self.id = uuid.uuid4()
 
-        if camp.cs_split_type[3:] == "_local":
+        if cs.cs_split_type[3:] == "_local":
             self.tlocaltime = 1
 
         # if they specified any, grab them ...
-        if camp.cs_split_type[3] == "(":
-            parms = camp.cs_split_type[4:].split(",")
+        if cs.cs_split_type[3] == "(":
+            parms = cs.cs_split_type[4:].split(",")
             for p in parms:
                 pmult = 1
                 if p.endswith(")"):

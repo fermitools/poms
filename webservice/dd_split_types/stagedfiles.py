@@ -1,6 +1,4 @@
 import time
-import uuid
-
 
 class stagedfiles:
     """
@@ -9,10 +7,9 @@ class stagedfiles:
        files and deliver them on each iteration
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, ctx, cs):
         self.cs = cs
-        self.samhandle = samhandle
-        self.dbhandle = dbhandle
+        self.dmr_service = ctx.dmr_service
         self.stage_project = cs.dataset
         self.n = int(cs.cs_split_type[12:].strip(")"))
 
