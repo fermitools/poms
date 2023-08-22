@@ -101,16 +101,12 @@ class new:
             setime = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(etime))
 
         self.etime = etime
+        
+        query = "%s and created_timestamp > '%s' and created_timestamp <= '%s'" % (self.cs.data_dispatcher_dataset_query, sstime, setime)
+        project_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+        project_name = "%s | new | %s -> %s" % (self.cs.name, self.format_time(sstime), self.format_time(setime))
 
-        new = self.cs.dataset + "_%s_time_%s__%s" % (str(self.id),int(stime), int(etime))
-
-        self.samhandle.create_definition(
-            self.cs.job_type_obj.experiment,
-            new,
-            "defname: %s and end_time > '%s' and end_time <= '%s'" % (self.cs.dataset, sstime, setime),
-        )
-
-        return new
+        return self.create_project(project_name, project_files)
 
     def prev(self):
         self.cs.cs_last_split = self.etime - self.twindow
@@ -127,3 +123,22 @@ class new:
 
     def edit_popup(self):
         return "null"
+    
+    def format_time(self,input_time):
+        parsed_time = datetime.strptime(input_time, "%Y-%m-%dT%H:%M:%S")
+        formatted_time = parsed_time.strftime("%Y-%m-%d %I:%M %p")
+        return formatted_time
+    
+    def create_project(self, project_name, project_files):
+        dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
+                                        files=project_files,
+                                        experiment=self.cs.experiment,
+                                        role=self.cs.vo_role,
+                                        project_name=project_name,
+                                        campaign_id=self.cs.campaign_id, 
+                                        campaign_stage_id=self.cs.campaign_stage_id,
+                                        split_type=self.cs.cs_split_type,
+                                        last_split=self.cs.cs_last_split,
+                                        creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                        creator_name=self.cs.experimenter_creator_obj.username)
+        return dd_project

@@ -24,6 +24,7 @@ class multiparam:
     def __init__(self, ctx, cs):
         self.cs = cs
         self.dmr_service = ctx.dmr_service
+        self.cs.data_dispatcher_dataset_only = True
         self.list = json.loads(cs.data_dispatcher_dataset_query) if cs.data_dispatcher_dataset_query else []
         self.dims = []
         if self.list:
@@ -45,8 +46,7 @@ class multiparam:
             res.append(l1[n % self.dims[i]])
             n = n // self.dims[i]
             i = i + 1
-
-        return "%s" % ("_".join(res))
+        return self.store_project("%s" % ("_".join(res)))
 
     def next(self):
         res = self.peek()
@@ -153,3 +153,20 @@ class multiparam:
         }
 
     """
+    
+    def store_project(self, query):
+        dd_project = self.dmr_service.store_project(project_id=None, 
+                                            worker_timeout=None, 
+                                            idle_timeout=None,
+                                            username=self.cs.experimenter_creator_obj.username, 
+                                            experiment=self.cs.experiment,
+                                            role=self.cs.vo_role,
+                                            project_name="%s | multiparam | Run %d" % (self.cs.name, self.cs.cs_last_split),
+                                            campaign_id=self.cs.campaign_id, 
+                                            campaign_stage_id=self.cs.campaign_stage_id,
+                                            split_type=self.cs.cs_split_type,
+                                            last_split=self.cs.cs_last_split,
+                                            creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                            creator_name=self.cs.experimenter_creator_obj.username,
+                                            named_query=query)
+        return data_dispatcher_project_idx

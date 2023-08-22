@@ -848,7 +848,7 @@ class DMRService:
         self.db.commit()
         
         
-    def create_recovery_dataset(self, submission, rtype, rlist):
+    def create_recovery_dataset(self, submission, rtype, rlist, test=False):
         # TODO: have this function do stuff
         nfiles = 0 
         project = submission.data_dispatcher_submission_obj
@@ -920,7 +920,7 @@ class DMRService:
         self.db.commit()
         return nfiles, rname, dd_project_id
     
-    def dependency_definition(self, dd_project, jobtype, i):
+    def dependency_definition(self, dd_project, jobtype, i, test=False):
 
         # definitions for analysis users have to have the username in them
         # so they can define them in the job, we have to follow the same

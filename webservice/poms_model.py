@@ -92,6 +92,7 @@ class CampaignStage(Base):
     default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
     data_dispatcher_dataset_query = Column(Text, nullable=True)
     data_dispatcher_project_id = Column(Integer, nullable=True)
+    data_dispatcher_dataset_only = Column(Boolean, server_default=text("false"), nullable=False)
     
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 

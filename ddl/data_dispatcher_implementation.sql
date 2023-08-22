@@ -1,15 +1,17 @@
 ALTER TABLE campaigns ADD COLUMN data_handling_service TEXT NOT NULL DEFAULT 'sam';
 ALTER TABLE campaign_stages ADD COLUMN data_dispatcher_dataset_query TEXT DEFAULT NULL;
 ALTER TABLE campaign_stages ADD COLUMN data_dispatcher_project_id int DEFAULT NULL;
+ALTER TABLE campaign_stages ADD COLUMN  data_dispatcher_dataset_only boolean default false;
 ALTER TABLE campaign_stage_snapshots ADD COLUMN data_dispatcher_dataset_query TEXT DEFAULT NULL;
 ALTER TABLE campaign_stage_snapshots ADD COLUMN data_dispatcher_project_id int DEFAULT NULL;
+ALTER TABLE campaign_stage_snapshots ADD COLUMN  data_dispatcher_dataset_only boolean default false;
 
 CREATE SEQUENCE data_dispatcher_project_idx_seq;
 ALTER SEQUENCE data_dispatcher_project_idx_seq START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE data_dispatcher_submissions ( 
 	data_dispatcher_project_idx         serial NOT NULL,
-    project_id                          integer NOT NULL,   
+    project_id                          integer default NULL,   
     project_name                        text  NOT NULL,
     experiment                          text  NOT NULL,
     vo_role                             text NOT NULL,
@@ -30,12 +32,13 @@ CREATE TABLE data_dispatcher_submissions (
 	updated                             timestamptz  DEFAULT NULL,
     worker_timeout                      integer DEFAULT NULL,
     idle_timeout                        integer DEFAULT NULL,
-    active                              bool DEFAULT true NOT NULL,
+    active                              boolean DEFAULT true NOT NULL,
     depends_on_project                  integer  DEFAULT NULL,
     recovery_tasks_parent_project       integer  DEFAULT NULL,
     jobsub_job_id                       text DEFAULT NULL,
     named_dataset                       text DEFAULT NULL,
     status                              text DEFAULT NULL,
+    pct_complete                        DOUBLE PRECISION DEFAULT 0.0,
     
 	CONSTRAINT pk_data_dispatcher_projects PRIMARY KEY ( data_dispatcher_project_idx ),
 	CONSTRAINT fk_dd_projects_experimenters FOREIGN KEY ( experiment ) REFERENCES experiments( experiment ),

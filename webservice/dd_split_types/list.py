@@ -27,7 +27,23 @@ class list:
         query = self.list[self.cs.cs_last_split]
         dd_project = None
         project_name = "%s | list | item %d of %d" % (self.cs.name, self.cs.cs_last_split + 1, len(self.list))
-        if "project_id:" in query:
+        if "project_id:" not in query and self.cs.data_dispatcher_dataset_only:
+            project = self.dmr_service.store_project(project_id=None, 
+                                            worker_timeout=None, 
+                                            idle_timeout=None,
+                                            username=self.cs.experimenter_creator_obj.username, 
+                                            experiment=self.cs.experiment,
+                                            role=self.cs.vo_role,
+                                            project_name=project_name,
+                                            campaign_id=self.cs.campaign_id, 
+                                            campaign_stage_id=self.cs.campaign_stage_id,
+                                            split_type=self.cs.cs_split_type,
+                                            last_split=self.cs.cs_last_split,
+                                            creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                            creator_name=self.cs.experimenter_creator_obj.username,
+                                            named_query=query)
+            return dd_project.data_dispatcher_project_idx
+        elif "project_id:" in query:
             match = re.search(r'\b\d+\b', query)
             project_id = -1
             if match:
@@ -36,31 +52,25 @@ class list:
                 raise ValueError("%s contains invalid project_id. Please format as 'project_id: INTEGER_VALUE'")
             if project_id > 0:
                 dd_project = self.dmr_service.get_project_for_submission(project_id,
-                                                                        username=self.cs.experimenter_creator_obj.username, 
-                                                                        experiment=self.cs.experiment,
-                                                                        role=self.cs.vo_role,
-                                                                        project_name=project_name,
-                                                                        campaign_id=self.cs.campaign_id, 
-                                                                        campaign_stage_id=self.cs.campaign_stage_id,
-                                                                        split_type=self.cs.cs_split_type,
-                                                                        last_split=self.cs.cs_last_split,
-                                                                        creator=self.cs.experimenter_creator_obj.experimenter_id,
-                                                                        creator_name=self.cs.experimenter_creator_obj.username)
+                                                                            username=self.cs.experimenter_creator_obj.username, 
+                                                                            experiment=self.cs.experiment,
+                                                                            role=self.cs.vo_role,
+                                                                            project_name=project_name,
+                                                                            campaign_id=self.cs.campaign_id, 
+                                                                            campaign_stage_id=self.cs.campaign_stage_id,
+                                                                            split_type=self.cs.cs_split_type,
+                                                                            last_split=self.cs.cs_last_split,
+                                                                            creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                                                            creator_name=self.cs.experimenter_creator_obj.username, 
+                                                                            named_query=query)
+                if self.cs.data_dispatcher_dataset_only:
+                    return dd_project.data_dispatcher_project_idx
         else:
             project_files =  list(self.dmr_service.metacat_client.query(query, with_metadata=True))
             if len(project_files) == 0:
                 raise StopIteration
-            dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
-                                                files=project_files,
-                                                experiment=self.cs.experiment,
-                                                role=self.cs.vo_role,
-                                                project_name=project_name,
-                                                campaign_id=self.cs.campaign_id, 
-                                                campaign_stage_id=self.cs.campaign_stage_id,
-                                                split_type=self.cs.cs_split_type,
-                                                last_split=self.cs.cs_last_split,
-                                                creator=self.cs.experimenter_creator_obj.experimenter_id,
-                                                creator_name=self.cs.experimenter_creator_obj.username)
+            dd_project = self.dmr_service.create_project(project_name, project_files)
+            
         if not dd_project:
             raise StopIteration
         
@@ -127,3 +137,16 @@ class list:
         }
 
        """
+    def create_project(self, project_name, project_files):
+            dd_project = self.dmr_service.get_project_for_submission(project_id,
+                                                                            username=self.cs.experimenter_creator_obj.username, 
+                                                                            experiment=self.cs.experiment,
+                                                                            role=self.cs.vo_role,
+                                                                            project_name=project_name,
+                                                                            campaign_id=self.cs.campaign_id, 
+                                                                            campaign_stage_id=self.cs.campaign_stage_id,
+                                                                            split_type=self.cs.cs_split_type,
+                                                                            last_split=self.cs.cs_last_split,
+                                                                            creator=self.cs.experimenter_creator_obj.experimenter_id,
+                                                                            creator_name=self.cs.experimenter_creator_obj.username)
+            return dd_project
