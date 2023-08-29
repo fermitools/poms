@@ -236,6 +236,9 @@
     padding: 10px;
     height: max-content;
   }
+  .dd-results-card-body a span {
+    word-break: break-word;
+  }
   .dd-results-card-footer {
     padding-top:5px;
     transition: 0.3s;

@@ -44,7 +44,7 @@ class byexistingruns:
             raise StopIteration
 
         run_number = "%d.%04d" % (md["core.runs"][0][0], md["core.runs"][0][1])
-        query += "and core.runs = %s" % run_number
+        query += "and core.run_number = %s" % run_number
         
         project_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         

@@ -14,7 +14,7 @@ from . import logit
 from data_dispatcher.api import DataDispatcherClient
 from metacat.webapi import MetaCatClient
 from poms_model import DataDispatcherSubmission
-from urllib.parse import unquote
+from urllib.parse import unquote, urlencode
 from rucio.client import Client as RucioClient
 from sqlalchemy import and_, distinct, desc
 from sqlalchemy.orm.attributes import flag_modified
@@ -342,10 +342,10 @@ class DMRService:
         if poms_attributes is not None:
             retval['poms_attributes'] = poms_attributes
             logit.log("DMR-Service  | list_filtered_projects(%s, %s) | Got poms project-attributes: %s" % (self.experiment, self.role, poms_attributes))
-            retval['projects_active'] = [project for project in self.dd_client.list_projects() if project.get("project_id") in poms_attributes]
+            retval['projects_active'] = [project for project in self.dd_client.list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
             retval['projects_active_count'] = len(retval["projects_active"])
             for p_state in ["done", "failed","cancelled", "abandoned"]:
-                retval["projects_%s" % p_state] = [project for project in self.dd_client.list_projects(state=p_state,  not_state='active') if project.get("project_id") in poms_attributes] or []
+                retval["projects_%s" % p_state] = [project for project in self.dd_client.list_projects(state=p_state,  not_state='active') if project.get("project_id", None) and project["project_id"] in poms_attributes] or []
                 retval['projects_%s_count' % p_state] = len(retval["projects_%s" % p_state])
         else:
             for p_state in ["active", "done", "failed","cancelled", "abandoned"]:
@@ -358,7 +358,7 @@ class DMRService:
     
     def get_project_handles(self, project_id, state=None, not_state=None):
         logit.log("DMR-Service  | get_project_handles(%s, %s) | project_id: %s | Begin" % (self.experiment, self.role, project_id))
-        
+        logit.log("DMR-Service  | get_project_handles(%s, %s) | metas | Begin %s" % (self.experiment, self.role, list(self.metacat_client.query("files from poms_samples:gen15", with_metadata=True, with_provenance=True))))
         retval = None
         msg = "Fail"
         try:
@@ -377,24 +377,37 @@ class DMRService:
             raise e
         return {"project_handles": retval, "msg": msg, "stats": self.get_project_stats(handles=retval), "project_details": {k: project_info[k] for k in set(list(project_info.keys())) - set(["file_handles"])}}
     
-    def get_file_info_from_project_id(self, project_id, metadata=False, hierarchy=False):
-        project_info = self.dd_client.get_project(project_id, True, True)
-        file_handles = project_info.get("file_handles", []) if project_info else None
-        return list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
+    def get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
+        files = []
+        if project_id:
+            project_info = self.dd_client.get_project(project_id, True, True)
+            file_handles = project_info.get("file_handles", []) if project_info else None
+            files = list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
+        elif project_idx:
+            project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == project_idx).first()
+            if project and project.project_id:
+                project_info = self.dd_client.get_project(project_id, True, True)
+                file_handles = project_info.get("file_handles", []) if project_info else None
+                files = list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
+            elif project and project.named_dataset:
+                files = list(self.metacat_client.query(project.named_dataset, with_metadata=metadata, with_provenance=hierarchy))
+        return files
     
-    def list_file_urls(self, project_id, mc_query=None):
+    def list_file_urls(self, project_id=None, project_idx=None, mc_query=None):
         file_url = "%s/gui/show_file?show_form=no&fid=%%s" % (self.metacat_server_url)
         do_all=False
         fdict = None
         if mc_query and mc_query != "None":
             fids_query=unquote(mc_query)
-            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") for file in list(self.metacat_client.query(fids_query, False, False))}
+            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") if file["fid"] != '0' else 0 for file in list(self.metacat_client.query(fids_query, False, False))}
             if not fdict:
                 do_all=True
         if not mc_query or mc_query == "None" or do_all:
             do_all = True
-            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") for file in self.get_file_info_from_project_id(project_id, True, True)}
-        
+            if project_id:
+                fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") if file["fid"] != '0' else 0 for file in self.get_file_info_from_project_id(project_id=project_id, metadata=True, hierarchy=True)}
+            elif project_idx:
+                fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") if file["fid"] != '0' else 0 for file in self.get_file_info_from_project_id(project_idx = project_idx, metadata=True, hierarchy=True)}
         return fdict, do_all
             
     
@@ -406,30 +419,66 @@ class DMRService:
             retval[handle.get("state")] += 1
         return retval
     
+    def is_query(self, named_dataset):
+        # Match "{namespace}:{name}" pattern.
+        print("Checking named dataset if query: %s" % named_dataset )
+        pattern = r'\w+:\w+'
+        match = re.search(pattern, named_dataset)
+        
+        if match:
+            # Check if the string contains anything more than the matched pattern.
+            if len(match.group()) == len(named_dataset):
+                return False
+            else:
+                return True
+        else:
+            return True
+    
     def get_output_file_details_for_submissions(self, dd_projects):
-        output_files = []
-        output_list = []
-        project_ids = []
+        output = {}
         already_did ={}
         
-        for dd_project in dd_projects:
-            if dd_project.project_id in already_did:
-                available_output_query, length = already_did.get(dd_project.project_id)
-                output_files.append(available_output_query)
-                output_list.append(length)
+        if not self.metacat_client and not self.begin_services("metacat").get("metacat", False):
+            retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
+            return list(retvals.values())
+        
+        
+        for dd_project in list(dd_projects):
+            if (dd_project.project_id is not None and dd_project.project_id in already_did):
+                output[dd_project.submission_id] = dict(already_did.get(dd_project.project_id))
             else:
-                project_info = self.dd_client.get_project(dd_project.project_id, True)
-                file_handles = project_info.get("file_handles", []) if project_info else None
-                all_files = list(self.metacat_client.get_files(file_handles, with_metadata=True, with_provenance=True))
-                child_fids = self.get_hierarchy_info_from_files(all_files, "children")
-                mc_query = self.get_metacat_query_url(fids=child_fids)
-                available_output_query = "project_id=%d%s" % (dd_project.project_id, "&querying=output&mc_query=%s" % mc_query if mc_query else "" )
-                output_files.append(available_output_query)
-                output_list.append(len(child_fids))
-                already_did[dd_project.project_id] = available_output_query, len(child_fids)
-            project_ids.append(dd_project.project_id)
+                if dd_project.named_dataset and "project_id:" not in dd_project.named_dataset:
+                    child_query= "%s%s%s" % (
+                        "children(" * dd_project.campaign_stage_obj.output_ancestor_depth,
+                        dd_project.named_dataset if self.is_query(dd_project.named_dataset) else "files from %s" % dd_project.named_dataset,
+                        ")" * dd_project.campaign_stage_obj.output_ancestor_depth
+                    )
+                    all_files = list(self.metacat_client.query(child_query)) if dd_project.named_dataset else []
+                else:
+                    project_info = self.dd_client.get_project(dd_project.project_id, True)
+                    file_handles = project_info.get("file_handles", []) if project_info else None
+                    all_files = list(self.metacat_client.get_files(file_handles)) if dd_project.named_dataset else []
+                    child_query= "%s%s%s" % (
+                        "children(" * dd_project.campaign_stage_obj.output_ancestor_depth,
+                        "fids %s" % ','.join([file.get("fid") for file in all_files]),
+                        ")" * dd_project.campaign_stage_obj.output_ancestor_depth
+                    )
+                    all_files = list(self.metacat_client.query(child_query)) if file_handles else []
+                    
+                
+                #child_fids = self.get_hierarchy_info_from_files(all_files, "children", dd_project.campaign_stage_obj.output_ancestor_depth)
+                mc_query = self.get_metacat_query_url(query=child_query)
+                if dd_project.project_id: 
+                    available_output_query = "project_id=%d&querying=output&mc_query=%s" % (dd_project.project_id, mc_query if mc_query else "" )
+                else:
+                    available_output_query = "project_idx=%d&querying=output&mc_query=%s" % (dd_project.data_dispatcher_project_idx, mc_query if mc_query else "" )
+                output[dd_project.submission_id] = {"query": available_output_query, "length":len(all_files)}
+                if dd_project.project_id is None:
+                    continue
+                else:
+                    already_did[dd_project.project_id] ={"query": available_output_query, "length":len(all_files)}
             
-        return (output_files, output_list, project_ids)
+        return output
     
     # Recursively acquire parent or children files at the layer
     def get_family_generation(self, files, hierarchy, desired_generation, output, current_generation = 0):
@@ -439,10 +488,12 @@ class DMRService:
             for hierarchy_file in hierarchy_files:
                 desired_files.append(hierarchy_file)
         if desired_files and desired_generation > current_generation:
+            fids = list(set([file.get("fid") for file in desired_files if file.get("fid", None) and file["fid"] not in ['0', 0, None, "None"]]))
+            desired_files = list(self.metacat_client.query("fids %s" % ', '.join(fids) if fids else "", with_provenance=True))
             return self.get_family_generation(desired_files, hierarchy, desired_generation, output, current_generation + 1)
         else:
             if output == "fids": 
-                return [file.get("fid") for file in desired_files]
+                return list(set([file.get("fid") for file in desired_files if file.get("fid", None) and file["fid"] not in ['0', 0, None, "None"]]))
             else: 
                 return desired_files
     
@@ -457,11 +508,17 @@ class DMRService:
     def get_metacat_query(self, fids):
         return "fids %s"  % ", ".join(fids)
     
-    def get_metacat_query_url(self, fids=None, query=None):
-        if query:
-            return query.replace(" ", "+").replace(",", "%2C")
-        elif fids:
-            return "fids+%s"  % ("%2C+".join(fids))
+    def get_metacat_query_url(self, fids=None, query=None, named_dataset = None):
+        try:
+            if query:
+                return query.replace(" ", "+").replace(",", "%2C")
+            elif fids:
+                return "fids+%s"  % ("%2C+".join([str(fid) for fid in fids]))
+            elif named_dataset:
+                return urlencode(named_dataset)
+        except:
+            pass
+        return None
             
     
     def add_query_filters_if_necessary(self, query, filters=[]):
@@ -472,28 +529,45 @@ class DMRService:
         
     
     def get_file_stats_for_submissions(self, dd_projects):
-
-        retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
         
         if not dd_projects or (not self.metacat_client and not self.begin_services("metacat").get("metacat", False)):
-            return list(retvals.values())
+            return {}
         
-        project_queries = { item.project_id: [] for item in dd_projects}
-        
-        
+        project_dict = {item.project_id if item.project_id else "idx: %s" % item.data_dispatcher_project_idx: item for item in dd_projects}
+        project_queries = {item.project_id if item.project_id else "idx: %s" % item.data_dispatcher_project_idx: {} for item in dd_projects}
+        project_index_queries = {"idx: %s" % item.data_dispatcher_project_idx: item.named_dataset for item in dd_projects if not item.project_id}
         for project_id in project_queries.keys():
-            project = self.dd_client.get_project(project_id, True, True)
-            
-            file_handles = project.get("file_handles", []) if project else None
-            if not file_handles:
-                raise ValueError("Invalid Project, No files for this project.")
-            
-            all_files = list(self.metacat_client.get_files(file_handles, with_metadata=True, with_provenance=True))
-            if not all_files:
-                raise ValueError("Invalid Project, No files for this project.")
-            
             file_stats = {"total":0, "initial":0, "done":0, "failed":0, "reserved":0, "unknown":0, "submitted":0, "parents":0, "children":0}
             project_fids_dict = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[]}
+
+            #if project_index_queries.get(project_id, None):
+            #    file_handles = []
+            #    is_project_submission = False
+            #    all_files = list(self.metacat_client.query(project_index_queries[project_id], with_metadata=True, with_provenance=True))
+            #else:
+            #    project = self.dd_client.get_project(project_id, True, True)
+            #    is_project_submission = True
+            #    file_handles = project.get("file_handles", []) if project else None
+            #    if not file_handles and project_dict[project_id].named_dataset:
+            #        all_files = list(self.metacat_client.query(project_dict[project_id].named_dataset, with_metadata=True, with_provenance=True))
+            #    else:
+            #        all_files = list(self.metacat_client.get_files(file_handles, with_metadata=True, with_provenance=True))
+            dd_project = project_dict[project_id]
+            if project_index_queries.get(project_id,None) and "project_id:" not in project_index_queries[project_id]:
+                file_handles=[]
+                is_project_submission = False
+                mc_query = dd_project.named_dataset if self.is_query(dd_project.named_dataset) else "files from %s" % dd_project.named_dataset,
+            else:
+                is_project_submission = True
+                project_info = self.dd_client.get_project(project_id, True)
+                file_handles = project_info.get("file_handles", []) if project_info else None
+                all_files = list(self.metacat_client.get_files(file_handles)) if file_handles else []
+                mc_query = "fids %s" % ','.join([file.get("fid") for file in all_files])
+            
+            if any(char.isalnum() for char in mc_query):
+                all_files = list(self.metacat_client.query(mc_query))
+            else:
+                all_files = []
             
             # Create fid library
             metacat_did_to_fid = {}
@@ -503,7 +577,7 @@ class DMRService:
             # Create fid lists and increment corresponding counts
             for handle in file_handles:
                 file_did = "%s:%s" % (handle.get("namespace"),handle.get("name"))
-                file_fid = metacat_did_to_fid.get(file_did, "0")
+                file_fid = metacat_did_to_fid.get(file_did, None)
                 file_state = handle.get("state")
                 # Enter basics
                 project_fids_dict.get("total").append(file_fid)
@@ -515,43 +589,73 @@ class DMRService:
                 if not handle.get("replicas"):
                     project_fids_dict.get("unknown").append(file_fid)
                     
-            project_fids_dict["parents"], project_fids_dict["children"] = self.get_hierarchy_info_from_files(all_files)
+            if not is_project_submission:
+                for file in all_files:
+                    project_fids_dict.get("total").append(file.get("fid"))
+                    project_fids_dict.get("unknown").append(file.get("fid"))
+            
+            if len(all_files) > 0:
+                child_query= "%s%s%s" % (
+                    "children(" *  dd_project.campaign_stage_obj.output_ancestor_depth,
+                    mc_query,
+                    ")" *  dd_project.campaign_stage_obj.output_ancestor_depth
+                )
+                parents_query= "parents(%s)" % mc_query
+                project_fids_dict["children"] = list(self.metacat_client.query(child_query))
+                project_fids_dict["parents"] = list(self.metacat_client.query(parents_query))
+            else:
+                project_fids_dict["children"] = []
+                project_fids_dict["parents"] = []
+                parents_query = child_query = ""
+            
             
             # Now that we have all the fids:
             # Add the counts, and generate query strings for fids
             for key, val in project_fids_dict.items():
                 file_stats[key] = len(val)
-                project_queries[project_id].append(self.get_metacat_query_url(fids=val))
-                
+                if key == "total":
+                    project_queries[project_id][key] = self.get_metacat_query_url(query=mc_query)
+                elif key == "children":
+                    project_queries[project_id][key] = self.get_metacat_query_url(query=child_query)
+                elif key == "parents":
+                    project_queries[project_id][key] = self.get_metacat_query_url(query=parents_query)
+                else:
+                    project_queries[project_id][key] = self.get_metacat_query_url(fids=val)
+            
             # Calculate completion pct for the user
             file_stats["pct_complete"] = "%d%%" % int(((file_stats.get("done") + file_stats.get("failed")) / len(file_handles)) * 100) if file_handles and len(file_handles) != 0 else 0
-            project_queries[project_id].append(file_stats)
-            project_queries[project_id].append(project_id)
-        
-        for project in dd_projects:
-            i = 0
-            for key, val in retvals.items():
-                retvals[key].append(project_queries[project.project_id][i])
-                i+=1
-                
-        return list(retvals.values())
-
-    def calculate_dd_project_completion(self, project_id = None, project_ids=None):
+            project_queries[project_id]["statistics"] = file_stats
+            if dd_project.project_id:
+                project_queries[project_id]["project_id"] = dd_project.project_id
+            else:
+                project_queries[project_id]["project_idx"] = dd_project.data_dispatcher_project_idx
         retval = {}
-        pids = [project_id] if project_id else project_ids
+        for project in dd_projects:
+            index = project.project_id if project.project_id else "idx: %s" % project.data_dispatcher_project_idx
+            retval[project.submission_id] = {}
+            for key in ["total", "initial", "done", "failed", "reserved","unknown", "submitted", "parents", "children", "statistics", "project_id","project_idx"]:
+                if key in project_queries[index]:
+                    retval[project.submission_id][key] = project_queries[index][key]
+        return retval
+
+    def calculate_dd_project_completion(self, dd_submission_id = None, dd_submission_ids=None):
+        retval = {}
+        task_ids = [dd_submission_id] if dd_submission_id else dd_submission_ids
         def incr_comp(state):
             return 1 if state in ["done", "failed"] else 0
-        for pid in pids:
-            if pid in retval:
+        tasks = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx in task_ids).all()
+        for task in tasks:
+            if task.data_dispatcher_project_idx in retval:
                 continue
             ncomp = 0
             ntotal = 0
-            project_handles = self.dd_client.list_handles(pid)
-            for handle in project_handles:
-                ntotal += 1
-                ncomp += incr_comp(handle.get("state"))
-                    
-            retval[pid] = ncomp * 100.0/ntotal if ntotal > 0 else None
+            if task.project_id:
+                project_handles = self.dd_client.list_handles(task.project_id)
+                for handle in project_handles:
+                    ntotal += 1
+                    ncomp += incr_comp(handle.get("state"))
+
+                retval[task.data_dispatcher_project_idx] = ncomp * 100.0/ntotal if ntotal > 0 else None
             
         return retval
         
@@ -849,7 +953,6 @@ class DMRService:
         
         
     def create_recovery_dataset(self, submission, rtype, rlist, test=False):
-        # TODO: have this function do stuff
         nfiles = 0 
         project = submission.data_dispatcher_submission_obj
         if rtype.name == "reserved_files":
@@ -866,7 +969,7 @@ class DMRService:
             recovery_files = []
             cdate = submission.created.timestamp()
             for file in list(self.metacat_client.get_files(handles, with_metadata=True, with_provenance=True)):
-                if "created_timestamp" in file and file.get("created_timestamp") > cdate:
+                if file.get("created_timestamp", datetime.datetime.min.timestamp()) > cdate:
                     recovery_files.append(file)
         else:
             recovery_files = list(self.metacat_client.get_files(handles, with_metadata=True, with_provenance=True))
@@ -877,7 +980,7 @@ class DMRService:
         logit.log("DMR-Service  | create_recovery_dataset | Project Name: %s | File Count: %s" % (project_name, nfiles))
         
         submission.recovery_position = submission.recovery_position + 1
-        dd_project_id = None
+        dd_project_idx = None
         if nfiles > 0:
             logit.log("DMR-Service  | create_recovery_dataset | Files Exist | Creating Project for exp=%s name=%s" % (submission.campaign_stage_snapshot_obj.experiment, project_name))
             
@@ -897,7 +1000,7 @@ class DMRService:
                                                status="created")
             if dd_project:
                 logit.log("DMR-Service  | create_recovery_dataset | Created Project | project_id: %s" % (dd_project.project_id))
-                dd_project_id = dd_project.project_id
+                dd_project_idx = dd_project.data_dispatcher_project_idx
         else:
             logit.log("DMR-Service  | create_recovery_dataset | no matching files exist | recovery not needed")
             rname = None
@@ -907,45 +1010,66 @@ class DMRService:
         recovery["timestamp"] = datetime.now().isoformat()
         recovery["count"] = nfiles
         recovery["exp"] = submission.campaign_stage_snapshot_obj.experiment
-        if dd_project_id:
-            recovery["dd_project_id"] = dd_project_id
+        if dd_project_idx:
+            recovery["dd_project_idx"] = dd_project_idx
         workflow = submission.submission_params.get("workflow", {})
         recoveries = workflow.get("recoveries", [])
         recoveries.append(recovery)
         workflow["recoveries"] = recoveries
         submission.submission_params["workflow"] = workflow
         submission.submission_params = submission.submission_params
+        project.campaign_stage_obj.data_dispatcher_dataset_only=False
+        flag_modified(project.campaign_stage_obj, 'data_dispatcher_dataset_only')
         flag_modified(submission, 'submission_params')
+        
         self.db.add(submission)
         self.db.commit()
-        return nfiles, rname, dd_project_id
+        return nfiles, rname, dd_project_idx
     
-    def dependency_definition(self, dd_project, jobtype, i, test=False):
-
+    def dependency_definition(self, submission, jobtype, i, test=False):
+        dd_project = submission.data_dispatcher_submission_obj
+        campaign_stage = submission.campaign_stage_obj
+        campaign_stage.data_dispatcher_dataset_only=False
         # definitions for analysis users have to have the username in them
         # so they can define them in the job, we have to follow the same
         # rule here...
-        if dd_project.campaign_stage_obj.creator_role == "analysis":
-            project_name = "%s | %s | Dependency %d for Submission: %d" % (dd_project.campaign_stage_obj.name, dd_project.campaign_stage_obj.experimenter_creator_obj.username, i,  dd_project.submission_id)
+        if campaign_stage.creator_role == "analysis":
+            project_name = "%s | %s | Dependency %d for Submission: %d" % (campaign_stage.name, campaign_stage.experimenter_creator_obj.username, i,  submission.submission_id)
         else:
-            project_name = "%s | Dependency %d for Submission: %d" % (dd_project.campaign_stage_obj.name, i,  dd_project.submission_id)
+            project_name = "%s | Dependency %d for Submission: %d" % (campaign_stage.name, i,  submission.submission_id)
         
         filters = []
         project_files = self.get_project_handles(project_id=dd_project.project_id)
         cur_dname_files =  list(self.metacat_client.get_files(project_files, with_metadata=True, with_provenance=True))
         cur_dname_nfiles = len(cur_dname_files)
         
-        if not dd_project or not dd_project.project_name or dd_project.campaign_stage_obj.campaign_stage_type == "generator":
+        if not dd_project or not dd_project.project_id or campaign_stage.campaign_stage_type == "generator":
             # if we're a generator, the previous stage should have declared it
             # or eventually it doesn't have a Data Dispatcher project
-            return project_name
+            project_name = project_name.replace("| Dependency", "| Gen | Dependency" )
+            stored_dd_project = self.store_project(project_id=None, 
+                                        worker_timeout=None, 
+                                        idle_timeout=None,
+                                        username=campaign_stage.experimenter_creator_obj.username, 
+                                        experiment=campaign_stage.experiment,
+                                        role=campaign_stage.vo_role,
+                                        project_name=project_name,
+                                        campaign_id=campaign_stage.campaign_id, 
+                                        campaign_stage_id=campaign_stage.campaign_stage_id,
+                                        split_type=campaign_stage.cs_split_type,
+                                        last_split=campaign_stage.cs_last_split,
+                                        creator=campaign_stage.experimenter_creator_obj.experimenter_id,
+                                        creator_name=campaign_stage.experimenter_creator_obj.username,
+                                        named_dataset="fids %s" % ",".split([file.get("fid") if file["fid"] != '0' else 0 for file in cur_dname_files]))
+            campaign_stage.data_dispatcher_dataset_only=True
+            return project_name, stored_dd_project
 
-        if dd_project.campaign_stage_obj.campaign_stage_type in ("approval", "datatransfer"):
-            query = "files in %s" % dd_project.named_dataset
+        if campaign_stage.campaign_stage_type in ("approval", "datatransfer"):
+            query = "fids %s" % ",".split([int(file.get("fid")) for file in cur_dname_files])
         else:
-            ischildof = "parents:( " * dd_project.campaign_stage_obj.output_ancestor_depth
-            isclose = ")" * dd_project.campaign_stage_obj.output_ancestor_depth
-            query = "%s files in %s " % (ischildof, dd_project.named_dataset,isclose)
+            ischildof = "parents:( " * campaign_stage.output_ancestor_depth
+            isclose = ")" * campaign_stage.output_ancestor_depth
+            query = "%s fids %s %s " % (ischildof, ",".split([file.get("fid") if file["fid"] != '0' else 0 for file in cur_dname_files]),isclose)
             cdate = dd_project.created.strftime("%Y-%m-%dT%H:%M:%S%z")
             filters.append("created_timestamp > '%s'" % cdate)
         
@@ -967,57 +1091,72 @@ class DMRService:
             #    filters.append("created_timestamp <= '%s'" % ndate)
             
         
-        query = self.try_format_with_keywords(query, dd_project.campaign_stage_obj.campaign_obj.campaign_keywords)
+        query = self.try_format_with_keywords(query, campaign_stage.campaign_obj.campaign_keywords)
         
-        new_dname_nfiles = self.metacat_client.query(query, summary="count").get("count", 0)
+        new_dname_files = list(self.metacat_client.query(query, with_metadata=True, with_provenance=True))
+        new_dname_nfiles = len(new_dname_files)
         logit.log("count files: %s has %d files" % (project_name, cur_dname_nfiles))
-        logit.log("count files: new dimensions has %d files" % new_dname_nfiles)
+        logit.log("count files: new dimensions has %d files" % len(new_dname_files))
 
         # if #files in the current Data Dispatcher definition are not less than #files in the updated Data Dispatcher definition
         # we do not need to update it, so keep the Data Dispatcher definition with current dimensions
         if cur_dname_nfiles >= new_dname_nfiles:
-            logit.log("Do not need to update %s" % project_name)
-            return project_name
+            logit.log("Do not need to update '%s'" % project_name)
+            stored_dd_project = self.create_project(username=dd_project.experimenter_creator_obj.username, 
+                                    files=cur_dname_files,
+                                    experiment=campaign_stage.experiment,
+                                    role=campaign_stage.vo_role,
+                                    project_name=project_name,
+                                    campaign_id=campaign_stage.campaign_id, 
+                                    campaign_stage_id=campaign_stage.campaign_stage_id,
+                                    split_type=campaign_stage.cs_split_type,
+                                    last_split=campaign_stage.cs_last_split,
+                                    campaign_stage_snapshot_id=dd_project.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
+                                    recovery_position=dd_project.recovery_position,
+                                    creator=dd_project.experimenter_creator_obj.experimenter_id,
+                                    creator_name=dd_project.experimenter_creator_obj.username,
+                                    named_dataset="fids %s" % ",".split([file.get("fid") if file["fid"] != '0' else 0 for file in cur_dname_files]),
+                                    status="created")
+            return project_name, stored_dd_project
 
         try:
-            submission = dd_project
-            dd_project = self.create_project(username=submission.experimenter_creator_obj.username, 
-                                               dataset="files from %s" % dname,
-                                               experiment=submission.campaign_stage_obj.experiment,
-                                               role=submission.campaign_stage_obj.vo_role,
-                                               project_name=dname,
-                                               campaign_id=submission.campaign_stage_obj.campaign_id, 
-                                               campaign_stage_id=submission.campaign_stage_obj.campaign_stage_id,
-                                               split_type=submission.campaign_stage_obj.cs_split_type,
-                                               last_split=submission.campaign_stage_obj.cs_last_split,
-                                               campaign_stage_snapshot_id=submission.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
-                                               recovery_position=submission.recovery_position,
-                                               creator=submission.experimenter_creator_obj.experimenter_id,
-                                               creator_name=submission.experimenter_creator_obj.username,
-                                               named_dataset=dname,
+            depends_dd_project = self.create_project(username=dd_project.experimenter_creator_obj.username, 
+                                               files=new_dname_files,
+                                               experiment=campaign_stage.experiment,
+                                               role=campaign_stage.vo_role,
+                                               project_name=project_name,
+                                               campaign_id=campaign_stage.campaign_id, 
+                                               campaign_stage_id=campaign_stage.campaign_stage_id,
+                                               split_type=campaign_stage.cs_split_type,
+                                               last_split=campaign_stage.cs_last_split,
+                                               campaign_stage_snapshot_id=dd_project.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
+                                               recovery_position=dd_project.recovery_position,
+                                               creator=dd_project.experimenter_creator_obj.experimenter_id,
+                                               creator_name=dd_project.experimenter_creator_obj.username,
+                                               named_dataset=query,
                                                status="created")
             
         except:
             logit.log("ignoring definition error")
         
         dependency = {}
-        dependency["name"] = dname
+        dependency["name"] = project_name
         dependency["timestamp"] = datetime.now().isoformat()
         dependency["current_count"] = cur_dname_nfiles
         dependency["new_count"] = new_dname_nfiles
-        dependency["exp"] = submission.campaign_stage_snapshot_obj.experiment
+        dependency["exp"] = dd_project.campaign_stage_snapshot_obj.experiment
         dependency["mc_query"] = query
-        workflow = submission.submission_params.get("workflow", {})
+        workflow = dd_project.submission_obj.submission_params.get("workflow", {})
         deps = workflow.get("dependencies", [])
         deps.append(dependency)
         workflow["dependencies"] = deps
-        submission.submission_params["workflow"] = workflow
-        submission.submission_params = submission.submission_params
-        flag_modified(submission, 'submission_params')
-        self.ctx.db.add(submission)
+        dd_project.submission_obj.submission_params["workflow"] = workflow
+        dd_project.submission_obj.submission_params = submission.submission_params
+        flag_modified(dd_project.submission_obj, 'submission_params')
+        self.ctx.db.add(dd_project.submission_obj)
         self.ctx.db.commit()
 
-        return dname, dd_project, None
+        return project_name, depends_dd_project
     
     def create_dataset_definition(self, namespace, dataset_definition, query):
         if not self.metacat_client.get_namespace(namespace):

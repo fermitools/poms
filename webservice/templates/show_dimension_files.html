@@ -36,7 +36,7 @@ Files for dimension...
     </div>
 {% elif data_handler == "data_dispatcher" and fdict %}
     <div class="ui raised padded text container segment">
-        <h3><center>{{querying}} files in project_id: {{project_id}}</center></h3>
+        <h3><center>{{querying}}</center></h3>
         <h4><center>File Count: {{fdict|length}}</center></h4>
         <div class=menu>
             {% for file, url in fdict.items() %}
@@ -48,4 +48,16 @@ Files for dimension...
     </div>
 </div>
 {% endif %}
+
+<script type="text/javascript">
+    $("#copyButton").on("click", function() {
+        const tempElement = $("<textarea></textarea>");
+        tempElement.val($("#queryText").text());
+        $("body").append(tempElement);
+        tempElement.select();
+        document.execCommand("copy");
+        tempElement.remove();
+        alert(`Copied query to clipboard`);
+      });
+</script>
 {%endblock%}

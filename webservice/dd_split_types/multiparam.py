@@ -168,5 +168,5 @@ class multiparam:
                                             last_split=self.cs.cs_last_split,
                                             creator=self.cs.experimenter_creator_obj.experimenter_id,
                                             creator_name=self.cs.experimenter_creator_obj.username,
-                                            named_query=query)
-        return data_dispatcher_project_idx
+                                            named_dataset=query)
+        return dd_project.data_dispatcher_project_idx

@@ -69,6 +69,7 @@ class Agent:
         self.known["maxjobs"] = {}
         self.known["poms_task_id"] = {}
         self.known["jobsub_job_id"] = {}
+        self.known["dd_task_id"] = {}
         self.known["dd_project_id"] = {}
         self.known["not_on_server"] = {
             "submissions": {},
@@ -374,17 +375,17 @@ class Agent:
     
     def maybe_report_data_dispatcher(self, entry, key, val):
         
-        dd_status, report_status = self.get_dd_status(entry, val)
+        dd_status, report_status, val = self.get_dd_status(entry, val)
         
         submission_update = {
                 "submission_id": entry["pomsTaskID"],
                 "jobsub_job_id":entry["id"],
-                "dd_project_id": key,
+                "dd_task_id": key,
             }
         update = False
         
-        if val != self.known["dd_project_id"].get(entry["pomsTaskID"], None):
-            self.known["dd_project_id"][entry["pomsTaskID"]] = key
+        if val != self.known["dd_task_id"].get(entry["pomsTaskID"], None):
+            self.known["dd_task_id"][entry["pomsTaskID"]] = key
             update = True
         
         if entry("id", None) and entry["id"] != self.known["jobsub_job_id"].get(entry["pomsTaskID"], None):
@@ -402,6 +403,11 @@ class Agent:
         if val != self.known["pct"].get(entry["pomsTaskID"], None):
             self.known["pct"][entry["pomsTaskID"]] = val
             submission_update["pct_complete"] = val
+            update = True
+            
+        if entry.get("POMS_DATA_DISPATCHER_PROJECT_ID", None) and entry["POMS_DATA_DISPATCHER_PROJECT_ID"] != self.known["dd_project_id"].get(entry["pomsTaskID"], None):
+            self.known["dd_project_id"][entry["pomsTaskID"]] = entry["POMS_DATA_DISPATCHER_PROJECT_ID"]
+            submission_update["dd_project_id"] = entry["POMS_DATA_DISPATCHER_PROJECT_ID"]
             update = True
         
         if update:
@@ -458,7 +464,7 @@ class Agent:
             htr = self.psess.get(url)
             flist = htr.json()
             print("poms running_submissions: ", repr(flist))
-            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_PROJECT_ID": x[3]} for x in flist if x[2] == group]
+            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3]} for x in flist if x[2] == group]
             print("poms running_submissions for " , group,  ": ", repr(ddict))
             htr.close()
             return ddict
@@ -472,7 +478,7 @@ class Agent:
             htr = self.psess.get(url)
             flist = htr.json()
             print("poms running_submissions: ", repr(flist))
-            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_PROJECT_ID": x[3]} for x in flist if x[2] in exp_list]
+            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3]} for x in flist if x[2] in exp_list]
             print("poms running_submissions for all experiments: %s" % repr(ddict))
             htr.close()
             return [submission for submission in ddict 
@@ -482,19 +488,19 @@ class Agent:
             logging.exception("running_submissons_POMS")
             return {}
     
-    def get_dd_project_statuses(self, project_ids):
+    def get_dd_task_statuses(self, dd_task_ids):
         start = datetime.now()
-        url = self.cfg.get("submission_agent", "poms_dd_complete_query_all") % ",".join(project_ids)
+        url = self.cfg.get("submission_agent", "poms_dd_complete_query_all") % ",".join(dd_task_ids)
         try:
-            LOGIT.info("getting poms data dispatcher project statuses for projects: %s", project_ids)
+            LOGIT.info("getting poms data dispatcher project statuses for projects: %s", dd_task_ids)
             htr = self.psess.get(url)
             dd_statuses = htr.json()
             elapsed_time = datetime.now() - start
-            LOGIT.info("got poms data dispatcher project statuses for projects: %s | Elapsed Time: %s.%s seconds" % (repr(dd_statuses), elapsed_time.seconds, elapsed_time.microseconds))
+            LOGIT.info("got poms data dispatcher project statuses for dd_submissions: %s | Elapsed Time: %s.%s seconds" % (repr(dd_statuses), elapsed_time.seconds, elapsed_time.microseconds))
             htr.close()
             return dd_statuses
         except:
-            logging.exception("get_dd_project_statuses")
+            logging.exception("get_dd_task_statuses")
             return {}
         
 
@@ -539,7 +545,7 @@ class Agent:
             elapsed_time = datetime.now() - start
             LOGIT.info("Got data on all running jobs | elapsed time: %s.%s seconds" % (elapsed_time.seconds, elapsed_time.microseconds))
             submissions_to_update = {}
-            dd_project_entries_to_check = {}
+            dd_task_entries_to_check = {}
             for entry in submissions.values():
                 if not entry:
                     continue
@@ -564,23 +570,23 @@ class Agent:
                 if self.known["status"].get(id, None) == "Completed":
                     continue
                 
-                do_sam = entry.get("POMS_DATA_DISPATCHER_PROJECT_ID",'') == ''
+                do_sam = entry.get("POMS_DATA_DISPATCHER_TASK_ID",'') == ''
                     
                 if do_sam:
                     update_submission = self.maybe_report(entry)
                     if update_submission:
                         submissions_to_update[pomsTaskID] = update_submission
                 else:
-                    LOGIT.info("Added dd_project: %s" % entry["POMS_DATA_DISPATCHER_PROJECT_ID"])
-                    dd_project_entries_to_check[entry["POMS_DATA_DISPATCHER_PROJECT_ID"]] = entry
+                    LOGIT.info("Added dd_task: %s" % entry["POMS_DATA_DISPATCHER_TASK_ID"])
+                    dd_task_entries_to_check[entry["POMS_DATA_DISPATCHER_TASK_ID"]] = entry
                     
-            if len(dd_project_entries_to_check) > 0:
-                project_ids = list(dd_project_entries_to_check.keys())
-                dd_project_statuses = self.get_dd_project_statuses(project_ids)
-                for key, val in dd_project_statuses.items():
-                    if key == "project_ids":
+            if len(dd_task_entries_to_check) > 0:
+                dd_task_ids = list(dd_task_entries_to_check.keys())
+                dd_task_statuses = self.get_dd_task_statuses(dd_task_ids)
+                for key, val in dd_task_statuses.items():
+                    if key == "dd_task_ids":
                         continue
-                    entry = dd_project_entries_to_check.get(key)
+                    entry = dd_task_entries_to_check.get(key)
                     update_submission = self.maybe_report_data_dispatcher(entry, key, val)
                     if update_submission:
                         submissions_to_update[pomsTaskID] = update_submission
@@ -625,32 +631,49 @@ class Agent:
     def get_dd_status(self, entry, dd_pct):
         
         status = entry.get("status", None)
+        if type(dd_pct) == type(str):
+            ntot = (int(entry["running"]) + int(entry["idle"]) + 
+                int(entry["held"]) + int(entry["completed"]) + 
+                int(entry["failed"]) + int(entry["cancelled"]))
+
+            if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
+                self.known["maxjobs"][entry["pomsTaskID"]] = ntot
+            else:
+                ntot = self.known["maxjobs"][entry["pomsTaskID"]]
+
+            ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
+
+            if ntot > 0:
+                dd_pct = ncomp * 100.0 / ntot
+            else:
+                dd_pct = 0
+                
         if entry["done"]:
             if entry["error"] or dd_pct < 80:
-                return "Completed with failures", self.dd_status_map.get("Completed with failures")
+                return "Completed with failures", self.dd_status_map.get("Completed with failures"), dd_pct
             if entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
-                return "Cancelled", "Cancelled"
-            return "Completed", "Completed"
+                return "Cancelled", "Cancelled", dd_pct
+            return "Completed", "Completed", dd_pct
         else:
             if entry["id"] or self.known["jobsub_job_id"][entry["pomsTaskId"]]:
                 if entry["held"] > 0:
-                    return "Held", "Held"
+                    return "Held", "Held", dd_pct
                 if entry["idle"]:
-                    return "Idle", "Idle"
+                    return "Idle", "Idle", dd_pct
                 if dd_pct > 0 and dd_pct < 100:
-                    return "Running", "Running"
+                    return "Running", "Running", dd_pct
                 if dd_pct == 0:
-                    return "Submitted Pending Start", self.dd_status_map.get("Submitted Pending Start")
+                    return "Submitted Pending Start", self.dd_status_map.get("Submitted Pending Start"), dd_pct
                 if dd_pct == 100:
-                    return "Completed", "Completed"
+                    return "Completed", "Completed", dd_pct
             else:
                 unknown_job = self.known["unknown_jobs"].get(entry["pomsTaskId"], 0)
                 if unknown_job < 5:
                     unknown_job += 1
                     self.known["unknown_jobs"][entry["pomsTaskId"]] = unknown_job
-                    return "Attempting to get Job Id (Attempt: %d of 5)" % unknown_job, "Unknown"
+                    return "Attempting to get Job Id (Attempt: %d of 5)" % unknown_job, "Unknown", dd_pct
                 else:
-                    return "Failed to Launch", self.dd_status_map.get("Failed to Launch")
+                    return "Failed to Launch", self.dd_status_map.get("Failed to Launch"), dd_pct
                     
         
         

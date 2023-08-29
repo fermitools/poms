@@ -135,9 +135,9 @@ class DataDispatcherSubmission(Base):
     recovery_tasks_parent_submission = Column(Integer)
     recovery_tasks_parent_project = Column(Integer)
     recovery_position = Column(Integer)
-    creator = Column(Integer, nullable=False)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False, default="now()")
-    updater = Column(Integer)
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
     updated = Column(DateTime(True))
     worker_timeout = Column(Integer)
     idle_timeout = Column(Integer)
@@ -151,6 +151,7 @@ class DataDispatcherSubmission(Base):
     campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
+    experimenter_creator_obj = relationship("Experimenter", primaryjoin="DataDispatcherSubmission.creator == Experimenter.experimenter_id")
     
     
 class Experimenter(Base):

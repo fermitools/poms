@@ -64,6 +64,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <th>Jobsub Id</th>
                 <th>Availble Output</th>
                 <th>Commands</th>
+                <th>Handler</th>
                 <th>Status (History/Current)</th>
                 <th>Submitted</th>
                 <th>Submitter</th>
@@ -123,6 +124,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <span>
             {% endif %}
             </td>
+            <td>{{rec.handler}}</td>
             <td>
                 <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
                         <i class="history icon"></i>

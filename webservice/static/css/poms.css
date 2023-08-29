@@ -27,7 +27,24 @@ p:first-child {
 p:last-child {
     margin-bottom: 0em;
 }
-
+.query-code {
+    white-space: pre-wrap;  /* Allow line breaks but respect white spaces */
+    word-break: break-word;
+    font-family: monospace;
+    display: block;
+    border-radius: 8px;
+}
+#copyButton {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 15px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+  
 /*----------------
  *       Footer
  *       -----------------*/

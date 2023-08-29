@@ -978,25 +978,24 @@ class SubmissionsPOMS:
             retval = {}
             submission_ids = list(map(int,data.keys()))
             logit.log("SubmissionsPOMS | update_submissions | All submission_ids: %s" % submission_ids)
-            dd_project_ids = [val.get("dd_project_id") for val in data.values() if val.get("dd_project_id", None)]
+            dd_task_ids = [val.get("dd_task_id") for val in data.values() if val.get("dd_task_id", None)]
             submissions = ctx.db.query(Submission).filter(Submission.submission_id in submission_ids).with_for_update(read=True).all()
-            dd_projects = {
-                project.project_id: project for project in ctx.db.query(DataDispatcherSubmission).filter(
-                and_(
-                    DataDispatcherSubmission.submission_id in submission_ids,  
-                    DataDispatcherSubmission.project_id in dd_project_ids
-                    )
-                ).all()
+            dd_tasks = {
+                    dd_task.data_dispatcher_project_idx: dd_task 
+                    for dd_task in ctx.db.query(DataDispatcherSubmission)
+                        .filter(DataDispatcherSubmission.data_dispatcher_project_idx in dd_task_ids
+                    ).all()
                 }
             if submissions:
                 submission_statuses_to_update = {}
                 for submission in submissions:
                     retval[submission.submission_id] = True
-                    data = data[submission.submission_id]
-                    dd_project = dd_projects[data("dd_project_id")] if data("dd_project_id", None) else None
+                    entry = data.get(submission.submission_id,None)
                     
-                    status = data("status", None)
-                    if status == "Running" and data("pct_complete", None) and float(data("pct_complete")) >= submission.campaign_stage_snapshot_obj.completion_pct:
+                    dd_task = dd_tasks[entry.get("dd_task_id")] if entry.get("dd_task_id", None) else None
+                    
+                    status = entry.get("status", None)
+                    if status == "Running" and entry.get("pct_complete", None) and float(entry.get("pct_complete")) >= submission.campaign_stage_snapshot_obj.completion_pct:
                         status = "Completed"
                     if status is not None:
                         submission_statuses_to_update[submission.submission_id] = status
@@ -1006,9 +1005,9 @@ class SubmissionsPOMS:
                         if item and fields:
                             for field in fields:
                                 data_field = field_aliases.get(field, field) if field_aliases else field
-                                if data(field, None) and getattr(item, data_field) != data(field):
-                                    setattr(item, data_field, data(field))
-                                    logit.log("SubmissionsPOMS | update_submissions | submission_id: %s | updated %s to %s" % (submission.submission_id, data_field, data(field)))
+                                if entry.get(field, None) and getattr(item, data_field) != entry.get(field):
+                                    setattr(item, data_field, entry.get(field))
+                                    logit.log("SubmissionsPOMS | update_submissions | submission_id: %s | updated %s to %s" % (submission.submission_id, data_field, entry.get(field)))
                                     changes_made = True
                             if changes_made:
                                 setattr(item, "updated", datetime.now())
@@ -1018,7 +1017,7 @@ class SubmissionsPOMS:
                     
                     # Update submission and data dispatcher projects as needed
                     if (update_fields(submission, ["jobsub_job_id", "project", "pct_complete"]) or 
-                        update_fields(dd_project, ["jobsub_job_id","pct_complete", "dd_status"], {"dd_status", "status"})):
+                        update_fields(dd_task, ["jobsub_job_id","pct_complete", "dd_status", "dd_project_id"], {"dd_status": "status", "dd_project_id": "project_id"})):
                         ctx.db.commit()
                     
                     del data[submission.submission_id]
@@ -1108,9 +1107,7 @@ class SubmissionsPOMS:
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
         self.init_statuses(ctx)
         
-        do_data_dispatcher = False
-        if s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher":
-            do_data_dispatcher = True
+        do_data_dispatcher = s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
         
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
@@ -1144,38 +1141,23 @@ class SubmissionsPOMS:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
                 # be the role the job we're launching based from was...
+                if do_data_dispatcher and cd.consumer.data_dispatcher_submission_obj:
+                    project_idx = cd.consumer.data_dispatcher_submission_obj.data_dispatcher_project_idx
+                else:
+                    project_idx = None
                 self.launch_jobs(
                     ctx,
                     cd.provides_campaign_stage_id,
                     launch_user.experimenter_id,
                     test_launch=s.submission_params.get("test", False),
+                    dd_project_idx = project_idx
                 )
             else:
                 i = i + 1
                 dd_project = None
                 if do_data_dispatcher:
                     # doing data dispatcher dependency launch
-                    dname, dd_project = ctx.dmr_service.dependency_definition(s, cd, i)
-                    if not dd_project:
-                        cs = cd.consumer
-                        dd_project = ctx.dmr_service.create_project(username=s.experimenter_creator_obj.username, 
-                                                        dataset="files in %s" % dname,
-                                                        experiment= cs.experiment,
-                                                        role=cs.vo_role,
-                                                        campaign_id=cs.campaign_id, 
-                                                        campaign_stage_id=cs.campaign_stage_id, 
-                                                        campaign_stage_snapshot_id=s.campaign_stage_snapshot_id,
-                                                        submission_id=s.submission_id, 
-                                                        job_type_snapshot_id = s.job_type_snapshot_id,
-                                                        depends_on_submission=s.depends_on,
-                                                        recovery_position = s.recovery_position,
-                                                        recovery_tasks_parent_submission = s.recovery_tasks_parent,
-                                                        project_name=dname,
-                                                        split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
-                                                        creator=cs.experimenter_creator_obj.experimenter_id,
-                                                        creator_name=cs.experimenter_creator_obj.username,
-                                                        last_split=cs.cs_last_split,
-                                                        status="created")
+                    dname, dd_project = ctx.dmr_service.dependency_definition(s.data_dispatcher_submission_obj, cd.consumer, i)
                 else:
                     dname = sam_specifics(ctx).dependency_definition(s, cd, i)
 
@@ -1185,7 +1167,7 @@ class SubmissionsPOMS:
                     test_launch = False
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
-                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_id=dd_project.project_id if dd_project else None)
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None)
         return 1
 
     # h3. launch_recovery_if_needed
@@ -1243,12 +1225,12 @@ class SubmissionsPOMS:
             # else we use the current submission as the project because we don't want to re-submit the same files
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
-            project_id = None
+            project_idx = None
             if do_data_dispatcher:
                 if s.recovery_position == 0:
-                    nfiles, rname, project_id = ctx.dmr_service.create_recovery_dataset(s.data_dispatcher_submission_obj, rtype, rlist)
+                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(s.data_dispatcher_submission_obj, rtype, rlist)
                 else:
-                    nfiles, rname, project_id = ctx.dmr_service.create_recovery_dataset(current_s.data_dispatcher_submission_obj, rtype, rlist)
+                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(current_s.data_dispatcher_submission_obj, rtype, rlist)
             else:
                 if s.recovery_position == 0:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
@@ -1273,7 +1255,7 @@ class SubmissionsPOMS:
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
-                    dd_project_id=project_id
+                    dd_project_idx=project_idx
                 )
                 return res
 
@@ -1378,6 +1360,14 @@ class SubmissionsPOMS:
             ctx.role = cs.creator_role
             ctx.username = launch_user.username
             ctx.experimenter_cache = launch_user
+            do_data_dispatcher = cs.campaign_obj.data_handling_service == "data_dispatcher"
+            if do_data_dispatcher and cs.data_dispatcher_submission_obj:
+                project_idx = ctx.db.query(DataDispatcherSubmission.data_dispatcher_project_idx).filter(and_(
+                    DataDispatcherSubmission.experiment == cs.experiment,
+                    DataDispatcherSubmission.submission_id == hl.parent_submission_id
+                )).scalar()
+            else:
+                project_idx = None
 
             self.launch_jobs(
                 ctx,
@@ -1386,6 +1376,7 @@ class SubmissionsPOMS:
                 dataset_override=dataset,
                 parent_submission_id=parent_submission_id,
                 param_overrides=param_overrides,
+                dd_project_idx=project_idx
             )
             return "Launched."
         else:
@@ -1503,7 +1494,7 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
-        dd_project_id=None,
+        dd_project_idx=None,
         **kwargs,
     ):
 
@@ -1659,7 +1650,7 @@ class SubmissionsPOMS:
                 vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
-        if role == "analysis" and lt.launch_host == self.poms_service.hostname:
+        if role == "analysis" and lt.launch_host == ctx.web_config.get("POMS", "POMS_HOST"):
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
@@ -1725,10 +1716,14 @@ class SubmissionsPOMS:
             
         do_data_dispatcher = cs.campaign_obj.data_handling_service == "data_dispatcher"
         dd_project_override = False
+        dd_dataset_only = cs.data_dispatcher_dataset_only
         # If override is set, we will use the defined project id. Ignoring datasets and split types
-        if not dd_project_id and cs.data_dispatcher_project_id:
+        if not dd_project_idx and cs.data_dispatcher_project_id:
             dd_project_override = True
-            dd_project_id = cs.data_dispatcher_project_id
+            dd_project = ctx.db.query(DataDispatcherSubmission).filter(and_(
+                DataDispatcherSubmission.experiment == cs.experiment,
+                DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
+                DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).one_or_none()
         if do_data_dispatcher:
             if cs.completion_type != "complete":
                 cs.completion_type = "complete"
@@ -1739,18 +1734,28 @@ class SubmissionsPOMS:
         dd_project = None
         if dataset_override:
             dataset = dataset_override
-            if do_data_dispatcher and dd_project_id and not dd_project_override:
+            if do_data_dispatcher and dd_project_idx and not dd_project_override:
                 # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
-                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.project_id == dd_project_id).one_or_none()
-                    
+                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
+                
         else:
             if not do_data_dispatcher:
-                dataset, dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
+                dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
             else:
-                if not dd_project_id and not dd_project_override:
+                if not dd_project_idx and not dd_project_override:
                     # we are here if doing a split type launch
                     dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, True)
-                    dataset = "Project_ID: %s" % dd_project.project_id
+                    if dd_project:
+                        if dd_project.named_dataset:
+                            dataset = dd_project.named_dataset
+                        elif dd_project.project_id:
+                            dataset = "project_id: %s" % dd_project.project_id
+                        elif dd_project.data_dispatcher_project_idx:
+                            dataset = "project_idx: %s" % dd_project.data_dispatcher_project_idx
+                        else:
+                            dataset = None
+                            
+        logit.log("Dataset is: %s" % dataset)
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
@@ -1809,17 +1814,16 @@ class SubmissionsPOMS:
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
         if role == "analysis" or ctx.experiment == "samdev":
-            tok_permissions = "chmod +rw %s;" % (vaultfile)
+            tok_permissions = "chmod 0600 %s;" % (vaultfile)
             scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
             scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)
             #scp_command = "rsync -r %s %s@%s:%s" % (sandbox, lt.launch_account, lt.launch_host, sandbox)
-            if lt.launch_host != self.poms_service.hostname:  
+            if lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST"):  
                 vaultfile = "/tmp/%s" % vaultfilename
                 proxyfile = "/tmp/x509up_voms_%s_Analysis_%s" % (exp, experimenter_login)
         else:
             tok_permissions = ""
             scp_command = ""
-            vaultfile = ""
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if role == "production" and ctx.experiment == "samdev": 
@@ -1867,13 +1871,14 @@ class SubmissionsPOMS:
                 dd_project.recovery_tasks_parent_submission = submission.recovery_tasks_parent
                 dd_project.job_type_snapshot_id = submission.job_type_snapshot_id
                 dd_project.status="created"
+                dd_project.named_dataset = dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
                 if dd_project.depends_on_submission:
                     dd_project.depends_on_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).one_or_none()
                 if dd_project.recovery_tasks_parent_submission:
                     dd_project.recovery_tasks_parent_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none()
                 
             else:
-                if dd_project_override: 
+                if dd_project_override and not dd_project: 
                     dd_project = ctx.dmr_service.get_project_for_submission(dd_project_id,
                                                         experiment= exp,
                                                         role=cs.vo_role,
@@ -1885,36 +1890,66 @@ class SubmissionsPOMS:
                                                         recovery_position = submission.recovery_position,
                                                         recovery_tasks_parent_submission = submission.recovery_tasks_parent,
                                                         job_type_snapshot_id = submission.job_type_snapshot_id,
-                                                        project_name="%s: Project ID Override: %s | Campaign Stage ID:  | Submission ID: %s" % (ctx.web_config.get("Metacat", "DEFAULT_NAMESPACE"),dd_project_id, csid, submission.submission_id),
+                                                        project_name="%s | ID Override | Submission ID: %s" % (submission.campaign_stage_obj.name, submission.submission_id),
                                                         split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
                                                         creator=cs.experimenter_creator_obj.experimenter_id,
                                                         creator_name=cs.experimenter_creator_obj.username,
                                                         last_split=cs.cs_last_split,
                                                         status="created")
                 
-                elif dataset or cs.data_dispatcher_dataset_query:
-                    dd_project = ctx.dmr_service.create_project(username=submission.experimenter_creator_obj.username, 
-                                                        dataset=dataset if dataset else cs.data_dispatcher_dataset_query, # should be the same at this point
-                                                        experiment= exp,
-                                                        role=cs.vo_role,
-                                                        campaign_id=cid, 
-                                                        campaign_stage_id=csid, 
-                                                        campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
-                                                        submission_id=sid, 
-                                                        job_type_snapshot_id = submission.job_type_snapshot_id,
-                                                        depends_on_submission=submission.depends_on,
-                                                        recovery_position = submission.recovery_position,
-                                                        recovery_tasks_parent_submission = submission.recovery_tasks_parent,
-                                                        project_name="%s: Campaign Stage ID:  | Submission ID: %s" % (ctx.web_config.get("Metacat", "DEFAULT_NAMESPACE"), csid, submission.submission_id),
-                                                        split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
-                                                        creator=cs.experimenter_creator_obj.experimenter_id,
-                                                        creator_name=cs.experimenter_creator_obj.username,
-                                                        last_split=cs.cs_last_split,
-                                                        status="created")
+                elif cs.data_dispatcher_dataset_query:
+                    use_params = (dataset != None and dataset != cs.data_dispatcher_dataset_query)
+                    if not cs.data_dispatcher_dataset_only:
+                        dd_project = ctx.dmr_service.create_project(username=submission.experimenter_creator_obj.username, 
+                                                            dataset=cs.data_dispatcher_dataset_query, # should be the same at this point
+                                                            experiment= exp,
+                                                            role=cs.vo_role,
+                                                            campaign_id=cid, 
+                                                            campaign_stage_id=csid, 
+                                                            campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                            submission_id=sid, 
+                                                            job_type_snapshot_id = submission.job_type_snapshot_id,
+                                                            depends_on_submission=submission.depends_on,
+                                                            recovery_position = submission.recovery_position,
+                                                            recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                            project_name="%s | Basic Launch | Project  | Submission ID: %s" % (submission.campaign_stage_obj.name, submission.submission_id),
+                                                            split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                            creator=cs.experimenter_creator_obj.experimenter_id,
+                                                            creator_name=cs.experimenter_creator_obj.username,
+                                                            last_split=cs.cs_last_split,
+                                                            named_dataset=cs.data_dispatcher_dataset_query if not dataset else dataset,
+                                                            status="created")
+                    else:
+                        dd_project = ctx.dmr_service.store_project(project_id=None, 
+                                                            worker_timeout=None, 
+                                                            idle_timeout=None,
+                                                            username=submission.experimenter_creator_obj.username, 
+                                                            experiment= exp,
+                                                            role=cs.vo_role,
+                                                            campaign_id=cid, 
+                                                            campaign_stage_id=csid, 
+                                                            campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id,
+                                                            submission_id=sid, 
+                                                            job_type_snapshot_id = submission.job_type_snapshot_id,
+                                                            depends_on_submission=submission.depends_on,
+                                                            recovery_position = submission.recovery_position,
+                                                            recovery_tasks_parent_submission = submission.recovery_tasks_parent,
+                                                            project_name="%s | Basic Launch | Dataset  | Submission ID: %s" % (submission.campaign_stage_obj.name, submission.submission_id),
+                                                            split_type=cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                                                            creator=cs.experimenter_creator_obj.experimenter_id,
+                                                            creator_name=cs.experimenter_creator_obj.username,
+                                                            last_split=cs.cs_last_split,
+                                                            named_dataset=cs.data_dispatcher_dataset_query if not dataset else dataset,
+                                                            status="created")
             if dd_project:
-                data_dispatcher_logic.append("export POMS_USER=%s;" % experimenter_login),
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_TASK_ID=%s;" % dd_project.data_dispatcher_project_idx)
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
-                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_NAME=\"%s\";" % dd_project.project_name)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET=\"%s\";" % dd_project.named_dataset)
+                
+                if cs.data_dispatcher_dataset_only:
+                    data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PARAMETER=\"%s\";" % dd_project.named_dataset) #TODO
+                    
+                
                 submission.data_dispatcher_project_idx = dd_project.data_dispatcher_project_idx
                 ctx.db.commit()
         
@@ -1923,7 +1958,7 @@ class SubmissionsPOMS:
             "set -x;",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
-            scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
+            scp_command if do_tokens and lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST") else "",
             tok_permissions if do_tokens else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
             % {
@@ -1960,11 +1995,11 @@ class SubmissionsPOMS:
             #  * by the analysis user uploading their vault token...
             #
             #
-            
+            "echo 'Vault file permissions:'",
+            "ls -l %s" % vaultfile,
             "export X509_USER_PROXY=%s;" % proxyfile,
             # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
-            % (uu, uu),
+            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"% (uu, uu),
             "source /grid/fermiapp/products/common/etc/setups;",
             "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;" if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",

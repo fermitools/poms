@@ -23,6 +23,7 @@ from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExpe
 from .utc import utc
 from .SAMSpecifics import sam_specifics
 import shutil
+from urllib.parse import unquote
 
 class FilesStatus:
     """
@@ -182,19 +183,7 @@ class FilesStatus:
                     DataDispatcherSubmission.experiment == cs.experiment,
                     DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
                 ).all()
-            (
-                total,
-                initial,
-                done,
-                failed,
-                reserved,
-                unknown,
-                submitted,
-                parents,
-                children,
-                statistics,
-                project_id
-            ) = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
+            submission_info = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
             
             columns = [
                 "campign<br>stage",
@@ -218,69 +207,80 @@ class FilesStatus:
             if clear_campaign_column:
                 columns = columns[1:]
 
-            listfiles = "../../show_dimension_files/%s/%s?project_id=%%s" % (cs.experiment, ctx.role)
             datarows = deque()
-            i = -1
             for s in dd_submissions:
                 logit.log("task %d" % s.submission_id)
-                i = i + 1
                 task_jobsub_job_id = s.jobsub_job_id
                 if task_jobsub_job_id is None:
                     task_jobsub_job_id = "s%s" % s.submission_id
-                    
-                row = [
-                    [
-                        s.campaign_stage_obj.name,
-                        "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
-                    ],
-                    [ 
-                        task_jobsub_job_id.replace("@", "@<br>"),
-                        "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
-                    ],
-                    [ #TODO: is there a monitoring page?
-                        s.project_id,listfiles % project_id[i]
-                    ],
-                    [s.project_name or "N/A", listfiles % project_id[i] + "&querying=all&mc_query=%s" % total[i]],
-                    [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                    [statistics[i].get("pct_complete", "0%"), listfiles % project_id[i] + "&querying=children&mc_query=%s" % children[i]],
-                    [statistics[i].get("children", 0), listfiles % project_id[i] + "&querying=output&mc_query=%s" % children[i]],
-                    [statistics[i].get("submitted", 0), listfiles % project_id[i] + "&querying=submitted&mc_query=%s" % submitted[i]],
-                    [statistics[i].get("initial", 0), listfiles % project_id[i] + "&querying=initial&mc_query=%s" % initial[i]],
-                    [statistics[i].get("done", 0), listfiles % project_id[i] + "&querying=done&mc_query=%s" % done[i]],
-                    [statistics[i].get("failed", 0), listfiles % project_id[i] + "&querying=failed&mc_query=%s" % failed[i]],
-                    [statistics[i].get("reserved", 0), listfiles % project_id[i] + "&querying=reserved&mc_query=%s" % reserved[i]],
-                    [statistics[i].get("unknown", 0), listfiles % project_id[i] + "&querying=unknown&mc_query=%s" % unknown[i]],
-                    [statistics[i].get("total", 0), listfiles % project_id[i] + "&querying=all&mc_query=%s" % total[i]],
-                    [statistics[i].get("parents", 0), listfiles % project_id[i] + "&querying=parents&mc_query=%s" %  parents[i]],
-                    [statistics[i].get("children", 0), listfiles % project_id[i] + "&querying=children&mc_query=%s" % children[i]],
-                ]
-        
+                details = submission_info.get(s.submission_id, None)
+                if "project_id" in details:
+                    listfiles = "../../show_dimension_files/%s/%s?project_id=%s" % (cs.experiment, ctx.role, details["project_id"])
+                else:
+                    listfiles = "../../show_dimension_files/%s/%s?project_idx=%s" % (cs.experiment, ctx.role, details["project_idx"])
+                if details:
+                    row = [
+                        [
+                            s.campaign_stage_obj.name,
+                            "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
+                        ],
+                        [ 
+                            task_jobsub_job_id.replace("@", "@<br>"),
+                            "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
+                        ],
+                        [ #TODO: is there a monitoring page?
+                            s.project_id,listfiles
+                        ],
+                        [s.project_name or "N/A", listfiles + "&querying=all&mc_query=%s" % details["total"]],
+                        [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                        [details["statistics"].get("pct_complete", "0%"), listfiles + "&querying=children&mc_query=%s" % details["children"]],
+                        [details["statistics"].get("children", 0), listfiles + "&querying=output&mc_query=%s" % details["children"]],
+                        [details["statistics"].get("submitted", 0), listfiles + "&querying=submitted&mc_query=%s" % details["submitted"]],
+                        [details["statistics"].get("initial", 0), listfiles + "&querying=initial&mc_query=%s" % details["initial"]],
+                        [details["statistics"].get("done", 0), listfiles + "&querying=done&mc_query=%s" % details["done"]],
+                        [details["statistics"].get("failed", 0), listfiles + "&querying=failed&mc_query=%s" % details["failed"]],
+                        [details["statistics"].get("reserved", 0), listfiles + "&querying=reserved&mc_query=%s" % details["reserved"]],
+                        [details["statistics"].get("unknown", 0), listfiles + "&querying=unknown&mc_query=%s" % details["unknown"]],
+                        [details["statistics"].get("total", 0), listfiles + "&querying=all&mc_query=%s" % details["total"]],
+                        [details["statistics"].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" %  details["parents"]],
+                        [details["statistics"].get("children", 0), listfiles + "&querying=children&mc_query=%s" % details["children"]],
+                    ]
+            
 
-                if clear_campaign_column:
-                    row = row[1:]
-                datarows.append(row)
+                    if clear_campaign_column:
+                        row = row[1:]
+                    datarows.append(row)
 
 
 
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     # h3. show_dimension_files
-    def show_dimension_files(self, ctx, dims=None, project_id=None,mc_query=None, querying=None):
+    def show_dimension_files(self, ctx, dims=None, project_id=None,project_idx=None,mc_query=None, querying=None):
         try:
             flist = None
             fdict = None
             data_handler = "sam"
+            info = ""
             if dims:
                 flist = sam_specifics(ctx).list_files(dims)
+            else:
+                info = "%s files in project_id%s" % (querying.capitalize(), ": %s<br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
             if project_id:
                 data_handler = "data_dispatcher"
                 querying = querying.capitalize()
-                fdict, did_all = ctx.dmr_service.list_file_urls(project_id, mc_query)
+                fdict, did_all = ctx.dmr_service.list_file_urls(project_id=project_id, mc_query=mc_query)
                 if did_all:
-                    querying = "'%s' files returned with no results. Displaying All" % querying
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
+            elif project_idx:
+                data_handler = "data_dispatcher"
+                querying = querying.capitalize()
+                fdict, did_all = ctx.dmr_service.list_file_urls(project_idx=project_idx, mc_query=mc_query)
+                if did_all:
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
         except ValueError:
             flist = deque()
-        return flist, data_handler, fdict, querying
+        return flist, data_handler, fdict, info
 
     # h3. get_file_upload_path
     def get_file_upload_path(self, ctx, filename):

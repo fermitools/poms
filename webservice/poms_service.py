@@ -890,10 +890,10 @@ class PomsService:
 
     @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
     def calculate_dd_project_completion(self, **kwargs):
-        if kwargs.get("ctx", None) and kwargs.get("project_ids", None):
-            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(kwargs["project_ids"])
-        elif kwargs.get("ctx", None) and kwargs.get("project_id", None):
-            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(project_id=kwargs.get("project_id"))
+        if kwargs.get("ctx", None) and kwargs.get("dd_submissions", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_ids=kwargs["dd_submissions"])
+        elif kwargs.get("ctx", None) and kwargs.get("dd_submission", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_id=kwargs.get("dd_submission"))
         else:
             return {}
 
@@ -1120,6 +1120,7 @@ class PomsService:
         flist, data_handler, fdict, querying = self.filesPOMS.show_dimension_files(kwargs["ctx"], 
                                                                          dims = kwargs.get("dims", None), 
                                                                          project_id=kwargs.get("project_id", None), 
+                                                                         project_idx=kwargs.get("project_idx", None), 
                                                                          mc_query=kwargs.get("mc_query", None),
                                                                          querying=kwargs.get("querying", None))
         return {"flist": flist, "data_handler": data_handler, "fdict": fdict, "querying": querying}

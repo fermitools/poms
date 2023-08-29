@@ -14,6 +14,7 @@ class drainingn:
     def __init__(self, ctx, cs):
         self.db = ctx.db
         self.cs = cs
+        self.cs.data_dispatcher_dataset_only = False
         self.dmr_service = ctx.dmr_service
         self.n = int(cs.cs_split_type[10:].strip(")"))
             
@@ -24,13 +25,13 @@ class drainingn:
         last_run = []
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
-            project_name = "%s | draining(%d) | First Run" % (self.cs.name, self.n, self.cs.cs_last_split)
+            project_name = "%s | draining(%d) | First Run" % (self.cs.name, self.n)
             query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
             all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         else:
             last_run = [file.get("fid") for file in self.dmr_service.get_file_info_from_project_id(self.cs.cs_last_split)]
             project_name = "%s | draining(%d) | Slice: %d" % (self.cs.name, self.n, self.cs.cs_last_split)
-            query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(all_processed), self.n)
+            query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(last_run), self.n)
         
         all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         
