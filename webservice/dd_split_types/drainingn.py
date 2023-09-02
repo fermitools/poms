@@ -1,6 +1,7 @@
 import poms.webservice.logit as logit
 import time
 import uuid
+from poms.webservice.poms_model import DataDispatcherSubmission
 
 
 class drainingn:
@@ -22,25 +23,35 @@ class drainingn:
         return ["nfiles"]
 
     def peek(self):
-        last_run = []
+        dont_use = []
         if not self.cs.cs_last_split:
             self.cs.cs_last_split = 0
             project_name = "%s | draining(%d) | First Run" % (self.cs.name, self.n)
             query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
             all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         else:
-            last_run = [file.get("fid") for file in self.dmr_service.get_file_info_from_project_id(self.cs.cs_last_split)]
+            previous_subs = [submission.project_id for submission in self.db.query(DataDispatcherSubmission).filter(
+                DataDispatcherSubmission.experiment == self.cs.experiment, 
+                DataDispatcherSubmission.campaign_stage_id == self.cs.campaign_stage_id,
+                DataDispatcherSubmission.split_type == self.cs.cs_split_type,
+                DataDispatcherSubmission.project_id != None,
+                DataDispatcherSubmission.splits_reset == False,
+                DataDispatcherSubmission.archive == False).all()]
+            for project_id in previous_subs:
+                dont_use.extend([file.get("fid") for file in self.dmr_service.get_file_info_from_project_id(project_id)])
             project_name = "%s | draining(%d) | Slice: %d" % (self.cs.name, self.n, self.cs.cs_last_split)
-            query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(last_run), self.n)
-        
+            if len(dont_use) > 0:
+                query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(list(set(dont_use))), self.n)
+            else:
+                query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(list(set(dont_use))), self.n)
         all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         
         if len(all_files) == 0:
             raise StopIteration
         
-        project_files = [file for file in all_files[0:min(self.n, len(all_files))] if file.get("fid", "") not in last_run]
+        project_files = [file for file in all_files[0:min(self.n, len(all_files))] if file.get("fid", "") not in dont_use]
         
-        return self.create_project(project_name, project_files)
+        return self.create_project(project_name, project_files, named_dataset = query)
 
     def next(self):
         dd_project = self.peek()
@@ -53,7 +64,7 @@ class drainingn:
     def edit_popup(self):
         return "null"
     
-    def create_project(self, project_name, project_files):
+    def create_project(self, project_name, project_files, named_dataset):
         dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
                                         files=project_files,
                                         experiment=self.cs.experiment,
@@ -64,5 +75,6 @@ class drainingn:
                                         split_type=self.cs.cs_split_type,
                                         last_split=self.cs.cs_last_split,
                                         creator=self.cs.experimenter_creator_obj.experimenter_id,
-                                        creator_name=self.cs.experimenter_creator_obj.username)
+                                        creator_name=self.cs.experimenter_creator_obj.username,
+                                        named_dataset=named_dataset)
         return dd_project

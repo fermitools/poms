@@ -13,7 +13,7 @@ add_item() {
    esdata="$esdata$essep\"$k\": \"$v\""
    essep=", "
 }
-
+add_item "POMS_TASK_ID:$POMS_TASK_ID" 
 add_item "POMS4_CAMPAIGN_STAGE_ID:$POMS4_CAMPAIGN_STAGE_ID" 
 add_item "POMS4_CAMPAIGN_STAGE_NAME:$POMS4_CAMPAIGN_STAGE_NAME" 
 add_item "POMS4_CAMPAIGN_ID:$POMS4_CAMPAIGN_ID" 

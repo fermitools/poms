@@ -91,7 +91,7 @@ class POMSRucioClient:
                 file = {"path": file_path, "rse": rse, "did_scope": scope, "dataset_scope": scope, "dataset_name": dataset_name, "register_after_upload":True}
                 items.append(file)
         else:
-            file = {"path": path, "rse": rse, "dataset_scope": dataset_scope, "dataset_name": dataset_name, "register_after_upload":True}
+            file = {"path": path, "rse": rse, "dataset_scope": scope, "dataset_name": dataset_name, "register_after_upload":True}
             items.append(file)
         summary_log = f"/home/poms/poms/webservice/static/samples/summaries/upload_{math.floor(datetime.now().timestamp())}.json"
         try:

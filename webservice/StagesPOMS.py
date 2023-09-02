@@ -716,7 +716,10 @@ class StagesPOMS:
         campaign_stage_id = int(campaign_stage_id)
 
         c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
+        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == c_s.cs_split_type).all()
         c_s.cs_last_split = None
+        for sub in dd_subs:
+            sub.splits_reset = True
         ctx.db.commit()
 
     # h3. update_campaign_split
@@ -970,7 +973,7 @@ class StagesPOMS:
 
         launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
         sam_subs = {sub.submission_id: sub for sub in ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()}
-        dd_submissions = {dd_sub.submission_id: dd_sub for dd_sub in ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.campaign_stage_id.in_(campaign_stage_ids)).all()}
+        dd_submissions = {dd_sub.submission_id: dd_sub for dd_sub in ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.campaign_stage_id.in_(campaign_stage_ids)).all()}
         
         for key in dd_submissions:
             if key in sam_subs:

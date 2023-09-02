@@ -39,6 +39,8 @@ CREATE TABLE data_dispatcher_submissions (
     named_dataset                       text DEFAULT NULL,
     status                              text DEFAULT NULL,
     pct_complete                        DOUBLE PRECISION DEFAULT 0.0,
+    splits_reset                        boolean default false,
+    archive                             boolean default false;
     
 	CONSTRAINT pk_data_dispatcher_projects PRIMARY KEY ( data_dispatcher_project_idx ),
 	CONSTRAINT fk_dd_projects_experimenters FOREIGN KEY ( experiment ) REFERENCES experiments( experiment ),

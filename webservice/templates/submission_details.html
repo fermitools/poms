@@ -180,12 +180,22 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
-{%if submission.recovery_tasks_parent %}
-'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
-{%else%}
-'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
-{%endif%}
+{% if submission.data_dispatcher_submission_obj %}
+    Re-Launch Submission on Project ID: {{submission.data_dispatcher_submission_obj.project_id}} &nbsp; <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+    {% if submission.recovery_tasks_parent %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
+    {% else %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
+    {% endif %}
+{% else %}
+    Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+    {% if submission.recovery_tasks_parent %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
+    {% else %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
+    {% endif %}
+{% endif %}
+
 )">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}

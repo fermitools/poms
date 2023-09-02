@@ -21,7 +21,7 @@ import sqlalchemy.exc
 
 from prometheus_client import make_wsgi_app
 
-from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment, FilterOutArchived
 from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
 from poms.webservice import jobsub_fetcher
@@ -94,7 +94,7 @@ class SATool(cherrypy.Tool):
         the request terminates.
         """
         cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
-        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
@@ -122,7 +122,7 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.start()
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
-            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
             self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
             self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101

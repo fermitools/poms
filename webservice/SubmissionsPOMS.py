@@ -104,6 +104,7 @@ class SubmissionsPOMS:
         self.status_Removed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.status_Failed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Failed").first()[0]
+        self.status_Cancelled = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Cancelled").first()[0]
         self.init_status_done = True
 
     # h3. session_status_history
@@ -336,7 +337,7 @@ class SubmissionsPOMS:
         finish_up_dd_submissions.sort()
         res.append("finish_up_dd_submissions: %s " % repr(finish_up_sam_submissions))
         for dd_project_idx in finish_up_dd_submissions:
-            dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one()
+            dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one()
             # get logs for job for final cpu values, etc.
             msg = "Starting finish_up_dd_submissions items for submission %s" % dd_project.submission_id
             logit.log(msg)
@@ -816,39 +817,30 @@ class SubmissionsPOMS:
             ]
         elif data_handling_service == "data_dispatcher":
             if submission.data_dispatcher_project_idx:
-                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx).all()
+                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx).all()
             else:
-                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(
+                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
                         DataDispatcherSubmission.experiment == cs.experiment,
                         DataDispatcherSubmission.submission_id == submission.submission_id
                     ).all()
-            (
-                total,
-                initial,
-                done,
-                failed,
-                reserved,
-                unknown,
-                submitted,
-                parents,
-                children,
-                statistics,
-                project_id
-            ) = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
+            details = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions).get(submission.submission_id, None)
             i = 0
-            listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, project_id[i])
+            if "project_id" in details:
+                listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_id", 0))
+            else:
+                listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
             statuses = [
-                ["Total Files in Dataset: ",statistics[i].get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (total[i])],
-                ["Submission % Completed: ", statistics[i].get("pct_complete", "0%"), listfiles],
-                ["Available output: ",statistics[i].get("children", 0), listfiles + "&querying=output&mc_query=%s" % children[i]],
-                ["Parents: ",statistics[i].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % parents[i]],
-                ["Submitted: ",statistics[i].get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % submitted[i]],
-                ["Not Submitted: ",statistics[i].get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % initial[i]],
-                ["Unknown: ", statistics[i].get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % unknown[i]],
-                ["Done: ", statistics[i].get("done", 0), listfiles  + "&querying=done&mc_query=%s" % done[i]],
-                ["Failed: ", statistics[i].get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % failed[i]],
-                ["Children: ", statistics[i].get("children", 0), listfiles  + "&querying=children&mc_query=%s" % children[i]],
-                ["Reserved: ", statistics[i].get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % reserved[i]],
+                ["Total Files in Dataset: ",details["statistics"].get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
+                ["Submission % Completed: ", details["statistics"].get("pct_complete", "0%"), listfiles],
+                ["Available output: ",details["statistics"].get("children", 0), listfiles + "&querying=output&mc_query=%s" % details.get("children", None)],
+                ["Parents: ",details["statistics"].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % details.get("parents", None)],
+                ["Submitted: ",details["statistics"].get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % details.get("submitted", None)],
+                ["Not Submitted: ",details["statistics"].get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
+                ["Unknown: ", details["statistics"].get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % details.get("unknown", None)],
+                ["Done: ", details["statistics"].get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
+                ["Failed: ", details["statistics"].get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % details.get("failed", None)],
+                ["Children: ", details["statistics"].get("children", 0), listfiles  + "&querying=children&mc_query=%s" % details.get("children", None)],
+                ["Reserved: ", details["statistics"].get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
             ]
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
@@ -886,7 +878,7 @@ class SubmissionsPOMS:
             .all()
         )
 
-        running_sids =  self.flatten_submission_ids(running_sids_results)
+        running_sids = self.flatten_submission_ids(running_sids_results)
 
         if cl and cl != "None":
 
@@ -974,59 +966,61 @@ class SubmissionsPOMS:
     
      # h3. update_submissions
     def update_submissions(self, ctx, data=None):
+        retval = {}
         try:
-            retval = {}
-            submission_ids = list(map(int,data.keys()))
+            logit.log("SubmissionsPOMS | update_submissions | All data: %s" % data)
+            data = {int(key): val for key,val in data.items()}
+            submission_ids = list(set(data.keys()))
             logit.log("SubmissionsPOMS | update_submissions | All submission_ids: %s" % submission_ids)
-            dd_task_ids = [val.get("dd_task_id") for val in data.values() if val.get("dd_task_id", None)]
-            submissions = ctx.db.query(Submission).filter(Submission.submission_id in submission_ids).with_for_update(read=True).all()
-            dd_tasks = {
-                    dd_task.data_dispatcher_project_idx: dd_task 
-                    for dd_task in ctx.db.query(DataDispatcherSubmission)
-                        .filter(DataDispatcherSubmission.data_dispatcher_project_idx in dd_task_ids
-                    ).all()
-                }
+            submissions = ctx.db.query(Submission).filter(Submission.submission_id.in_(submission_ids)).with_for_update(read=True).all()
+            
             if submissions:
                 submission_statuses_to_update = {}
                 for submission in submissions:
                     retval[submission.submission_id] = True
-                    entry = data.get(submission.submission_id,None)
+                    data_entry = data[submission.submission_id]
+                    status = str(data_entry.get("status", None))
                     
-                    dd_task = dd_tasks[entry.get("dd_task_id")] if entry.get("dd_task_id", None) else None
-                    
-                    status = entry.get("status", None)
-                    if status == "Running" and entry.get("pct_complete", None) and float(entry.get("pct_complete")) >= submission.campaign_stage_snapshot_obj.completion_pct:
+                    # Submission updates
+                    print("submission status: sub=%s, status=%s" % (submission.submission_id, status))
+                    if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct:
                         status = "Completed"
                     if status is not None:
                         submission_statuses_to_update[submission.submission_id] = status
+                    if "pct_complete" in data_entry:
+                        submission.pct_complete = data_entry["pct_complete"]
+                    if "jobsub_job_id" in data_entry:
+                        submission.jobsub_job_id = data_entry["jobsub_job_id"]
+                    if "project" in data_entry:
+                        submission.project = data_entry["project"]
                     
-                    def update_fields(item=None, fields=None, field_aliases=None):
-                        changes_made = False
-                        if item and fields:
-                            for field in fields:
-                                data_field = field_aliases.get(field, field) if field_aliases else field
-                                if entry.get(field, None) and getattr(item, data_field) != entry.get(field):
-                                    setattr(item, data_field, entry.get(field))
-                                    logit.log("SubmissionsPOMS | update_submissions | submission_id: %s | updated %s to %s" % (submission.submission_id, data_field, entry.get(field)))
-                                    changes_made = True
-                            if changes_made:
-                                setattr(item, "updated", datetime.now())
-                                ctx.db.add(item)
-                        return changes_made
-                    
-                    
-                    # Update submission and data dispatcher projects as needed
-                    if (update_fields(submission, ["jobsub_job_id", "project", "pct_complete"]) or 
-                        update_fields(dd_task, ["jobsub_job_id","pct_complete", "dd_status", "dd_project_id"], {"dd_status": "status", "dd_project_id": "project_id"})):
-                        ctx.db.commit()
-                    
-                    del data[submission.submission_id]
-            
+                    # Data dispatcher updates
+                    if "dd_task_id" in data_entry:
+                        data_entry["dd_task_id"] = int(data_entry["dd_task_id"])
+                        if submission.data_dispatcher_project_idx != data_entry["dd_task_id"]:
+                            submission.data_dispatcher_project_idx = data_entry["dd_task_id"]
+                            ctx.db.commit()
+                        dd_task = submission.data_dispatcher_submission_obj
+                        if "jobsub_job_id" in data_entry:
+                            dd_task.jobsub_job_id = data_entry["jobsub_job_id"]
+                        if "pct_complete" in data_entry:
+                            dd_task.pct_complete = data_entry["pct_complete"]
+                        if "dd_status" in data_entry:
+                            dd_task.status = data_entry["dd_status"]
+                        if "dd_project_id" in data_entry:
+                            data_entry["dd_project_id"] = int(data_entry["dd_project_id"])
+                            dd_task.project_id = data_entry["dd_project_id"]
+                        ctx.db.add(dd_task)
+                        
+                        
+                    ctx.db.commit()
+                    del data[submission.submission_id] 
                 if len(submission_statuses_to_update) > 0:
                     self.update_submission_statuses(ctx, submission_statuses_to_update)
-            
+                    ctx.db.commit()
             for unprocessed in list(data.keys()):
                 retval[unprocessed] = False
+
         except Exception as e:
             logit.log("SubmissionsPOMS | update_submissions | exception: %s" % e)
             return {"status": "Fail", "response": e}
@@ -1042,7 +1036,7 @@ class SubmissionsPOMS:
 
         submissions = (
             ctx.db.query(Submission)
-            .filter(Submission.submission_id in list(data.keys()))
+            .filter(Submission.submission_id.in_(list(data.keys())))
             .order_by(Submission.submission_id)
             .with_for_update(read=True)
             .all()
@@ -1050,20 +1044,20 @@ class SubmissionsPOMS:
         
         known_statuses = {status.status:status.status_id for status in ctx.db.query(SubmissionStatus).all()}
         latest_submission_histories = self.get_last_histories(ctx, list(data.keys()))
-        
         for submission in submissions:
             # don't mark recovery jobs Failed -- they get just
             # the jobs that didn't pass the original submission,
             # the recovery is still a success even if they all fail again.
             
             lasthist = latest_submission_histories.get(submission.submission_id, None)
-                
+            
             status = data[submission.submission_id]
             if status == "Failed" and submission.recovery_tasks_parent:
                 status = "Completed"
             status_id = known_statuses.get(status, None)
+            print("sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist))
             if not status_id:
-                # not a known status, go to next entry
+                # not a known status, go to next data_entry
                 continue
 
             logit.log(
@@ -1076,7 +1070,10 @@ class SubmissionsPOMS:
             # note that we *intentionally don't* have LaunchFailed here, as we
             # *could*  have a launch that took a Really Long Time, and we might
             # have falsely concluded that the launch failed...
-            final_states = (self.status_Located, self.status_Removed, self.status_Failed)
+            if submission.data_dispatcher_submission_obj:
+                final_states = (self.status_Completed, self.status_Removed, self.status_Failed, self.status_Cancelled)
+            else:
+                final_states = (self.status_Located, self.status_Removed, self.status_Failed, self.status_Cancelled)
             if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
                 return
 
@@ -1721,6 +1718,7 @@ class SubmissionsPOMS:
         if not dd_project_idx and cs.data_dispatcher_project_id:
             dd_project_override = True
             dd_project = ctx.db.query(DataDispatcherSubmission).filter(and_(
+                DataDispatcherSubmission.archive == False,
                 DataDispatcherSubmission.experiment == cs.experiment,
                 DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
                 DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).one_or_none()
@@ -1736,7 +1734,7 @@ class SubmissionsPOMS:
             dataset = dataset_override
             if do_data_dispatcher and dd_project_idx and not dd_project_override:
                 # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
-                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
+                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
                 
         else:
             if not do_data_dispatcher:
@@ -1749,9 +1747,9 @@ class SubmissionsPOMS:
                         if dd_project.named_dataset:
                             dataset = dd_project.named_dataset
                         elif dd_project.project_id:
-                            dataset = "project_id: %s" % dd_project.project_id
+                            dataset = "project_id:%s" % dd_project.project_id
                         elif dd_project.data_dispatcher_project_idx:
-                            dataset = "project_idx: %s" % dd_project.data_dispatcher_project_idx
+                            dataset = "project_idx:%s" % dd_project.data_dispatcher_project_idx
                         else:
                             dataset = None
                             
@@ -1879,7 +1877,7 @@ class SubmissionsPOMS:
                 
             else:
                 if dd_project_override and not dd_project: 
-                    dd_project = ctx.dmr_service.get_project_for_submission(dd_project_id,
+                    dd_project = ctx.dmr_service.get_project_for_submission(cs.data_dispatcher_project_id,
                                                         experiment= exp,
                                                         role=cs.vo_role,
                                                         campaign_id=cid, 
@@ -1944,7 +1942,7 @@ class SubmissionsPOMS:
             if dd_project:
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_TASK_ID=%s;" % dd_project.data_dispatcher_project_idx)
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
-                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET=\"%s\";" % dd_project.named_dataset)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % dd_project.named_dataset)
                 
                 if cs.data_dispatcher_dataset_only:
                     data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PARAMETER=\"%s\";" % dd_project.named_dataset) #TODO

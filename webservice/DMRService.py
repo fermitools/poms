@@ -227,11 +227,12 @@ class DMRService:
             False
     
     def begin_services(self, service="all"):
-        try:
-            services_logged_in = {
+        services_logged_in = {
                 "data_dispatcher":False,
                 "metacat":False, 
             }
+        try:
+            logit.log("DMR Service | Begin Services %s" % service)
             if service == "all" or service == "data_dispatcher":
                 dd_info = None
                 if os.stat(self.dd_token_file).st_size == 0:
@@ -270,7 +271,7 @@ class DMRService:
                     
         except Exception as e:
             logit.log("DMR Service | System Login | Exception: %s" % repr(e))
-            False
+            return services_logged_in
     
     def session_status(self, auth_type='Auth_Token'):
         try:
@@ -358,7 +359,6 @@ class DMRService:
     
     def get_project_handles(self, project_id, state=None, not_state=None):
         logit.log("DMR-Service  | get_project_handles(%s, %s) | project_id: %s | Begin" % (self.experiment, self.role, project_id))
-        logit.log("DMR-Service  | get_project_handles(%s, %s) | metas | Begin %s" % (self.experiment, self.role, list(self.metacat_client.query("files from poms_samples:gen15", with_metadata=True, with_provenance=True))))
         retval = None
         msg = "Fail"
         try:
@@ -384,7 +384,7 @@ class DMRService:
             file_handles = project_info.get("file_handles", []) if project_info else None
             files = list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
         elif project_idx:
-            project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == project_idx).first()
+            project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == project_idx).first()
             if project and project.project_id:
                 project_info = self.dd_client.get_project(project_id, True, True)
                 file_handles = project_info.get("file_handles", []) if project_info else None
@@ -439,8 +439,12 @@ class DMRService:
         already_did ={}
         
         if not self.metacat_client and not self.begin_services("metacat").get("metacat", False):
-            retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
-            return list(retvals.values())
+            try:
+                self.set_metacat_client()
+                self.login_metacat()
+            except:
+                retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
+                return list(retvals.values())
         
         
         for dd_project in list(dd_projects):
@@ -559,7 +563,7 @@ class DMRService:
                 mc_query = dd_project.named_dataset if self.is_query(dd_project.named_dataset) else "files from %s" % dd_project.named_dataset,
             else:
                 is_project_submission = True
-                project_info = self.dd_client.get_project(project_id, True)
+                project_info = self.dd_client.get_project(project_id, True, True)
                 file_handles = project_info.get("file_handles", []) if project_info else None
                 all_files = list(self.metacat_client.get_files(file_handles)) if file_handles else []
                 mc_query = "fids %s" % ','.join([file.get("fid") for file in all_files])
@@ -640,10 +644,28 @@ class DMRService:
 
     def calculate_dd_project_completion(self, dd_submission_id = None, dd_submission_ids=None):
         retval = {}
-        task_ids = [dd_submission_id] if dd_submission_id else dd_submission_ids
+        if dd_submission_ids:
+            try:
+                task_ids = list(eval(dd_submission_ids))
+            except:
+                try:
+                    if type(dd_submission_ids) == int or type(dd_submission_ids) == str:
+                        task_ids = [int(dd_submission_ids)]
+                except:
+                    pass
+                
+            
+        else:
+            task_ids = [dd_submission_id] 
+        if not self.dd_client and not self.begin_services("data_dispatcher").get("metacat", False):
+            try:
+                self.set_data_dispatcher_client()
+                self.login_with_x509()
+            except:
+                return retval
         def incr_comp(state):
             return 1 if state in ["done", "failed"] else 0
-        tasks = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx in task_ids).all()
+        tasks = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx.in_(task_ids)).all()
         for task in tasks:
             if task.data_dispatcher_project_idx in retval:
                 continue
@@ -711,7 +733,7 @@ class DMRService:
                 logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | fail: no database access" % (self.experiment, format))
                 return {}
             
-            query = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.experiment == self.experiment)
+            query = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.experiment == self.experiment)
             searchList = ["experiment=%s" % self.experiment]
             if kwargs.get("project_id", None):
                 # Project id is known, so only one result would exist
@@ -944,7 +966,7 @@ class DMRService:
             "Awaiting Approval": "Submission Awaiting Approval",
             "Cancelled": "Submission Cancelled"
         }
-        dd_project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).first()
+        dd_project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).first()
         if dd_project:
             dd_project.status = dd_status_map.get(status, None)
             dd_project.updater = ctx.get_experimenter_id()

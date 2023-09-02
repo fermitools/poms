@@ -179,7 +179,7 @@ class FilesStatus:
                 datarows.append(row)
                 
         elif data_handling_service == "data_dispatcher":
-            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(
+            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
                     DataDispatcherSubmission.experiment == cs.experiment,
                     DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
                 ).all()
@@ -265,19 +265,19 @@ class FilesStatus:
             if dims:
                 flist = sam_specifics(ctx).list_files(dims)
             else:
-                info = "%s files in project_id%s" % (querying.capitalize(), ": %s<br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
+                info = "%s files in project_id%s" % (querying.capitalize(), ": %s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
             if project_id:
                 data_handler = "data_dispatcher"
                 querying = querying.capitalize()
                 fdict, did_all = ctx.dmr_service.list_file_urls(project_id=project_id, mc_query=mc_query)
                 if did_all:
-                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
             elif project_idx:
                 data_handler = "data_dispatcher"
                 querying = querying.capitalize()
                 fdict, did_all = ctx.dmr_service.list_file_urls(project_idx=project_idx, mc_query=mc_query)
                 if did_all:
-                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
         except ValueError:
             flist = deque()
         return flist, data_handler, fdict, info

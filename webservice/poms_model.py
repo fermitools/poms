@@ -2,12 +2,13 @@
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
 
 # from sqlalchemy import Table
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Query, Session
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+import os
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -113,10 +114,23 @@ class CampaignStage(Base):
         secondaryjoin="CampaignStage.campaign_stage_id==CampaignDependency.needs_campaign_stage_id",
         backref="consumers",
     )
-    
+
+class FilterOutArchived(Query):
+    _sa_instance_state = "FilterOutArchived"
+    _added_archive_filter = False
+    def filter(self, *criterion):
+        if any("data_dispatcher_submissions" in str(c) for c in criterion):
+            if not self._added_archive_filter:
+                #criterion += (DataDispatcherSubmission.archive == False,)
+                self._added_archive_filter = True
+        return super(FilterOutArchived, self).filter(*criterion)
+
+ 
+
     
 class DataDispatcherSubmission(Base):
     __tablename__ = "data_dispatcher_submissions"
+
     data_dispatcher_project_idx = Column(Integer, primary_key=True, server_default="")
     project_id = Column(Integer, nullable=False)
     project_name = Column(Text)
@@ -146,13 +160,15 @@ class DataDispatcherSubmission(Base):
     named_dataset = Column(Text)
     pct_complete = Column(Float, nullable=False,default=0)
     status = Column(Text)
+    splits_reset = Column(Boolean,nullable=False, default=False) # tells poms not to use files from these splits
+    archive = Column(Boolean,nullable=False, default=False) # dont show in poms
     
     submission_obj = relationship("Submission", foreign_keys=submission_id)
     campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="DataDispatcherSubmission.creator == Experimenter.experimenter_id")
-    
+
     
 class Experimenter(Base):
     __tablename__ = "experimenters"

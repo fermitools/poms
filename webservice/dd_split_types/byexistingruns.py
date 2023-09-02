@@ -26,6 +26,7 @@ class byexistingruns:
         fids_already_processed = []
         if self.cs.cs_last_split > 0:
             for project in self.db.query(DataDispatcherSubmission).filter(and_(
+                        DataDispatcherSubmission.archive == False,
                         DataDispatcherSubmission.experiment == self.cs.experiment,
                         DataDispatcherSubmission.vo_role == self.cs.vo_role,
                         DataDispatcherSubmission.campaign_id == self.cs.campaign_id,
@@ -85,6 +86,7 @@ class byexistingruns:
     def len(self):
         # WAG of 2 files per run...
         dd_project = self.db.query(DataDispatcherSubmission).filter(and_(
+                        DataDispatcherSubmission.archive == False,
                         DataDispatcherSubmission.experiment == self.cs.experiment,
                         DataDispatcherSubmission.vo_role == self.cs.vo_role,
                         DataDispatcherSubmission.campaign_id == self.cs.campaign_id,
