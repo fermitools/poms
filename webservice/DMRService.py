@@ -15,7 +15,7 @@ from data_dispatcher.api import DataDispatcherClient
 from metacat.webapi import MetaCatClient
 from poms_model import DataDispatcherSubmission
 from urllib.parse import unquote, urlencode
-from rucio.client import Client as RucioClient
+#from rucio.client import Client as RucioClient
 from sqlalchemy import and_, distinct, desc
 from sqlalchemy.orm.attributes import flag_modified
 config = configparser.ConfigParser()
