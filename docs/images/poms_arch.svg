@@ -1,0 +1,193 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5 -->
+<!-- CreationDate: Fri Jun 12 15:35:00 2015 -->
+<!-- Magnification: 1.000 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="5.8in" height="3.5in" viewBox="2838 225 6973 4212">
+<g style="stroke-width:.025in; stroke:black; fill:none">
+<!-- Line: box -->
+<rect x="8400" y="675" width="675" height="600" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="8325" y="600" width="825" height="750" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="8100" y="1425" width="1200" height="75" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="8400" y="2250" width="675" height="600" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="8325" y="2175" width="825" height="750" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="8100" y="3000" width="1200" height="75" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Ellipse -->
+<ellipse transform="translate(4275,1200) rotate(-0.00000000)" rx="450" ry="150"
+ style="stroke:#000000;stroke-width:7;"/>
+<!-- Ellipse -->
+<ellipse transform="translate(4275,1800) rotate(-0.00000000)" rx="450" ry="150"
+ style="stroke:#000000;stroke-width:7;"/>
+<!-- Line -->
+<polyline points="3825,1200
+3825,1875
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line -->
+<polyline points="4725,1200
+4725,1800
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="5775" y="3750" width="1275" height="675" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="6000" y="4020" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Jobsub</text>
+<!-- Text -->
+<text xml:space="preserve" x="6000" y="4196" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Service</text>
+<!-- Line: box -->
+<rect x="3825" y="3750" width="1275" height="675" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="4125" y="3975" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">SAM File</text>
+<!-- Text -->
+<text xml:space="preserve" x="4125" y="4170" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Transfer </text>
+<!-- Text -->
+<text xml:space="preserve" x="4125" y="4365" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Service</text>
+<!-- Line: box -->
+<rect x="4125" y="2700" width="825" height="375" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="4275" y="2925" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">broker</text>
+<!-- Line: box -->
+<rect x="5925" y="2700" width="825" height="375" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="6075" y="2925" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">broker</text>
+<!-- Line: box -->
+<rect x="6825" y="2700" width="825" height="375" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="6975" y="2925" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">broker</text>
+<!-- Line: box -->
+<rect x="5775" y="1650" width="1425" height="600" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line -->
+<polyline points="8325,975
+7125,1950
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="8325,2625
+7200,1950
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="6300,2250
+6300,2700
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="6300,3075
+6300,3675
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="6300,2250
+4950,2775
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="4500,3075
+4500,3750
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="4725,1425
+5775,1950
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line: box -->
+<rect x="2850" y="3750" width="825" height="675" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Line -->
+<polyline points="4425,3075
+3525,3750
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line: box -->
+<rect x="2925" y="450" width="4875" height="3000" rx="105" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:10 30;"/>
+<!-- Line -->
+<polyline points="7200,3075
+7800,3750
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line -->
+<polyline points="6300,2250
+7125,2700
+" style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:40 40;"/>
+<!-- Line: box -->
+<rect x="7425" y="3750" width="1050" height="675" rx="0" 
+style="stroke:#000000;stroke-width:7;
+stroke-linejoin:miter; stroke-linecap:butt;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="6000" y="2025" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Web Service</text>
+<!-- Text -->
+<text xml:space="preserve" x="3450" y="975" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Management Database</text>
+<!-- Text -->
+<text xml:space="preserve" x="8250" y="525" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">OPOS display</text>
+<!-- Text -->
+<text xml:space="preserve" x="7950" y="2100" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Experimenter Display</text>
+<!-- Text -->
+<text xml:space="preserve" x="3075" y="375" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">POMS </text>
+<!-- Text -->
+<text xml:space="preserve" x="3000" y="4050" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="144" text-anchor="start">SAM-web</text>
+<!-- Text -->
+<text xml:space="preserve" x="7575" y="3975" stroke="#000000" fill="#000000"  font-family="Times" font-style="normal" font-weight="normal" font-size="144" text-anchor="start">FIFEmon</text>
+</g>
+</svg>

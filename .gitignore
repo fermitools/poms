@@ -26,6 +26,7 @@ poms.dbs
 /poms_config
 /test/data/*
 poms.egg-info/
+docs/internals
 tmp
 .DS_Store
 __pycache__

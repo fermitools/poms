@@ -1,0 +1,137 @@
+#!/bin/sh
+
+do_unsetup=false
+patch_venv=
+
+if [ "x$X_SCLS" != "x" ]
+then
+    echo "ERROR: Cannot extract setup from inside an scl_enabled session!" >&2
+    exit 1
+fi
+
+case "x$1" in
+x-u) do_unsetup=true; shift;;
+x-p) patch_venv="$2"; shift; shift;;
+esac
+
+t1=/tmp/t1$$
+t2=/tmp/t2$$
+
+printenv | sort > $t1
+echo "Extracting setup for $*" >&2
+scl enable "$@" /usr/bin/printenv | sort > $t2
+
+save_var() {
+   set $1
+   ev="$1"
+   echo "_OLD_SCL_$ev=\"\$$ev\""
+}
+
+unsave_var() {
+   set $1
+   ev="$1"
+   echo "if [ -n \"\$_OLD_SCL_$ev\" ] ; then"
+   echo "    $ev=\"\$_OLD_SCL_$ev\""
+   echo "    export $ev"
+   echo "    unset _OLD_SCL_$ev"
+   echo "fi"
+}
+
+trim_var() {
+   set $1
+   ev="$1"
+   eval evv=\"\$$ev\"
+   shift
+   sep=""
+   res=""
+   for p in $*
+   do
+        case ":$evv:" in
+        *:$p:*) ;; # already there, skip
+        *)      res="$res$sep$p" 
+                sep=":"
+                ;;
+       esac
+   done
+   echo "$ev=\"$res$sep\$$ev\""
+   echo "export $ev"
+}
+
+print_setup() {
+    echo "#"
+    echo "# setup actions from scl_extract_setup"
+    echo "#"
+    comm -3 -1 $t1 $t2 | 
+        while read line
+        do
+            case "$line" in
+            *=*:*)  # PATH-ish entry
+                    IFS="=:$IFS" save_var "$line"
+                    IFS="=:$IFS" trim_var "$line"
+                    echo
+                    ;;
+            *)      # plain entry
+                    IFS="=:$IFS" save_var "$line"
+                    echo "export \"$line\""
+                    echo
+                    ;;
+            esac
+        done
+    echo "#"
+    echo "# end setup actions from scl_extract_setup"
+    echo "#"
+}
+
+print_unsetup() {
+    echo "#"
+    echo "# unsetup actions from scl_extract_setup"
+    echo "#"
+    comm -3 -1 $t1 $t2 | 
+        while read line
+        do
+            IFS="=:$IFS" unsave_var "$line"
+        done
+    echo "#"
+    echo "# end unsetup actions from scl_extract_setup"
+    echo "#"
+}
+
+patch_venv() {
+   ac="$1/bin/activate"
+   echo "changing activate: $ac" >&2
+   while IFS="" read line
+   do
+       case "$line" in
+       *if*-n*_OLD_VIRTUAL_PATH*)
+            echo "saw unsetup start: $line" >&2
+            print_unsetup | sed -e 's/^/    /'
+            echo "$line"
+            ;;
+       *alias\ pydoc*)
+            echo "saw setup start: $line" >&2
+            print_setup
+            echo 'PATH=$VIRTUAL_ENV/bin:$PATH'
+            echo 'export PATH'
+            echo "$line"
+            ;;
+       *)
+            echo "$line"
+            ;;
+       esac
+   done < $ac > $ac.new
+   ln $ac $ac.bak
+   mv $ac.new $ac
+}
+
+if [ "x$patch_venv" != "x" ]
+then
+    echo "Patching virtualenv $patch_venv" >&2
+    patch_venv "$patch_venv"
+elif $do_unsetup
+then
+    print_unsetup
+else
+    print_setup
+fi
+
+rm $t1 $t2

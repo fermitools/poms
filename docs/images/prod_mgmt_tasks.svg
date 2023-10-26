@@ -1,0 +1,193 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5 -->
+<!-- CreationDate: Wed May 27 14:11:52 2015 -->
+<!-- Magnification: 1.000 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="8.6in" height="6.7in" viewBox="578 480 10319 8092">
+<g style="stroke-width:.025in; stroke:black; fill:none">
+<!-- Line: box -->
+<rect x="4425" y="4650" width="4275" height="2400" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Arc -->
+<path style="stroke:#803000;stroke-width:15;stroke-linecap:butt;fill:#ffffff"
+d="M 6000,6225 A 1180 1180  0  0  0  7275  6525 " />
+<!-- Line: box -->
+<rect x="7275" y="5850" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="4500" y="4950" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Task</text>
+<!-- Text -->
+<text xml:space="preserve" x="7350" y="6075" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask2</text>
+<!-- Text -->
+<text xml:space="preserve" x="5550" y="6750" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">depends_on</text>
+<!-- Line: box -->
+<rect x="3750" y="5025" width="4275" height="2400" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="6600" y="6225" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="6675" y="6450" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask2</text>
+<!-- Arc -->
+<path style="stroke:#803000;stroke-width:15;stroke-linecap:butt;fill:#ffffff"
+d="M 5325,6600 A 1180 1180  0  0  0  6600  6900 " />
+<!-- Arc -->
+<path style="stroke:#803000;stroke-width:15;stroke-linecap:butt;fill:#ffffff"
+d="M 4575,7125 A 1180 1180  0  0  0  5850  7425 " />
+<!-- Line: box -->
+<rect x="3825" y="6150" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="3000" y="5550" width="4275" height="2400" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="5850" y="6750" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="3825" y="5325" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Task</text>
+<!-- Text -->
+<text xml:space="preserve" x="4875" y="7125" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">depends_on</text>
+<!-- Text -->
+<text xml:space="preserve" x="3075" y="5850" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Task</text>
+<!-- Text -->
+<text xml:space="preserve" x="3900" y="6375" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask1</text>
+<!-- Text -->
+<text xml:space="preserve" x="5925" y="6975" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask2</text>
+<!-- Text -->
+<text xml:space="preserve" x="4125" y="7650" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">depends_on</text>
+<!-- Line: box -->
+<rect x="1950" y="975" width="4275" height="2400" rx="105" 
+style="stroke:#0000b0;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="2025" y="6150" width="4275" height="2400" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Arc -->
+<path style="stroke:#0000b0;stroke-width:15;stroke-linecap:butt;fill:#ffffff"
+d="M 3525,2550 A 1180 1180  0  0  0  4800  2850 " />
+<!-- Line: box -->
+<rect x="2775" y="1575" width="1275" height="975" rx="105" 
+style="stroke:#0000b0;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="4800" y="2175" width="1275" height="975" rx="105" 
+style="stroke:#0000b0;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="2025" y="1275" stroke="#0000b0" fill="#0000b0"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Task</text>
+<!-- Text -->
+<text xml:space="preserve" x="2850" y="1800" stroke="#0000b0" fill="#0000b0"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask1</text>
+<!-- Text -->
+<text xml:space="preserve" x="4875" y="2400" stroke="#0000b0" fill="#0000b0"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask2</text>
+<!-- Text -->
+<text xml:space="preserve" x="3075" y="3075" stroke="#0000b0" fill="#0000b0"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">depends_on</text>
+<!-- Text -->
+<text xml:space="preserve" x="675" y="675" stroke="#0000b0" fill="#0000b0"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Campaign level</text>
+<!-- Arc -->
+<path style="stroke:#803000;stroke-width:15;stroke-linecap:butt;fill:#ffffff"
+d="M 3600,7725 A 1180 1180  0  0  0  4875  8025 " />
+<!-- Line: box -->
+<rect x="2850" y="6750" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line: box -->
+<rect x="4875" y="7350" width="1275" height="975" rx="105" 
+style="stroke:#803000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="2100" y="6450" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Task</text>
+<!-- Text -->
+<text xml:space="preserve" x="2925" y="6975" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask1</text>
+<!-- Text -->
+<text xml:space="preserve" x="4950" y="7575" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Subtask2</text>
+<!-- Text -->
+<text xml:space="preserve" x="3150" y="8250" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">depends_on</text>
+<!-- Text -->
+<text xml:space="preserve" x="675" y="4275" stroke="#803000" fill="#803000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">Batch level</text>
+<!-- Line: box -->
+<rect x="3150" y="3975" width="1275" height="375" rx="0" 
+style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line -->
+<polyline points="3750,3375
+3750,3975
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line -->
+<polyline points="3675,4350
+4425,4725
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line -->
+<polyline points="3675,4350
+3825,5025
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line -->
+<polyline points="3675,4350
+3300,5550
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Line -->
+<polyline points="3675,4350
+2400,6150
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+fill:#ffffff;
+"/>
+<!-- Text -->
+<text xml:space="preserve" x="3300" y="4200" stroke="#000000" fill="#000000"  font-family="Helvetica" font-style="normal" font-weight="normal" font-size="168" text-anchor="start">4 subsets</text>
+<!-- Line -->
+<polyline points="600,3975
+10500,3975
+10875,3975
+" style="stroke:#000000;stroke-width:15;
+stroke-linejoin:miter; stroke-linecap:butt;
+stroke-dasharray:10 45;"/>
+</g>
+</svg>
