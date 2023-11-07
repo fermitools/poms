@@ -442,8 +442,10 @@ class SubmissionsPOMS:
 
         if parent_submission_id is not None and parent_submission_id != "None":
             s.recovery_tasks_parent = int(parent_submission_id)
-
-        self.poms_service.miscPOMS.snapshot_parts(ctx, s, s.campaign_stage_id)
+        keywords = None
+        if cs.campaign_obj and cs.campaign_obj.campaign_keywords:
+            keywords = cs.campaign_obj.campaign_keywords
+        self.poms_service.miscPOMS.snapshot_parts(ctx, s, s.campaign_stage_id, keywords)
 
         ctx.db.add(s)
         ctx.db.flush()

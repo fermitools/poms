@@ -33,3 +33,5 @@ __pycache__
 fife_wrap.py
 fife_wrap
 submission_broker/submission_broker_uwsgi.ini
+bin/db_equalizer.py
+bin/db_equalizing_script.sql
