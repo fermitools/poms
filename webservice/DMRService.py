@@ -22,7 +22,6 @@ config = configparser.ConfigParser()
 config.read(os.environ.get("WEB_CONFIG","/home/poms/poms/webservice/poms.ini"))
 PIPE = -1
 
-
 def timestamp_to_readable(timestamp):
     if type(timestamp) != type(datetime.datetime):
         readable_format = timestamp.strftime("%A, %B %d, %Y")

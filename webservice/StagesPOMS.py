@@ -629,8 +629,8 @@ class StagesPOMS:
 
         csq = (
             ctx.db.query(CampaignStage)
-            .options(joinedload("experiment_obj"))
-            .options(joinedload("campaign_obj"))
+            .options(joinedload(CampaignStage.experiment_obj))
+            .options(joinedload(CampaignStage.campaign_obj))
             .options(joinedload(CampaignStage.experimenter_holder_obj))
             .options(joinedload(CampaignStage.experimenter_creator_obj))
             .options(joinedload(CampaignStage.experimenter_updater_obj))
@@ -1000,7 +1000,7 @@ class StagesPOMS:
             
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
-            .join("experimenter_creator_obj")
+            .join(Submission.experimenter_creator_obj)
             .filter(
                 Submission.campaign_stage_id.in_(campaign_stage_ids),
                 SubmissionHistory.submission_id == Submission.submission_id,

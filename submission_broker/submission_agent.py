@@ -782,7 +782,7 @@ def main():
     """
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("-c", "--config", default="./submission_agent.cfg")
+    ap.add_argument("-c", "--config", default=os.environ.get("WEB_CONFIG", "/home/poms/poms/submission_broker/submission_agent.cfg"))
     ap.add_argument("-d", "--debug", action="store_true")
     ap.add_argument("--since", type=str)
     ap.add_argument("-t", "--test", action="store_true", default=False)
@@ -794,17 +794,21 @@ def main():
         logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
     else:
         logging.basicConfig(level=logging.INFO, format="%(asctime)s %(filename)s:%(lineno)s:%(message)s")
-
+    
+    config = args.config
+    if not config:
+        config = os.environ.get("WEB_CONFIG", "/home/poms/poms/submission_broker/submission_agent.cfg")
+    LOGIT.info("Submission Agent | Begin | Config: %s" % config)
     if args.test:
-        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=args.config)
+        agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=config)
         for exp in agent.elist:
             agent.check_submissions(exp, since=args.since)
     elif args.one_time:
-        agent = Agent(config=args.config)
+        agent = Agent(config=config)
         for exp in agent.elist:
             agent.check_submissions(exp, since=args.since)
     else:
-        agent = Agent(config=args.config)
+        agent = Agent(config=config)
         agent.poll(since=args.since)
 
 

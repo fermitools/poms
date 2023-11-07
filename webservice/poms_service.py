@@ -267,17 +267,15 @@ class PomsService:
             return {"project_handles": retval, "msg": "Fail"}
         
     
-    @poms_method()
+    @poms_method(rtype="json")
     def login_data_dispatcher(self, ctx, **kwargs):
         # Assuming user is either logging in the first time, or signing in as someone else,
         # hence, we will reinitialize the service and clear out any session info.
-        if kwargs.get('method', None) == 'password':
-            return ctx.dmr_service.login_with_password(kwargs.get('username', None), kwargs.get('password', None))
-        elif kwargs.get('method', None) == 'x509':
+        try:
             return ctx.dmr_service.login_with_x509()
-        else:
+        except:
             session_details = ctx.dmr_service.session_status()[1]
-            session_details['login_method'] = "Attempted login method: %s" % kwargs.get('method', None)
+            session_details['login_method'] = "Failed x509 login"
             return json.dumps(session_details)
 
     ####################

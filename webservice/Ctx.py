@@ -59,7 +59,7 @@ class Ctx:
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
 
         self.username = username if username else get_user()
-        rows = self.db.execute("select txid_current();")
+        rows = self.db.execute(text("select txid_current();"))
         for r in rows:
             self.dbtransaction = r[0]
         rows.close()

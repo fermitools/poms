@@ -15,7 +15,7 @@ from markupsafe import Markup
 import cherrypy
 from cherrypy.process import plugins
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
@@ -113,8 +113,8 @@ class SATool(cherrypy.Tool):
         cherrypy.request.dmr_service = self.dmr_service
         try:
             # Disabiling pylint false positives
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
             # restart database connection
@@ -123,8 +123,8 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):

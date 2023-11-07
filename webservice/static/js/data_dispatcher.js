@@ -526,49 +526,49 @@ $(document).ready(function() {
         }
     });
 
-    $(`.login_submit`).on(`click`, (e) => {
+    $(`.login_submit`).on(`click`, async function(e){
         e.preventDefault();
-        $.post(`/poms/login_data_dispatcher`,{
-            method: (e.target.id == 'login_password'?'password':'x509'),
-            username: $(`#username`).val(),
-            experiment: $('#session_experiment_id option:selected').html(),
-            password: $(`#password`).val(),
-          }, (data)=>{
-            data = JSON.parse(data);
-            if (data != null){
-                if (data.login_status != null){
-                    $(`#login_status`).html(data.login_status);
-                    if (data.login_status != `Logged in`){
+        await $.ajax({
+            url: `${pomspath}/login_data_dispatcher`,
+            type: 'GET',
+            dataType: 'json',
+            success: function(data){
+                data = JSON.parse(data);
+                if (data != null){
+                    if (data.login_status != null){
+                        $(`#login_status`).html(data.login_status);
+                        if (data.login_status != `Logged in`){
+                            cancelTimestampUpdates=true;
+                            running=false;
+                            $(`#login_method`).html(`N/A`);
+                            $(`#signed-in-user`).html(`N/A`);
+                            $(`#experiment`).html(`N/A`);
+                            $(`#tokenLifespan`).val(``);
+                            $(`#timeTillExpire`).html(`N/A`);
+                        }
+                    }
+                    if(data.login_method != null){
+                        $(`#login_method`).html(data.login_method);
+                    }
+                    if (data.dd_username != null){
+                        $(`#signed-in-user`).html(data.dd_username);
+                    }
+                    if (data.dd_experiment != null){
+                        $(`#experiment`).html(data.dd_experiment);
+                    }
+                    if (data.timestamp != null){
+                        $(`#timeTillExpire`).html(`Loading.`);
+                        showLoading();
                         cancelTimestampUpdates=true;
-                        running=false;
-                        $(`#login_method`).html(`N/A`);
-                        $(`#signed-in-user`).html(`N/A`);
-                        $(`#experiment`).html(`N/A`);
-                        $(`#tokenLifespan`).val(``);
-                        $(`#timeTillExpire`).html(`N/A`);
+                        setTimeout(function() { 
+                            $(`#tokenLifespan`).val(data.timestamp);
+                            cancelTimestampUpdates=false;
+                            updateTimestamp();
+                        }, 2000);
                     }
                 }
-                if(data.login_method != null){
-                    $(`#login_method`).html(data.login_method);
-                }
-                if (data.dd_username != null){
-                    $(`#signed-in-user`).html(data.dd_username);
-                }
-                if (data.dd_experiment != null){
-                    $(`#experiment`).html(data.dd_experiment);
-                }
-                if (data.timestamp != null){
-                    $(`#timeTillExpire`).html(`Loading.`);
-                    showLoading();
-                    cancelTimestampUpdates=true;
-                    setTimeout(function() { 
-                        $(`#tokenLifespan`).val(data.timestamp);
-                        cancelTimestampUpdates=false;
-                        updateTimestamp();
-                     }, 2000);
-                }
-            }
-          });
+            },
+        });
     });
 
     
