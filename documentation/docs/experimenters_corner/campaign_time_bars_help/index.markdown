@@ -1,0 +1,10 @@
+---
+layout: page
+title: Campaign Time Bars Help
+---
+* TOC
+{:toc}
+
+
+This shows each recent Task (which is started by a job submission and is a roll-up of the states of the one or more Jobs in the Task) in the Campaign as a colored timeline in the overall time window of the screen. Status of the task is shown as a colored region, with a key showing the colors for each status.   
+Status values are defined in the [Glossary]({{ site.url }}/docs/glossary). A small table also shows overall job information about the campaign, each number is a link to a jobs table (see [Job Table Help]({{ site.url }}/docs/experimenters_corner/job_table_help)) showing the jobs contributing to that total. Clicking on any of the zero values in the table gives you an empty jobs table, which is particularly uninteresting.
