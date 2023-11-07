@@ -1,5 +1,6 @@
-_site
+helper_functions
 .sass-cache
 .jekyll-cache
 .jekyll-metadata
 vendor
+

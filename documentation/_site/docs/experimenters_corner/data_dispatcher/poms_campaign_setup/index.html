@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en}"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>POMS Campaign_setup | POMS Guide</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="POMS Campaign_setup" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<meta property="og:description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<link rel="canonical" href="https://fermitools.github.io/poms/docs//docs/experimenters_corner/data_dispatcher/poms_campaign_setup/" />
+<meta property="og:url" content="https://fermitools.github.io/poms/docs//docs/experimenters_corner/data_dispatcher/poms_campaign_setup/" />
+<meta property="og:site_name" content="POMS Guide" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="POMS Campaign_setup" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them.","headline":"POMS Campaign_setup","url":"https://fermitools.github.io/poms/docs//docs/experimenters_corner/data_dispatcher/poms_campaign_setup/"}</script>
+<!-- End Jekyll SEO tag -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/assets/poms_docs.js"></script>
+  <link rel="shortcut icon" href="#">
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"><link type="application/atom+xml" rel="alternate" href="https://fermitools.github.io/poms/docs//feed.xml" title="POMS Guide" /></head>
+<header><nav id="toc">
+    <center>
+        <img class="site-logo" src="https://fermitools.github.io/poms/docs//docs/images/poms.jpg"/>
+    </center>
+    <div class="navigation-area">
+        <h3>Navigation</h3>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search...">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+        </div>        
+    </div>
+    <div class="container">
+        <ul id="main-menu">
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/backwards_compatibility/index.html">Backwards Compatibility</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/campaign_editor/index.html">Campaign Editor</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/client_documentation/index.html">Client Documentation</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item has-submenu" >
+                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/index.html">Experimenters Corner</a>
+                        
+                            <ul>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/calendar_help/index.html">Calendar Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_deps_help/index.html">Campaign Deps Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_edit_help/index.html">Campaign Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_info_help/index.html">Campaign Info Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_layer_info/index.html">Campaign Layer Info</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_sheet_help/index.html">Campaign Sheet Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_task_files_help/index.html">Campaign Task Files Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_time_bars_help/index.html">Campaign Time Bars Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dashboard_help/index.html">Dashboard Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item has-submenu">
+                                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/index.html">Data Dispatcher</a>
+                                        
+                                            <ul>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/environment_setup/index.html">Environment Setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/poms_campaign_setup/index.html">POMS Campaign_setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/split_types_and_data_dispatcher_fields/index.html">Split Types and Data Dispatcher Fields</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/tracking_submissions/index.html">Tracking Submissions</a></li>
+                                                
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dataset_split_types/index.html">Dataset Split Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/edit_users_help/index.html">Edit Users Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/editing_job_types/index.html">Editing Job Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/experiment_edit_help/index.html">Experiment Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/fife_newsletter_article/index.html">Fife Newsletter Article</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/file_info_by_submission_help/index.html">File Info By Submission Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/generic_edit_help/index.html">Generic Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/getting_more_memory_in_recovery_jobs/index.html">Getting More Memory In Recovery Jobs</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/held_launches_help/index.html">Held Launches Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_make_snow_request_for_poms/index.html">How To Make Snow Request For Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_use_poms/index.html">How To Use Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_efficiency_histo_help/index.html">Job Efficiency Histo Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_file_contents_help/index.html">Job File Contents Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_table_help/index.html">Job Table Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_campaign_help/index.html">Launch Campaign Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_jobs_help/index.html">Launch Jobs Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_template_edit_help/index.html">Launch Template Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/list_generic_help/index.html">List Generic Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/membership_help/index.html">Membership Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/oidc_auth_help/index.html">Oidc Auth Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/protoDUNE/index.html">Protodune</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/raw_tables_help/index.html">Raw Tables Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/sample_workflow/index.html">Sample Workflow</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/schedule_launch_help/index.html">Schedule Launch Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/search_tags_help/index.html">Search Tags Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/show_campaigns_help/index.html">Show Campaigns Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/submission_details_help/index.html">Submission Details Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/triage_job_help/index.html">Triage Job Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/tutorial_outline/index.html">Tutorial Outline</a>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/frequently_asked_questions/index.html">Frequently Asked Questions</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/glossary/index.html">Glossary</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/gui_workflow_editor_user_guide/index.html">Gui Workflow Editor User Guide</a>
+                        
+                    </li>
+                
+            
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/launch_config_file_templates/index.html">Launch Config File Templates</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/release_notes/index.html">Release Notes</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/user_documentation/index.html">User Documentation</a>
+                        
+                    </li>
+                
+            
+        </ul>
+    </div>
+</nav>
+
+
+  </header>
+  <body>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+<div class="breadcrumbs"></div>
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">POMS Campaign_setup</h1>
+  </header>
+
+  <div class="post-content">
+    <ul id="markdown-toc">
+  <li><a href="#by-campaign-ini-file" id="markdown-toc-by-campaign-ini-file">By Campaign INI File</a>    <ul>
+      <li><a href="#section-campaign" id="markdown-toc-section-campaign">Section: [campaign]</a></li>
+      <li><a href="#section-campaign_stage" id="markdown-toc-section-campaign_stage">Section: [campaign_stage]</a></li>
+    </ul>
+  </li>
+  <li><a href="#by-gui-campaign-editor" id="markdown-toc-by-gui-campaign-editor">By GUI Campaign Editor</a>    <ul>
+      <li><a href="#campaign" id="markdown-toc-campaign">Campaign</a></li>
+      <li><a href="#campaign-stage" id="markdown-toc-campaign-stage">Campaign Stage</a></li>
+    </ul>
+  </li>
+</ul>
+
+<p>Historically, campaigns in POMS have been configured to run exclusively on SAM. However, with some experiments transitioning to Data Dispatcher while others continue to utilize SAM, it’s imperative for experimenters to specify the desired <strong><em>Data Handling Service</em></strong> for each campaign. By default, POMS is configured to operate with SAM, but this setting can be altered during the campaign creation or editing process as follows:</p>
+<h3 id="by-campaign-ini-file">By Campaign INI File</h3>
+<ul>
+  <li>
+    <h4 id="section-campaign">Section: [campaign]</h4>
+    <ul>
+      <li>
+        <p>Designate: <em>data_handling_service</em> = <strong><em>data_dispatcher</em></strong></p>
+
+        <div class="language-ini highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nn">[campaign]</span>
+<span class="py">experiment</span><span class="p">=</span><span class="s">hypot</span>
+<span class="py">poms_role</span><span class="p">=</span><span class="s">analysis</span>
+<span class="py">name</span><span class="p">=</span><span class="s">dd_sample_campaign_1</span>
+<span class="py">data_handling_service</span><span class="p">=</span><span class="s">data_dispatcher</span>
+<span class="py">state</span><span class="p">=</span><span class="s">Active</span>
+<span class="py">campaign_keywords</span><span class="p">=</span><span class="s">{}</span>
+<span class="py">campaign_stage_list</span><span class="p">=</span><span class="s">dd_sample_campaign_stage_1</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h4 id="section-campaign_stage">Section: [campaign_stage]</h4>
+    <ul>
+      <li>Designate <strong>ONE</strong> of the following:</li>
+      <li><em>data_dispatcher_dataset_query</em> = “some mql query” (as string)</li>
+      <li><em>data_dispatcher_project_id</em> = your_project_id (as integer)
+        <div class="language-ini highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="nn">[campaign_stage dd_sample_campaign_stage_1]</span>
+  <span class="py">software_version</span><span class="p">=</span>
+  <span class="py">output_ancestor_depth</span><span class="p">=</span><span class="s">1</span>
+  <span class="py">cs_split_type</span><span class="p">=</span><span class="s">drainingn(5)</span>
+  <span class="py">data_dispatcher_dataset_query</span><span class="p">=</span><span class="s">files from :</span>
+  <span class="py">data_dispatcher_project_id</span><span class="p">=</span>
+  <span class="py">completion_pct</span><span class="p">=</span><span class="s">100.0</span>
+  <span class="py">merge_overrides</span><span class="p">=</span><span class="s">False</span>
+  <span class="py">stage_type</span><span class="p">=</span><span class="s">test</span>
+  <span class="py">default_clear_cronjob</span><span class="p">=</span><span class="s">False</span>
+</code></pre></div>        </div>
+      </li>
+    </ul>
+
+    <blockquote>
+      <p><strong>Note</strong>: The above example defined both <em>data_dispatcher_dataset_query</em> <strong><em>and</em></strong> <em>data_dispatcher_dataset_project_id</em>  for <em>informational purposes only</em></p>
+      <ul>
+        <li>Only one of these should be used for each campaign stage. See <a href="#notes-on-usage-of-data-dispatcher-fields">usage notes</a> below for details.</li>
+      </ul>
+    </blockquote>
+  </li>
+</ul>
+
+<h3 id="by-gui-campaign-editor">By GUI Campaign Editor</h3>
+<ul>
+  <li>
+    <h4 id="campaign">Campaign</h4>
+    <ul>
+      <li>Double click on your campaign
+        <ul>
+          <li>Select <strong><em>data_dispatcher</em></strong> as the <em>data_handling_service</em> by selecting it from the dropdown.</li>
+          <li>Click Save</li>
+        </ul>
+      </li>
+    </ul>
+
+    <center>
+      <img name="Campaign_Editor_1" src="https://fermitools.github.io/poms/docs//docs/images/Campaign_Editor_1.png" />
+      <label style="font-size: 12px;" for="Campaign_Editor_1">
+          <br />
+          <b>Figure 1</b>: Campaign Editor, note the dropdown menu next to <i>data_handling_service</i>
+      </label>
+  </center>
+  </li>
+</ul>
+
+<hr />
+
+<ul>
+  <li>
+    <h4 id="campaign-stage">Campaign Stage</h4>
+    <ul>
+      <li>Enter <em>data_dispatcher_dataset_query</em> <strong>OR</strong> <em>data_dispatcher_project_id</em></li>
+      <li>Click Save
+        <blockquote>
+          <p>By selecting data_dispatcher as the <em>data_handling_service</em>, the remaining campaign setup will follow a flow similar to what users are accustomed to, with a few key differences:</p>
+          <ul>
+            <li><em>sam_dataset_or_split_data</em> is grayed out and cannot be modified.</li>
+            <li>A new field <em>data_dispatcher_dataset_query</em> is now used in place of the sam_dataset. <strong>IMPORTANT</strong>: this should be an MQL query, not a dataset.</li>
+            <li>A new <em>data_dispatcher_project_id</em> exists and takes a numerical value, which is used as the project id for each submission for this stage.</li>
+          </ul>
+        </blockquote>
+      </li>
+    </ul>
+
+    <center>
+      <img name="Campaign_Editor_2" src="https://fermitools.github.io/poms/docs//docs/images/Campaign_Editor_2.png" />
+      <label style="font-size: 12px;" for="Campaign_Editor_2">
+          <br />
+          <b>Figure 2</b>: Campaign Stage Editor, note the new fields: *data_dispatcher_dataset_query* and *data_dispatcher_project_id*
+      </label>
+  </center>
+  </li>
+</ul>
+
+  </div>
+
+</article>
+
+        <button id="back-to-top-button"><i class="fas fa-arrow-up"></i></button>
+      </div>
+    </main>
+  </body>
+</html>

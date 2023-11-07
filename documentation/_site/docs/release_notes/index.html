@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en}"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Release Notes | POMS Guide</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Release Notes" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<meta property="og:description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<link rel="canonical" href="https://fermitools.github.io/poms/docs//docs/release_notes/" />
+<meta property="og:url" content="https://fermitools.github.io/poms/docs//docs/release_notes/" />
+<meta property="og:site_name" content="POMS Guide" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Release Notes" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them.","headline":"Release Notes","url":"https://fermitools.github.io/poms/docs//docs/release_notes/"}</script>
+<!-- End Jekyll SEO tag -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/assets/poms_docs.js"></script>
+  <link rel="shortcut icon" href="#">
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"><link type="application/atom+xml" rel="alternate" href="https://fermitools.github.io/poms/docs//feed.xml" title="POMS Guide" /></head>
+<header><nav id="toc">
+    <center>
+        <img class="site-logo" src="https://fermitools.github.io/poms/docs//docs/images/poms.jpg"/>
+    </center>
+    <div class="navigation-area">
+        <h3>Navigation</h3>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search...">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+        </div>        
+    </div>
+    <div class="container">
+        <ul id="main-menu">
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/backwards_compatibility/index.html">Backwards Compatibility</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/campaign_editor/index.html">Campaign Editor</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/client_documentation/index.html">Client Documentation</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item has-submenu" >
+                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/index.html">Experimenters Corner</a>
+                        
+                            <ul>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/calendar_help/index.html">Calendar Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_deps_help/index.html">Campaign Deps Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_edit_help/index.html">Campaign Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_info_help/index.html">Campaign Info Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_layer_info/index.html">Campaign Layer Info</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_sheet_help/index.html">Campaign Sheet Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_task_files_help/index.html">Campaign Task Files Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_time_bars_help/index.html">Campaign Time Bars Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dashboard_help/index.html">Dashboard Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item has-submenu">
+                                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/index.html">Data Dispatcher</a>
+                                        
+                                            <ul>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/environment_setup/index.html">Environment Setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/poms_campaign_setup/index.html">POMS Campaign_setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/split_types_and_data_dispatcher_fields/index.html">Split Types and Data Dispatcher Fields</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/tracking_submissions/index.html">Tracking Submissions</a></li>
+                                                
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dataset_split_types/index.html">Dataset Split Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/edit_users_help/index.html">Edit Users Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/editing_job_types/index.html">Editing Job Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/experiment_edit_help/index.html">Experiment Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/fife_newsletter_article/index.html">Fife Newsletter Article</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/file_info_by_submission_help/index.html">File Info By Submission Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/generic_edit_help/index.html">Generic Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/getting_more_memory_in_recovery_jobs/index.html">Getting More Memory In Recovery Jobs</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/held_launches_help/index.html">Held Launches Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_make_snow_request_for_poms/index.html">How To Make Snow Request For Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_use_poms/index.html">How To Use Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_efficiency_histo_help/index.html">Job Efficiency Histo Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_file_contents_help/index.html">Job File Contents Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_table_help/index.html">Job Table Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_campaign_help/index.html">Launch Campaign Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_jobs_help/index.html">Launch Jobs Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_template_edit_help/index.html">Launch Template Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/list_generic_help/index.html">List Generic Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/membership_help/index.html">Membership Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/oidc_auth_help/index.html">Oidc Auth Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/protoDUNE/index.html">Protodune</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/raw_tables_help/index.html">Raw Tables Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/sample_workflow/index.html">Sample Workflow</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/schedule_launch_help/index.html">Schedule Launch Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/search_tags_help/index.html">Search Tags Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/show_campaigns_help/index.html">Show Campaigns Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/submission_details_help/index.html">Submission Details Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/triage_job_help/index.html">Triage Job Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/tutorial_outline/index.html">Tutorial Outline</a>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/frequently_asked_questions/index.html">Frequently Asked Questions</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/glossary/index.html">Glossary</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/gui_workflow_editor_user_guide/index.html">Gui Workflow Editor User Guide</a>
+                        
+                    </li>
+                
+            
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/launch_config_file_templates/index.html">Launch Config File Templates</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/release_notes/index.html">Release Notes</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/user_documentation/index.html">User Documentation</a>
+                        
+                    </li>
+                
+            
+        </ul>
+    </div>
+</nav>
+
+
+  </header>
+  <body>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+<div class="breadcrumbs"></div>
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Release Notes</h1>
+  </header>
+
+  <div class="post-content">
+    <ul id="markdown-toc">
+  <li><a href="#v4_1_1" id="markdown-toc-v4_1_1">v4_1_1</a>    <ul>
+      <li><a href="#notable-features" id="markdown-toc-notable-features">Notable Features</a></li>
+      <li><a href="#bugs-fixed" id="markdown-toc-bugs-fixed">Bugs Fixed</a></li>
+      <li><a href="#new-features" id="markdown-toc-new-features">New Features</a></li>
+      <li><a href="#new-tasks-and-ideas" id="markdown-toc-new-tasks-and-ideas">New Tasks and Ideas</a></li>
+    </ul>
+  </li>
+  <li><a href="#v4_1" id="markdown-toc-v4_1">v4_1</a>    <ul>
+      <li><a href="#major-features" id="markdown-toc-major-features">Major Features</a></li>
+      <li><a href="#bugs-fixed-1" id="markdown-toc-bugs-fixed-1">Bugs Fixed</a></li>
+      <li><a href="#new-features-1" id="markdown-toc-new-features-1">New Features</a></li>
+      <li><a href="#new-tasks" id="markdown-toc-new-tasks">New Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v4_0_2" id="markdown-toc-v4_0_2">v4_0_2</a>    <ul>
+      <li><a href="#major-features-1" id="markdown-toc-major-features-1">Major Features</a></li>
+      <li><a href="#bugs-fixed-2" id="markdown-toc-bugs-fixed-2">Bugs Fixed</a></li>
+      <li><a href="#new-featurestasks" id="markdown-toc-new-featurestasks">New Features/Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v4_0_1" id="markdown-toc-v4_0_1">v4_0_1</a>    <ul>
+      <li><a href="#major-features-2" id="markdown-toc-major-features-2">Major Features</a></li>
+      <li><a href="#bugs-fixed-3" id="markdown-toc-bugs-fixed-3">Bugs Fixed</a></li>
+      <li><a href="#new-featurestasks-1" id="markdown-toc-new-featurestasks-1">New Features/Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v4_0_0" id="markdown-toc-v4_0_0">v4_0_0</a>    <ul>
+      <li><a href="#major-features-3" id="markdown-toc-major-features-3">Major Features</a></li>
+      <li><a href="#bugs-fixed-4" id="markdown-toc-bugs-fixed-4">Bugs Fixed</a></li>
+      <li><a href="#new-featurestasks-2" id="markdown-toc-new-featurestasks-2">New Features/Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v3_1_0" id="markdown-toc-v3_1_0">v3_1_0</a>    <ul>
+      <li><a href="#bugs-fixed-5" id="markdown-toc-bugs-fixed-5">Bugs Fixed</a></li>
+      <li><a href="#new-featurestasks-3" id="markdown-toc-new-featurestasks-3">New Features/Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v3_0_0" id="markdown-toc-v3_0_0">v3_0_0</a>    <ul>
+      <li><a href="#bugs-fixed-6" id="markdown-toc-bugs-fixed-6">Bugs Fixed</a></li>
+      <li><a href="#new-featurestasks-4" id="markdown-toc-new-featurestasks-4">New Features/Tasks</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_3_0" id="markdown-toc-v2_3_0">v2_3_0</a>    <ul>
+      <li><a href="#bugs-fixed-7" id="markdown-toc-bugs-fixed-7">Bugs Fixed</a></li>
+      <li><a href="#new-features-2" id="markdown-toc-new-features-2">New Features</a></li>
+      <li><a href="#improvements" id="markdown-toc-improvements">Improvements</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_2_1" id="markdown-toc-v2_2_1">v2_2_1</a>    <ul>
+      <li><a href="#bugs-fixed-8" id="markdown-toc-bugs-fixed-8">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_2_0" id="markdown-toc-v2_2_0">v2_2_0</a>    <ul>
+      <li><a href="#new-features-3" id="markdown-toc-new-features-3">New Features</a></li>
+      <li><a href="#improvements-1" id="markdown-toc-improvements-1">Improvements</a></li>
+      <li><a href="#bugs-fixed-9" id="markdown-toc-bugs-fixed-9">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_1_2" id="markdown-toc-v2_1_2">v2_1_2</a>    <ul>
+      <li><a href="#bugs-fixed-10" id="markdown-toc-bugs-fixed-10">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_1_1" id="markdown-toc-v2_1_1">v2_1_1</a>    <ul>
+      <li><a href="#new-features-4" id="markdown-toc-new-features-4">New Features</a></li>
+      <li><a href="#improvements-2" id="markdown-toc-improvements-2">Improvements</a></li>
+      <li><a href="#bugs-fixed-11" id="markdown-toc-bugs-fixed-11">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_1_0" id="markdown-toc-v2_1_0">v2_1_0</a>    <ul>
+      <li><a href="#new-features-5" id="markdown-toc-new-features-5">New Features</a></li>
+      <li><a href="#improvements-3" id="markdown-toc-improvements-3">Improvements</a></li>
+      <li><a href="#bugs-fixed-12" id="markdown-toc-bugs-fixed-12">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_0_1" id="markdown-toc-v2_0_1">v2_0_1</a>    <ul>
+      <li><a href="#new-features-6" id="markdown-toc-new-features-6">New Features</a></li>
+      <li><a href="#improvements-4" id="markdown-toc-improvements-4">Improvements</a></li>
+      <li><a href="#bugs-fixed-13" id="markdown-toc-bugs-fixed-13">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v2_0_0" id="markdown-toc-v2_0_0">v2_0_0</a>    <ul>
+      <li><a href="#new-features-7" id="markdown-toc-new-features-7">New Features</a></li>
+      <li><a href="#improvements-5" id="markdown-toc-improvements-5">Improvements</a></li>
+      <li><a href="#bugs-fixed-14" id="markdown-toc-bugs-fixed-14">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v1_0_1" id="markdown-toc-v1_0_1">v1_0_1</a>    <ul>
+      <li><a href="#new-features-8" id="markdown-toc-new-features-8">New Features</a></li>
+      <li><a href="#bugs-fixed-15" id="markdown-toc-bugs-fixed-15">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v1_1_0" id="markdown-toc-v1_1_0">v1_1_0</a>    <ul>
+      <li><a href="#new-features-9" id="markdown-toc-new-features-9">New Features</a></li>
+      <li><a href="#improvements-6" id="markdown-toc-improvements-6">Improvements</a></li>
+      <li><a href="#bugs-fixed-16" id="markdown-toc-bugs-fixed-16">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v1_0_0a" id="markdown-toc-v1_0_0a">v1_0_0a</a>    <ul>
+      <li><a href="#new-features-10" id="markdown-toc-new-features-10">New Features</a></li>
+      <li><a href="#improvements-7" id="markdown-toc-improvements-7">Improvements</a></li>
+      <li><a href="#bugs-fixed-17" id="markdown-toc-bugs-fixed-17">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#v1_0_0" id="markdown-toc-v1_0_0">v1_0_0</a>    <ul>
+      <li><a href="#new-features-11" id="markdown-toc-new-features-11">New Features</a></li>
+      <li><a href="#improvements-8" id="markdown-toc-improvements-8">Improvements</a></li>
+      <li><a href="#bugs-fixed-18" id="markdown-toc-bugs-fixed-18">Bugs Fixed</a></li>
+    </ul>
+  </li>
+  <li><a href="#b0_5" id="markdown-toc-b0_5">b0_5</a>    <ul>
+      <li><a href="#new-features-12" id="markdown-toc-new-features-12">New Features</a></li>
+      <li><a href="#bugs-fixed-19" id="markdown-toc-bugs-fixed-19">Bugs Fixed</a></li>
+    </ul>
+  </li>
+</ul>
+<p>include_toc: true
+show_comments: false
+toc: true
+—</p>
+<ul>
+  <li>TOC</li>
+</ul>
+<h2 id="v4_1_1">v4_1_1</h2>
+<h3 id="notable-features">Notable Features</h3>
+<ul>
+  <li>Within a campaign, any stage can be configured to wait for approval  before being submitted.</li>
+  <li>Documentation has been greatly enhanced to provide greater details.  For example stages have been enlarged with a more complete description.</li>
+  <li>Each webpage is now linked to a wiki help page.   The link is shown as a question mark at the top of the page.</li>
+</ul>
+
+<h3 id="bugs-fixed">Bugs Fixed</h3>
+<ul>
+  <li>Bug #22243: kill submission, etc. get worker jobs, but not dagman, also should set submission to “Removed”</li>
+  <li>Bug #22234: Transition to Located on single file projects</li>
+  <li>Bug #22162: cloning sample files needs to fix experiment= and actually fix the name</li>
+  <li>Bug #22073: Job submitted, failed to run successfully but POMS so no data file generated, but POMS marked them located</li>
+  <li>Bug #22064: editing a login/setup entry for analysis campaign requires an experiment hostname</li>
+  <li>Bug #22047: upload_file page without choosing file</li>
+  <li>Bug #22012: Got errors while killing a running job</li>
+</ul>
+
+<h3 id="new-features">New Features</h3>
+<ul>
+  <li>Feature #22110: create a pause/hold feature while submitting stages in the same campaign</li>
+  <li>Feature #22090: poms_client API for Campaign Stage Submissions</li>
+  <li>Feature #22026: show_campaigns and list_campaigns</li>
+  <li>Feature #22021: Special use of UPLOADS env var for Analysis users</li>
+  <li>Feature #22015: Override-able parameters in the gui editor: Database Change</li>
+  <li>Feature #21955: poms client submit a job by campaign</li>
+  <li>Feature #21953: poms_client add function upload ini should return the campaign and all stage ids/names</li>
+  <li>Feature #21952: poms_client make_poms_call</li>
+  <li>Feature #22177: poms_client APIs get job_type_snapshot_obj and login_setup_snap_obj by their IDs</li>
+  <li>Feature #22026: show_campaigns and list_campaigns</li>
+  <li>Feature #21993: create a campaign from ini</li>
+  <li>Feature #22176: POMS Client API for campaign names and stage names giving campaignid and.or stage_id</li>
+  <li>Feature #22213: extend poms_client campaign_stage_submissions function to take as argumrents ‘tdays’, ‘tmin’ and ‘tmax’</li>
+  <li>Feature #22035: poms_client: remove functions needed</li>
+</ul>
+
+<h3 id="new-tasks-and-ideas">New Tasks and Ideas</h3>
+<ul>
+  <li>Task #21967: poms_client: clean up the user interface to reflect the change of campaign and campaign stage definition</li>
+  <li>Idea #22046: How to handle dataset for intermediate stages</li>
+  <li>Task #21555: Add link to Campaign Documentation on POMS home page</li>
+  <li>Task #21477: Add one info page where multiple ? are present</li>
+  <li>Task #21046: Document Handling custom placeholders in param overrides</li>
+  <li>Task #19708: Documentation: Recovery Campaigns</li>
+  <li>Task #19707: Documentation: Launch Script</li>
+</ul>
+
+<h2 id="v4_1">v4_1</h2>
+
+<h3 id="major-features">Major Features</h3>
+<ul>
+  <li>Added support for Analysis users.  We are testing this in production before distributing across experiments.</li>
+</ul>
+
+<h3 id="bugs-fixed-1">Bugs Fixed</h3>
+<ul>
+  <li>Bug #20619: Need a check on campaign stage edits</li>
+  <li>Bug #20865: GUI Campaign editor “Double click to open” box remains too long.</li>
+  <li>Bug #20904: Tags form fails creating new tags.</li>
+  <li>Bug #20978: Need time range limit in poms_submission_agent.py…</li>
+  <li>Bug #21045: Campaign stage form - two links point to same plot.</li>
+  <li>Bug #21341: INC000000993451 - Users crashing when changing campaigns - but logged into different experiment.</li>
+  <li>Bug #21380: campaign_task_files - the previous/next day links are not working</li>
+  <li>Bug #21401: Need to add knowledge of experiment in campaign_time_bars .</li>
+  <li>Bug #21402: When using form from Compose campaign stage, no error reported if stage has no login setup or job type.</li>
+  <li>Bug #21413: datasets generated for dependent job launches should be more restrictive.</li>
+  <li>Bug #21605: Kill / hold / release jobs doesn’t hold right on DAGs (RITM0761732)</li>
+  <li>Bug #21707: Campaign editor: cs_split_type does not save changes</li>
+  <li>Bug #21775: Deleting tagged campaign fails</li>
+</ul>
+
+<h3 id="new-features-1">New Features</h3>
+<ul>
+  <li>Feature #19128: Revise user and experiment forms to follow user entry procedures.</li>
+  <li>Feature #20213: Multiparameter workflow</li>
+  <li>Feature #20217: Tool to interactively setup the same environement as a job launch</li>
+  <li>Feature #20234: Report failure of a POMS campaign submission in the offline dashboard of experiments.</li>
+  <li>Feature #20244: Maintain campaign_stage_n_active dataset</li>
+  <li>Feature #20590: Workflow editor, internal structure</li>
+  <li>Feature #20763: Make status (i.e. for SubmissionHistory) a vocab table with ids ordered(New, LaunchFailed, Idle, Running, Held, Failed, Completed, Located)</li>
+  <li>Feature #21103: Submissions: Code update</li>
+  <li>Feature #20771: Add button for custom recovery launches somewhere…</li>
+  <li>Feature #20852: add time frame for stage plots</li>
+  <li>Feature #20881: set X509_USER_PROXY auomatically for production jobs</li>
+  <li>Feature #20944: Make a tag selection searchable.</li>
+  <li>Feature #20993: Add a launch campaign button from Campaign page</li>
+  <li>Feature #21109: Expose POMS “hidden” data to users</li>
+  <li>Feature #21207: Need recovery launch info in .ini file dump, workflow editor, etc.</li>
+  <li>Feature #21208: Need recovery launch info in .ini file dump</li>
+  <li>Feature #21209: need recovery launch info in campaign editor on job type</li>
+  <li>Feature #21210: Add recovery launch bits to ini file uploader.</li>
+  <li>Feature #21282: Campaign Editor: Cloning Stages</li>
+  <li>Feature #21411: Delete a job in New status</li>
+  <li>Feature #21420: Update poms_client to pass POMS4_XXX parameters to jobsub</li>
+  <li>Feature #21445: Request RITM0739824: login_setup and job_type are not highlighted in aqua for the campaign stage.</li>
+  <li>Feature #21502: Analysis user support</li>
+  <li>Feature #21503: File upload facility for analysis users</li>
+  <li>Feature #21504: Sandbox directory creator</li>
+  <li>Feature #21505: Modify launch code for analysis sandboxes</li>
+  <li>Feature #21506: Amend login/setup for Analysis jobs</li>
+  <li>Feature #21593: restrict login/setup launch_host and launch_user for analysis users</li>
+  <li>Feature #21507: Add a file / proxy upload script to poms_client</li>
+  <li>Feature #21508: Modify launch code to hold launches for analysis users without a proxy</li>
+  <li>Feature #21613: Replace list of launch logs with submission list in campaign info page</li>
+  <li>Feature #21701: About Campaign Editor.</li>
+  <li>Feature #21702: About Campaign Editor.</li>
+</ul>
+
+<h3 id="new-tasks">New Tasks</h3>
+<ul>
+  <li>Task #19706: Documentation: Launch Template</li>
+  <li>Task #20598: Split type plugins</li>
+  <li>Task #20995: Add check on campaign stage edits</li>
+  <li>Task #20996: Add check on campaign stage edits</li>
+  <li>Task #21102: Submissions: Database changes</li>
+  <li>Task #20855: Search Box - Campaigns and stages forms</li>
+  <li>Task #20887: Obtain coordinators from FERRY.</li>
+  <li>Task #20902: Move active flag from stages to campaigns</li>
+  <li>Task #20941: Store nodes positions in campaign editor.</li>
+  <li>Task #21187: Add campaign name and stage name to form produced by list_launch_file.</li>
+  <li>Task #21372: Testing campaigns show up in uboone production reports</li>
+  <li>Task #21476: type fields in campaigns, campaign_stage</li>
+  <li>Task #21436: Documentation: Experiment version number</li>
+  <li>Task #21486: Revise to the submission time bars page</li>
+  <li>Task #21509: Convert Coordinator to Superuser</li>
+  <li>Task #21510: Convert the submission time bars to tables</li>
+  <li>Task #21523: Make Campaign field readonly when editing an existing stage.</li>
+  <li>Task #21526: Rename function to compose job type.</li>
+  <li>Task #21697: About Uploaded Files option.</li>
+  <li>Task #21698: About Uploaded Files page.</li>
+  <li>Task #21699: About Launch button.</li>
+</ul>
+
+<h2 id="v4_0_2">v4_0_2</h2>
+
+<h3 id="major-features-1">Major Features</h3>
+
+<ul>
+  <li>Added new split type for draining datasets.</li>
+  <li>Added button to force submissions to move to located.</li>
+</ul>
+
+<h3 id="bugs-fixed-2">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #21336 wrapup_tasks using wrong file pattern,,,</li>
+  <li>Bug #21296 Provide user understandable data for a Campaign Stage Launch 404 Error.</li>
+  <li>Bug #21167 Corrected dependent/recovery jobs to store and show correct user.</li>
+  <li>Bug #21166 Fixed recovery bugs caused by invalid dimension query.</li>
+</ul>
+
+<h3 id="new-featurestasks">New Features/Tasks</h3>
+
+<ul>
+  <li>Feature #21318 Button to force submissions to move to Located</li>
+  <li>Feature #20243 Added byexistingruns split type.</li>
+</ul>
+
+<h2 id="v4_0_1">v4_0_1</h2>
+
+<h3 id="major-features-2">Major Features</h3>
+
+<ul>
+  <li>Backward compatibility documentation provided “here”:https://cdcvs.fnal.gov/redmine/projects/prod_mgmt_db/wiki/Release_v400<em>Backward_Compatibility</em>-_What_You_need_to_know</li>
+  <li>Campaign Editor has had minor improvements for easier usage.</li>
+  <li>Campaign page active/inactive setting now works.</li>
+  <li>Tagging campaigns is working again.</li>
+</ul>
+
+<h3 id="bugs-fixed-3">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #20916 Spaces in stage/job type/login setup names</li>
+  <li>Bug #20917 Multiline launch scripts in login/setup forms</li>
+  <li>Bug #20935 Fix code that handles Tags</li>
+  <li>Bug #20936 Campaign Editor: prevent linking the campaign defaults to the stage</li>
+</ul>
+
+<h3 id="new-featurestasks-1">New Features/Tasks</h3>
+
+<ul>
+  <li>Feature #20938 Campaign Editor improvements</li>
+  <li>Feature #20939 Documentation: talk about ‘backward compatibility’ for new release</li>
+</ul>
+
+<h2 id="v4_0_0">v4_0_0</h2>
+
+<h3 id="major-features-3">Major Features</h3>
+
+<h3 id="bugs-fixed-4">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #19699 Unregistered user logging in causes stack dump.</li>
+  <li>Bug #19745 Aliases fail when shibboleth session has not be established.</li>
+</ul>
+
+<h3 id="new-featurestasks-2">New Features/Tasks</h3>
+
+<ul>
+  <li>Documentation Revised - Written for new users</li>
+  <li>Fully integrated with Fifemon</li>
+  <li>Experiment’s Analysis users can login and view production</li>
+  <li>.ini files can be exported, edited and uploaded</li>
+  <li>NEW <a style="color:blue"><b>GUI Campaign Editor</b></a> - View/edit entire campaign.</li>
+  <li>Feature #20654 Previous Users should be able to <em>view</em> anything in their experiment</li>
+  <li>Feature #20673 Upgrade POMS to python 3.6</li>
+  <li>Task #19187 Tutorials for experiment’s production teams.</li>
+  <li>Task #19276 Give Landscape the info of exp for the specific CAMPAIGN_ID, Campaign NAME, user running campaign</li>
+  <li>Task #19694 Documentation: Overview Documentation</li>
+  <li>Task #19696 Documentation: Production Processing High Level View</li>
+  <li>Task #19701 Documentation: Requirements for Creating a Campaign</li>
+  <li>Task #19698 Documentation: Adding a New Experiment or User</li>
+  <li>Task #19702 Documentation: Creating a Campaign - Details</li>
+  <li>Task #19710 Documentation: Campaign Actions</li>
+  <li>Task #19770 Documentation: Cloning</li>
+  <li>Task #19758 Create Campaign Stage Dependency Ordering</li>
+  <li>Task #19263 Webpage in POMS to build the workflow</li>
+  <li>Task #19761 Test Workflow Editor</li>
+  <li>Task #19837 Fix up prototype workflow editor</li>
+  <li>Task #19931 Automatically add users to poms_announce</li>
+  <li>Task #20037 Table/field ids renaming</li>
+  <li>Task #20041 Conversion of POMS to Fifemon</li>
+  <li>Task #20042 Conversion: Database Changes</li>
+  <li>Task #20043 Conversion: Eliminate scraping applications</li>
+  <li>Task #20045 Conversion: Convert reports/plots to use elasticsearch</li>
+  <li>Task #20101 Rename the tables and fields and update all source code to match functional names.</li>
+  <li>Task #20225 Update the Show Campaigns (tags) form to use a table.</li>
+  <li>Task #20226 Revise the main page.</li>
+</ul>
+
+<h2 id="v3_1_0">v3_1_0</h2>
+
+<h3 id="bugs-fixed-5">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #19445 SAM project link not working in POMS - Opened SNOW ticket INC000000935297</li>
+  <li>Bug #19624 Whitespace confuses split_types code</li>
+  <li>Bug #19922 bulk update is locking to heavily…</li>
+  <li>Bug #19852 Stack dumps when deleting a job type</li>
+  <li>Bug #19704 Jump to Campaign from the Campaign Stage Info only works for Active campings.</li>
+  <li>Bug #19647 The link to the SNOW downtime page appears different from the other two under external links in POMS menu (blue characters and not centered).</li>
+  <li>Bug #19624 Whitespace confuses split_types code</li>
+</ul>
+
+<h3 id="new-featurestasks-3">New Features/Tasks</h3>
+
+<ul>
+  <li>Feature #19504 Dependencies should accept SAM metadata query bits, not just file pattern.</li>
+  <li>Feature #19434 Use the Exp Software Version to tell POMS which version of the experiment’s code would be loaded in the job.</li>
+  <li>Feature #19418 Add link to the SNOW outage calendar under external links menu</li>
+  <li>Feature #19324 add completed jobs index</li>
+  <li>Feature #19199 Add “Test mode” to the Campaign stage.</li>
+  <li>Feature #17852 Get downtimes from SNOW downtime calendar</li>
+  <li>Task #19256 Fix .ssh/config for the round-robin alias</li>
+</ul>
+
+<h2 id="v3_0_0">v3_0_0</h2>
+
+<h3 id="bugs-fixed-6">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #18627: submission time bars prev/next doesn’t work for tag= instead of campaign_id=.</li>
+  <li>Bug #18833: Restore the fuzzy search for users.</li>
+  <li>Bug #18918: “Tag/Untag Campaigns” action not working (as expected?)..</li>
+  <li>Bug #18945: addusers.py does not update POMS when VOMS data for existing experimenter changes.</li>
+  <li>Bug #19029: addusers.py seems to switch to inactive users with production role.</li>
+  <li>Bug #19055: People with role production in VOMS have analysis role in POMS.</li>
+  <li>Bug #19139: Failed jobs classified as located in dbrailsf_gen_poms_test campaign stage.</li>
+  <li>Bug #19142: Kill submission campaign not working.</li>
+  <li>Bug #19192: Test button not working on just-added launch templates.</li>
+  <li>Bug #19338: declared_files_agent is starving…Bug #19368: release job is killing instead..</li>
+</ul>
+
+<h3 id="new-featurestasks-4">New Features/Tasks</h3>
+
+<ul>
+  <li>Feature #16747: Show dependency, if any, in the campaign info page.</li>
+  <li>Feature #18074: Last-modified info on campaigns, etc.</li>
+  <li>Feature #18123: Need a way to reset, step back, split dataset iterators…</li>
+  <li>Feature #18830: Role pull down menu for User Authorization and add security check.</li>
+  <li>Feature #19297: Add “Config File Templates” in the POMS navigation menu.</li>
+  <li>Feature #19024: addusers.py development.</li>
+  <li>Feature #19120: DNS round-robin alias dune-computing.fnal.gov as a job launch node in POMS.</li>
+  <li>Task #18871: Integration database.</li>
+  <li>Task #19298: Add configuration file templates to the “Config File Templates” sub-menu.</li>
+  <li>Task #18911: Provide a launch config template to interface POMS to the experiments’ configurations, job submission and executable.</li>
+  <li>Task #18988: Download/upload whole campaign/workflow to/from file.</li>
+  <li>Task #19088: Add coordinators to each of the experiments according to the partial list in the description (Will be update as the info come).</li>
+  <li>Task #19198: Change “Submit” button in all Configure Work with “Save”</li>
+</ul>
+
+<h2 id="v2_3_0">v2_3_0</h2>
+
+<h3 id="bugs-fixed-7">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #18176: Don’t fail if session_experiment is not set.</li>
+  <li>Bug #18194: Hold reason not being propagated to database.</li>
+  <li>Bug #18300: Deal with files with unknown status in project summary/datasets for “delivered” file stats.</li>
+  <li>Bug #18361: Button to reset split dataset sequence in a campaign.</li>
+  <li>Bug #18388: Held jobs that are removed should be marked as Removed, not Completed.</li>
+</ul>
+
+<h3 id="new-features-2">New Features</h3>
+
+<ul>
+  <li>Feature #12195: Test button for launch template, campaign definition.</li>
+  <li>Feature #17741: Add “Tag/UnTag Campaign”.</li>
+  <li>Feature #17779: Add “campaign_type” field to “campaigns” table &amp;model.</li>
+  <li>Feature #17894: More datasets splitting types.</li>
+  <li>Feature #17895: Make links on campaign_info page links to last active week of campaign, not current week.</li>
+  <li>Feature #17931: Add “HOLD/RELEASE Jobs button”.</li>
+  <li>Feature #17934: Add “HOLD/RELEASE Launches button(s)”.</li>
+  <li>Feature #18365: Add a byrun split type.</li>
+  <li>Feature #18731: Track who launches/submits jobs including the cron launcher.</li>
+</ul>
+
+<h3 id="improvements">Improvements</h3>
+
+<ul>
+  <li>Feature #17859: Define roles into POMS.</li>
+  <li>Task #18772: Change “root” from role to flag.</li>
+</ul>
+
+<h2 id="v2_2_1">v2_2_1</h2>
+
+<h3 id="bugs-fixed-8">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #17638: Deadlock errors in bulk_update, with Nova’s 30k jobs queued.</li>
+  <li>Bug #17641: Memory overrun from jobsub_q_scraper -* uwsgi on pomsgpvm02.</li>
+  <li>Bug #17684: Crontab code is generating wrong path to the launcher again.</li>
+  <li>Bug #17685: Bulk_update jobs doesn’t collapse task_ids in task_updates.</li>
+</ul>
+
+<h2 id="v2_2_0">v2_2_0</h2>
+
+<h3 id="new-features-3">New Features</h3>
+
+<ul>
+  <li>Feature #17599: Additional histograms of job information – run-time, transfer-time, etc.</li>
+  <li>Feature #17349: job reporters should split updates into multiple queues by task_id (odd/even, modulo 3, etc).</li>
+  <li>Feature #17324: Have in the main campaign list webpage only basic information.</li>
+  <li>Feature #17323: New campaign should invalidate the cache.</li>
+  <li>Feature #17188: Select bunch of campaings and mark them inactive capability.</li>
+  <li>Feature #17187: Filter to order campaign list.</li>
+  <li>Feature #17026: Color code numbers in job tables.</li>
+  <li>Feature #17025: Add more file totals to show_campaigns – we have pending files, but should have total in datasets, delivered, etc. rollups.</li>
+  <li>Feature #16869: Interface to SNOW request and incident ticket.</li>
+  <li>Feature #16782: Interface to ECL.</li>
+  <li>Feature #16709: Link to some Kibana stats for each campaign.</li>
+</ul>
+
+<h3 id="improvements-1">Improvements</h3>
+
+<ul>
+  <li>RITM0582786 from Alex. Run time and file transfer time histograms like job efficiency histogram.</li>
+  <li>RITM0583138 from Alex. Implement the capability to select a bunch of campaigns from the list displayed and mark them inactive.</li>
+</ul>
+
+<h3 id="bugs-fixed-9">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #17532: Unknown error when clicking Config work/compose Job type, the create a new job type.</li>
+  <li>Bug #17525: Inactive campaigns (No activity in the latest x 7? days) shown as active.</li>
+  <li>Bug #17524: Unknown error when clicking Campaign Data/campaign Stages to delete.</li>
+  <li>Bug #17522: unknown error when clicking on configure work/Compose launch template to duplicating with the existing name.</li>
+  <li>Bug #17506: limit launch template hosts to have experiment name in them.</li>
+  <li>Bug #17327: bulk_update_jobs is cpu_bound and not keeping up.</li>
+  <li>Bug #17284: Spreadsheet report page choked on large Campaigns.</li>
+  <li>Bug #17264: project descriptions not going in	Marc Mengel.</li>
+  <li>Bug #17259: Delete function not working in the web application.</li>
+  <li>Bug #17258: Strip spaces from fields before storing - causing apparent duplication issues.</li>
+  <li>Bug #17204: Have the full string “Launch Template” readable from the POMS campaign info.</li>
+  <li>Bug #17200: New campaigns don’t appear in the list.</li>
+  <li>Bug #15181: Campaign Layer Sheet - - cannot click through.</li>
+</ul>
+
+<h2 id="v2_1_2">v2_1_2</h2>
+
+<h3 id="bugs-fixed-10">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #17028. Proxy Error while loading POMS pages is appearing again. NOvA is experiencing this problem and opened a ticket (RITM0575905).
+    <ul>
+      <li>Bug #16989. Rework show_campaigns.</li>
+    </ul>
+  </li>
+  <li>Bug #17024. Fix headers in show_campaigns.</li>
+  <li>Bug #17027. Unsual Completed but not Located job counts for NOvA.</li>
+  <li>Bug #17085. Use N/A to indicate when information in a certain table cell is not provided.
+    <ul>
+      <li>Bug #17086.  Use N/A instead of -1 in poms/campaign_sheet pending column.</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="v2_1_1">v2_1_1</h2>
+
+<h3 id="new-features-4">New Features</h3>
+
+<ul>
+  <li>Feature #14287 More detailed overall campaign-at-a-glance status page</li>
+</ul>
+
+<h3 id="improvements-2">Improvements</h3>
+
+<ul>
+  <li>Request #15560Alex H. suggests to have a 1-week time window in the default page of active campaigns and mark those with 1 week of inactivity as inactive with the default time window equal the duration of the campaign.</li>
+</ul>
+
+<h3 id="bugs-fixed-11">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #11963. Accessing development POMS application on fermicloud045, occasionally I see this error message:
+    <ul>
+      <li>The proxy server received an invalid response from an upstream server.</li>
+      <li>The proxy server could not handle the request GET /poms/campaign_sheet.</li>
+    </ul>
+  </li>
+  <li>Bug #15042: ‘IntegrityError’ is not defined</li>
+  <li>Bug #15043: The link on the number for Total Completed jobs on poms/show_campaigns page returns an empty set.</li>
+  <li>Bug #15545: Non exit code showing.  Not reporting an exit code via ifdh log, or the joblog_scraper agent being down/out of memory when the job was running.  Now we may get the exitcode, etc. from the joblog parser</li>
+  <li>Bug #15547: In cut versions, we print a “fatal” git error trying to get the version from git.</li>
+  <li>Bug #15646 fts_scanner error on startup</li>
+  <li>Bug #16403 Changed tag to version</li>
+  <li>Bug #16405 Info in a time window are not correct.</li>
+</ul>
+
+<h2 id="v2_1_0">v2_1_0</h2>
+
+<h3 id="new-features-5">New Features</h3>
+
+<ul>
+  <li>Non-new features in this version.</li>
+</ul>
+
+<h3 id="improvements-3">Improvements</h3>
+
+<ul>
+  <li>Feature #16067: Use “streaming” mode in queries to reduce memory usage</li>
+  <li>Feature #15058. We need several software test-stands:</li>
+  <li>Feature #15144: Add mock webservice for testing agents</li>
+  <li>Feature #15208: add tests to test/testUtilsPOMS.py</li>
+  <li>Feature #15317: Add more tests to test/test_JobsPOMS.py</li>
+  <li>Feature #15342: Add tests to test/test_AccessPOMS.py</li>
+  <li>Feature #15343: add more tests to test/test_CalendarPOMS.py</li>
+  <li>Feature #15344: Add more tests to test/test_CampaignsPOMS.py</li>
+  <li>Feature #15345: Add mor tests to test/test_FilesPOMS.py</li>
+  <li>Feature #15346: Add more tests to test/test_TagsPOMS.py</li>
+  <li>Feature #15347: test_TriagePOMS.py	Closed	Marc Mengel</li>
+  <li>Feature #15348: Add test to stand up a cherrypy instace and fetch one each</li>
+  <li>Feature #15624: Add username column to experimenters table to fix VOMS import</li>
+</ul>
+
+<h3 id="bugs-fixed-12">Bugs Fixed</h3>
+<ul>
+  <li>Bug #15751. The Tag is not working. This was discovered by Margarita when she did the test of this module.</li>
+</ul>
+
+<h2 id="v2_0_1">v2_0_1</h2>
+
+<h3 id="new-features-6">New Features</h3>
+
+<ul>
+  <li>Non-new features in this version. This is a bug release.</li>
+</ul>
+
+<h3 id="improvements-4">Improvements</h3>
+<ul>
+  <li>Feature #15945: Change “Campaign Layers” to “Campaign Stages” in page templates</li>
+  <li>Feature #15946: Hide unused files-per-job fields</li>
+  <li>Feature #15948: Change name to Campaign Layers</li>
+  <li>Feature #15949: Splitted menu into: “Campaign info” and “Configure Work”</li>
+  <li>Feature #15950: Change the order of the steps into “Configure Work” menu in to make the options more intuitive.</li>
+</ul>
+
+<h3 id="bugs-fixed-13">Bugs Fixed</h3>
+
+<ul>
+  <li>Bug #15866: Moving task updates out of update_job_common, and handle them differently in bulk_update_job.</li>
+  <li>Bug #15867: Updated some code to make poms installable via setup.py; which  included a local poms</li>
+  <li>Feature #15947: In main menu, get the composition/edit links under a different heading from info links</li>
+</ul>
+
+<h2 id="v2_0_0">v2_0_0</h2>
+
+<h3 id="new-features-7">New Features</h3>
+
+<ul>
+  <li>Feature #14270: Allow users to run arbitrary executables/scripts and workloads through the system via arbitrary launch scripts/executables</li>
+  <li>Feature #14271: Support the model of sending data to jobs</li>
+  <li>Feature #14272: Supports data externally pre-staged manually at sites (i.e. different site local caches)</li>
+  <li>Feature #14274: Have appropriate permissions and privileges implemented to authorize each operation</li>
+</ul>
+
+<h3 id="improvements-5">Improvements</h3>
+<ul>
+  <li>Feature #14248: Now we are using Elasticsearch to fetch job data.</li>
+  <li>Feature #15044: Allow editing of param_overrides on campaign recoveries through UI</li>
+</ul>
+
+<h3 id="bugs-fixed-14">Bugs Fixed</h3>
+<ul>
+  <li>Bug #15007: If we get a repeated error (all retries fail) on a SAM, POMS Stop querying.</li>
+  <li>Bug #15349: The job_log scraper had its reporting threads crashing and stopped actually reporting things.</li>
+  <li>Bug #15332: Some jobs have two job_histories records for one job.</li>
+  <li>Bug #15501: Campaign page breaks if accessed w/o authentication.</li>
+  <li>Bug #15499: In output_pending_jobs POMS only lists files that match the output format for the job type. Furthermore, update_job only flags files as output files (and not log files, etc.) if they match the output format</li>
+  <li>Bug #15447: Database deadlock error</li>
+</ul>
+
+<h2 id="v1_0_1">v1_0_1</h2>
+
+<h3 id="new-features-8">New Features</h3>
+
+<ul>
+  <li>Update fife_launch in fife_utils to integrate poms_client calls #14471:</li>
+</ul>
+
+<h3 id="bugs-fixed-15">Bugs Fixed</h3>
+
+<ul>
+  <li>Statistics pages use campaign history to pick software version avoiding change the version in the whole dataset. #12948</li>
+  <li>The snapshot id field is filled when the task is created.  #13888</li>
+  <li>Active for <em>experiement</em> showed experiments you were not in. Currently, it check if the user is actually a member. #14463</li>
+  <li>The incorrect Job_Type and Launch Template’s names for all NOvA’s campaigns were corrected using one for NOvA #14464</li>
+  <li>Incorrect info for Launch Host, Launch Account and launch Setup for NOvA campaigns #14465</li>
+  <li>Change the default analysis VO in the campaign definition to production VO #14554</li>
+  <li>Assure that when the task go to located the jobs also go to located #14476</li>
+</ul>
+
+<h2 id="v1_1_0">v1_1_0</h2>
+
+<h3 id="new-features-9">New Features</h3>
+
+<ul>
+  <li>Ability to get reports about how effective/efficient are the campaigns #13699</li>
+  <li>Add to the Campaign (Layer) two fields: completion_type and completion_threshold. Feature #12751:</li>
+  <li>Feature #14752: Add job log parser to get final job info</li>
+  <li>The runtime,memory, and disk were included in the Campaign Def/Campaign info #12966</li>
+  <li>Poms should keep a list of job launches requested while job launches are “held” #14659</li>
+  <li>POMS hold job launches when services are “red” on dashboard. Feature #14660:</li>
+  <li>Poms keeps a list of job launches requested while job launches are “held” Feature #14659:</li>
+  <li>Add a script to extract VO Role=Production user info.  #14747</li>
+  <li>POMS is integrated with SAM putting information into SAM db about campaign and task id, then  the info is fetched faster than using project descriptions Feature #14504</li>
+  <li>New screen for a campaign “why is my job not running?”. Integrate it with fifemon #12965</li>
+</ul>
+
+<h3 id="improvements-6">Improvements</h3>
+
+<ul>
+  <li>The HTML templates were renamed to line up with the URL’s, so they are easier to find. #12933</li>
+  <li>Improve in the labeling of the job status, now the table describe the complete jobs with the total number, number of jobs located and number of jobs non-located.. #14477</li>
+  <li>A complete refurbish of the POMS code in order to split in modules by functionality, having independent test units. #12934</li>
+  <li>The  Campaign Info page was updated for new fields added to Campaign(Layers), LaunchTemplates, etc. #14531</li>
+  <li>Better split types were added allowing the user to divide the dataset for the campaign  #13707 (In testing)</li>
+</ul>
+
+<h3 id="bugs-fixed-16">Bugs Fixed</h3>
+<ul>
+  <li>The code for pending campaigns made a query that didn’t work if you did the whole campaign.  Furthermore, the generation of these dimension strings was factored out to common routines #13889</li>
+  <li>When the jobs dropped out of the queue condor_q no longer suffices. Now it is stored into the elasticsearch logs.  #14376</li>
+  <li>Task completion/launching dependencies/recoveries not happening Bug #14866</li>
+  <li>The uwsgi threads in development do not seem to be obviously leaking memory anymore either. Bug #14886</li>
+  <li>Now it has a sub-item for each experiment in persistent DCache, and each goes to degraded at 80% and Failed at 90%. If enough areas fill up, we hold job launches. Bug #15008</li>
+</ul>
+
+<h2 id="v1_0_0a">v1_0_0a</h2>
+
+<h3 id="new-features-10">New Features</h3>
+
+<ul>
+  <li>Include pending file counts on Active Campaign summary #13734</li>
+  <li>Including some small features requested by NOvA as: change in campaign info stat time frame, button interface to mark campaign as inactive, specify output patterns in poms. #13849</li>
+  <li>Solved the problem that efficiency histogram convolved low-efficiency jobs with jobs with unreported data, giving the wrong metric. #14245</li>
+  <li>Compose CampaignLayer/JobType/LaunchTemplate have now a clone button, so you can clone an existing one and fix it up. #14251</li>
+</ul>
+
+<h3 id="improvements-7">Improvements</h3>
+<ul>
+  <li>Update Terms Campaign-Layer/Submission/JobType versus Campaign/Task/CampaignDefinition to make it more clear for experimenters.</li>
+</ul>
+
+<h3 id="bugs-fixed-17">Bugs Fixed</h3>
+
+<ul>
+  <li>Clean up compose CampaignLayer/JobType/LaunchTemplate in order to make the interface visually better for the users. #14249</li>
+  <li>Reporting agents retrying on 404 errors forever in development #14246</li>
+  <li>A bug that prevent submissions go into Located status #14242</li>
+  <li>The code that was doing condor_q was adapted to be consistent with the changes made in jobsub #14247</li>
+  <li>The problem of incorrect dataset definition for dependent job submissions was corrected.   #14243</li>
+  <li>Correction of the bug that was showing zero pending files for all campaigns #14250</li>
+  <li>After the upgrade of the single sing-on the login code in fifemon status reader was no longer working #14332</li>
+</ul>
+
+<h2 id="v1_0_0">v1_0_0</h2>
+
+<h3 id="new-features-11">New Features</h3>
+
+<ul>
+  <li>Add series of recovery types to campaign definitions; and to say one campaign depends on another. #12730</li>
+  <li>Add CampaignDependency items that attach this campaign to other campaigns, along with a file-pattern-match for what output files from the previous campaign we want (default “%” for match-any). #12892</li>
+  <li>Self dependencies run the next batch as soon as it finish. #13278</li>
+</ul>
+
+<h3 id="improvements-8">Improvements</h3>
+
+<ul>
+  <li>Method in poms_service.py that looks for Campaigns that have had no tasks in the last week, and turns off their active flags. #12890</li>
+  <li>Add CampaignRecovery entries attached to the CampaignDefinition, in order by “recovery_order” field, choosing recovery types from the RecoveryType table when you add entries. #12891</li>
+  <li>After a job is marked as held then the system will kill the job. #12975</li>
+</ul>
+
+<h3 id="bugs-fixed-18">Bugs Fixed</h3>
+
+<ul>
+  <li>The job launch command timeout in order it doesn’t run forever. #12758</li>
+  <li>The failed_jobs_by_whatever method loses tdays when you pick fields. The problem was solved.  #12931</li>
+  <li>Some pages are missing date picker/forward-back links #12932</li>
+  <li>Launch template edit was failing with double quotes in setup block #13590</li>
+</ul>
+
+<h2 id="b0_5">b0_5</h2>
+
+<h3 id="new-features-12">New Features</h3>
+
+<ul>
+  <li>Adding files-by-submission page showing requested,delivered, etc. #12193</li>
+  <li>Each display page should handle time ranges  #11386</li>
+  <li>Campaign should launch jobs for campaigns that depend on this one. #12721</li>
+  <li>Services status dashboard. #12620</li>
+  <li>File-based Task status page #12193</li>
+  <li>task bars and job bars need jobsubjobid, not internal task/job_id. #11382</li>
+  <li>monitor how full dcache persisitent partitions are via webpage #12727</li>
+</ul>
+
+<h3 id="bugs-fixed-19">Bugs Fixed</h3>
+
+<ul>
+  <li>joblog scraper was missing input files sometimes #12290</li>
+  <li>Getting the correct percent efficiency for jobs</li>
+  <li>build a status page with file-based stats as requested by OPOS</li>
+  <li>Fix timezone shift in status pages #11379</li>
+  <li>job reporter code did not retry properly on connection errors #12722</li>
+  <li>Getting constraint errors when updating jobs frequently #12723</li>
+  <li>Support older idfh better in joblog_scraper #12922</li>
+</ul>
+
+
+  </div>
+
+</article>
+
+        <button id="back-to-top-button"><i class="fas fa-arrow-up"></i></button>
+      </div>
+    </main>
+  </body>
+</html>

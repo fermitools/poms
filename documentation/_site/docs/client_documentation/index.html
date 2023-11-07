@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en}"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Client Documentation | POMS Guide</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="Client Documentation" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<meta property="og:description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<link rel="canonical" href="https://fermitools.github.io/poms/docs//docs/client_documentation/" />
+<meta property="og:url" content="https://fermitools.github.io/poms/docs//docs/client_documentation/" />
+<meta property="og:site_name" content="POMS Guide" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Client Documentation" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them.","headline":"Client Documentation","url":"https://fermitools.github.io/poms/docs//docs/client_documentation/"}</script>
+<!-- End Jekyll SEO tag -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/assets/poms_docs.js"></script>
+  <link rel="shortcut icon" href="#">
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"><link type="application/atom+xml" rel="alternate" href="https://fermitools.github.io/poms/docs//feed.xml" title="POMS Guide" /></head>
+<header><nav id="toc">
+    <center>
+        <img class="site-logo" src="https://fermitools.github.io/poms/docs//docs/images/poms.jpg"/>
+    </center>
+    <div class="navigation-area">
+        <h3>Navigation</h3>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search...">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+        </div>        
+    </div>
+    <div class="container">
+        <ul id="main-menu">
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/backwards_compatibility/index.html">Backwards Compatibility</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/campaign_editor/index.html">Campaign Editor</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/client_documentation/index.html">Client Documentation</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item has-submenu" >
+                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/index.html">Experimenters Corner</a>
+                        
+                            <ul>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/calendar_help/index.html">Calendar Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_deps_help/index.html">Campaign Deps Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_edit_help/index.html">Campaign Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_info_help/index.html">Campaign Info Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_layer_info/index.html">Campaign Layer Info</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_sheet_help/index.html">Campaign Sheet Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_task_files_help/index.html">Campaign Task Files Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_time_bars_help/index.html">Campaign Time Bars Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dashboard_help/index.html">Dashboard Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item has-submenu">
+                                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/index.html">Data Dispatcher</a>
+                                        
+                                            <ul>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/environment_setup/index.html">Environment Setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/poms_campaign_setup/index.html">POMS Campaign_setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/split_types_and_data_dispatcher_fields/index.html">Split Types and Data Dispatcher Fields</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/tracking_submissions/index.html">Tracking Submissions</a></li>
+                                                
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dataset_split_types/index.html">Dataset Split Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/edit_users_help/index.html">Edit Users Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/editing_job_types/index.html">Editing Job Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/experiment_edit_help/index.html">Experiment Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/fife_newsletter_article/index.html">Fife Newsletter Article</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/file_info_by_submission_help/index.html">File Info By Submission Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/generic_edit_help/index.html">Generic Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/getting_more_memory_in_recovery_jobs/index.html">Getting More Memory In Recovery Jobs</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/held_launches_help/index.html">Held Launches Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_make_snow_request_for_poms/index.html">How To Make Snow Request For Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_use_poms/index.html">How To Use Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_efficiency_histo_help/index.html">Job Efficiency Histo Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_file_contents_help/index.html">Job File Contents Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_table_help/index.html">Job Table Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_campaign_help/index.html">Launch Campaign Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_jobs_help/index.html">Launch Jobs Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_template_edit_help/index.html">Launch Template Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/list_generic_help/index.html">List Generic Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/membership_help/index.html">Membership Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/oidc_auth_help/index.html">Oidc Auth Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/protoDUNE/index.html">Protodune</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/raw_tables_help/index.html">Raw Tables Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/sample_workflow/index.html">Sample Workflow</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/schedule_launch_help/index.html">Schedule Launch Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/search_tags_help/index.html">Search Tags Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/show_campaigns_help/index.html">Show Campaigns Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/submission_details_help/index.html">Submission Details Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/triage_job_help/index.html">Triage Job Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/tutorial_outline/index.html">Tutorial Outline</a>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/frequently_asked_questions/index.html">Frequently Asked Questions</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/glossary/index.html">Glossary</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/gui_workflow_editor_user_guide/index.html">Gui Workflow Editor User Guide</a>
+                        
+                    </li>
+                
+            
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/launch_config_file_templates/index.html">Launch Config File Templates</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/release_notes/index.html">Release Notes</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/user_documentation/index.html">User Documentation</a>
+                        
+                    </li>
+                
+            
+        </ul>
+    </div>
+</nav>
+
+
+  </header>
+  <body>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+<div class="breadcrumbs"></div>
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">Client Documentation</h1>
+  </header>
+
+  <div class="post-content">
+    <ul id="markdown-toc">
+  <li><a href="#current-methods" id="markdown-toc-current-methods">Current Methods</a>    <ul>
+      <li><a href="#campaign_rm-experiment-name-testfalse-rolenone-configfilenone" id="markdown-toc-campaign_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">campaign_rm</a> (experiment, name, test=False, role=None, configfile=None):</a></li>
+      <li><a href="#campaign_stage_submissions-experiment-role-campaign_name-stage_name-testnone-configfilenone-kwargs" id="markdown-toc-campaign_stage_submissions-experiment-role-campaign_name-stage_name-testnone-configfilenone-kwargs"><a style="color:green">campaign_stage_submissions</a> (experiment, role, campaign_name, stage_name, test=None, configfile=None, **kwargs):</a></li>
+      <li><a href="#get_campaign_id-experiment-campaign_name-testnone-rolenone-configfilenone" id="markdown-toc-get_campaign_id-experiment-campaign_name-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_id</a> (experiment, campaign_name, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#get_campaign_list-test_clientfalse-experimentnone-rolenone" id="markdown-toc-get_campaign_list-test_clientfalse-experimentnone-rolenone"><a style="color:green">get_campaign_list</a> (test_client=False, experiment=None, role=None):</a></li>
+      <li><a href="#get_campaign_name-experiment-campaign_id-testnone-rolenone-configfilenone" id="markdown-toc-get_campaign_name-experiment-campaign_id-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_name</a> (experiment, campaign_id, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#get_campaign_stage_id-experiment-campaign_name-campaign_stage_name-testnone-rolenone-configfilenone" id="markdown-toc-get_campaign_stage_id-experiment-campaign_name-campaign_stage_name-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_stage_id</a> (experiment, campaign_name, campaign_stage_name, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#get_campaign_stage_name-experiment-campaign_stage_id-testnone-rolenone-configfilenone" id="markdown-toc-get_campaign_stage_name-experiment-campaign_stage_id-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_stage_name</a> (experiment, campaign_stage_id, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#get_submission_id_for-campaign_stage_id-usernone-command_executednone-input_datasetnone-parent_submission_idnone-submission_idnone-testnone-experimentnone-configfilenone" id="markdown-toc-get_submission_id_for-campaign_stage_id-usernone-command_executednone-input_datasetnone-parent_submission_idnone-submission_idnone-testnone-experimentnone-configfilenone"><a style="color:green">get_submission_id_for</a> (campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, configfile=None):</a></li>
+      <li><a href="#job_type_rm-experiment-name-testfalse-rolenone-configfilenone" id="markdown-toc-job_type_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">job_type_rm</a> (experiment, name, test=False, role=None, configfile=None):</a></li>
+      <li><a href="#launch_campaign_jobs-campaign_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone" id="markdown-toc-launch_campaign_jobs-campaign_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_campaign_jobs</a> (campaign_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#launch_campaign_stage_jobs-campaign_stage_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone" id="markdown-toc-launch_campaign_stage_jobs-campaign_stage_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_campaign_stage_jobs</a> (campaign_stage_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#login_setup_rm-experiment-name-testfalse-rolenone-configfilenone" id="markdown-toc-login_setup_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">login_setup_rm</a> (experiment, name, test=False, role=None, configfile=None):</a></li>
+      <li><a href="#modify_job_type_recoveries-job_type_id-recoveries-testnone-experimentnone-rolenone-configfilenone" id="markdown-toc-modify_job_type_recoveries-job_type_id-recoveries-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">modify_job_type_recoveries</a> (job_type_id, recoveries, test=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#show_campaign_stages-campaign_namenone-testnone-experimentnone-rolenone-configfilenone-view_activenone-view_minenone-view_othersnone-view_productionnone-update_viewnone" id="markdown-toc-show_campaign_stages-campaign_namenone-testnone-experimentnone-rolenone-configfilenone-view_activenone-view_minenone-view_othersnone-view_productionnone-update_viewnone"><a style="color:green">show_campaign_stages</a> (campaign_name=None, test=None, experiment=None, role=None, configfile=None, view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None)</a></li>
+      <li><a href="#show_campaigns-testnone-experimentnone-role--none-configfilenone-view_activenone-view_inactivenone-view_minenone-view_othersnone-view_productionnone-update_viewnone" id="markdown-toc-show_campaigns-testnone-experimentnone-role--none-configfilenone-view_activenone-view_inactivenone-view_minenone-view_othersnone-view_productionnone-update_viewnone"><a style="color:green">show_campaigns</a> (test=None, experiment=None, role = None, configfile=None, view_active=None, view_inactive=None, view_mine=None, view_others=None, view_production=None, update_view=None)</a></li>
+      <li><a href="#submission_details-experiment-role-submission_id-testnone-configfilenone" id="markdown-toc-submission_details-experiment-role-submission_id-testnone-configfilenone"><a style="color:green">submission_details</a> (experiment, role, submission_id, test=None, configfile=None):</a></li>
+      <li><a href="#tag_campaigns-tag-cids-experiment-rolenone-test_clientfalse" id="markdown-toc-tag_campaigns-tag-cids-experiment-rolenone-test_clientfalse"><a style="color:green">tag_campaigns</a> (tag, cids, experiment, role=None, test_client=False):</a></li>
+      <li><a href="#update_stage_param_overrides-experiment-campaign_stage-param_overridesnone-test_param_overridesnone-testnone-rolenone-configfilenone" id="markdown-toc-update_stage_param_overrides-experiment-campaign_stage-param_overridesnone-test_param_overridesnone-testnone-rolenone-configfilenone"><a style="color:green">update_stage_param_overrides</a> (experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#update_submission-submission_id-jobsub_job_idnone-statusnone-projectnone-testnone-experimentnone-rolenone-configfilenone" id="markdown-toc-update_submission-submission_id-jobsub_job_idnone-statusnone-projectnone-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">update_submission</a> (submission_id, jobsub_job_id=None, status=None, project=None, test=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#uploaded_files_rm-experiment-filename-testnone-rolenone-configfilenone" id="markdown-toc-uploaded_files_rm-experiment-filename-testnone-rolenone-configfilenone"><a style="color:green">uploaded_files_rm</a> (experiment, filename, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#upload_file-file_name-testnone-experimentnone-rolenone-configfilenone" id="markdown-toc-upload_file-file_name-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">upload_file</a> (file_name, test=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#upload_wf-file_name-testnone-experimentnone-configfilenone-replacefalse-rolenone" id="markdown-toc-upload_wf-file_name-testnone-experimentnone-configfilenone-replacefalse-rolenone"><a style="color:green">upload_wf</a> (file_name, test=None, experiment=None, configfile=None, replace=False, role=None):</a></li>
+    </ul>
+  </li>
+  <li><a href="#deprecated-methods" id="markdown-toc-deprecated-methods">Deprecated Methods</a>    <ul>
+      <li><a href="#update_session_experiment-experiment-test_clientfalse" id="markdown-toc-update_session_experiment-experiment-test_clientfalse"><a style="color:green">update_session_experiment</a> (experiment, test_client=False):</a></li>
+      <li><a href="#update_session_role-role-test_clientfalse" id="markdown-toc-update_session_role-role-test_clientfalse"><a style="color:green">update_session_role</a> (role, test_client=False):</a></li>
+      <li><a href="#campaign_stage_edit-action-campaign_id-ae_stage_name-pc_username-experiment-vo_role-dataset-ae_active-ae_split_type-ae_software_version-ae_completion_type-ae_completion_pct-ae_param_overrides-ae_depends-ae_launch_name-ae_campaign_definition-ae_test_param_overrides-test_clientnone-configfilenone-experimentnone-rolenone" id="markdown-toc-campaign_stage_edit-action-campaign_id-ae_stage_name-pc_username-experiment-vo_role-dataset-ae_active-ae_split_type-ae_software_version-ae_completion_type-ae_completion_pct-ae_param_overrides-ae_depends-ae_launch_name-ae_campaign_definition-ae_test_param_overrides-test_clientnone-configfilenone-experimentnone-rolenone"><a style="color:green">campaign_stage_edit</a> (action, campaign_id, ae_stage_name, pc_username, experiment, vo_role, dataset, ae_active, ae_split_type, ae_software_version, ae_completion_type, ae_completion_pct, ae_param_overrides, ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, configfile=None) experiment=None, role=None)</a></li>
+      <li><a href="#campaign_definition_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone-actionnone-namenone-experimentnone-recoveriesnone-test_clientfalse-configfilenone" id="markdown-toc-campaign_definition_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone-actionnone-namenone-experimentnone-recoveriesnone-test_clientfalse-configfilenone"><a style="color:green">campaign_definition_edit</a> (output_file_patterns, launch_script, def_parameter=None, pc_username=None, action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None)</a></li>
+      <li><a href="#campaign_edit-kwargs" id="markdown-toc-campaign_edit-kwargs"><a style="color:green">campaign_edit</a> (**kwargs):</a></li>
+      <li><a href="#register_poms_campaign-campaign_name-usernone-experimentnone-versionnone-datasetnone-campaign_definitionnone-testnone-rolenone-configfilenone" id="markdown-toc-register_poms_campaign-campaign_name-usernone-experimentnone-versionnone-datasetnone-campaign_definitionnone-testnone-rolenone-configfilenone"><a style="color:green">register_poms_campaign</a> (campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, role=None, configfile=None):</a></li>
+      <li><a href="#job_type_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone" id="markdown-toc-job_type_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone"><a style="color:green">job_type_edit</a> (output_file_patterns, launch_script, def_parameter=None, pc_username=None,</a></li>
+      <li><a href="#launch_template_edit-actionnone-launch_namenone-launch_hostnone-user_accountnone-launch_setupnone-experimentnone-pc_usernamenone-test_clientfalse-rolenone-configfilenone" id="markdown-toc-launch_template_edit-actionnone-launch_namenone-launch_hostnone-user_accountnone-launch_setupnone-experimentnone-pc_usernamenone-test_clientfalse-rolenone-configfilenone"><a style="color:green">launch_template_edit</a> (action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None, experiment=None, pc_username=None, test_client=False, role=None, configfile=None)</a></li>
+      <li><a href="#get_task_id_for-campaign-usernone-command_executednone-input_datasetnone-parent_task_idnone-task_idnone-testnone-experimentnone-rolenone-configfilenone" id="markdown-toc-get_task_id_for-campaign-usernone-command_executednone-input_datasetnone-parent_task_idnone-task_idnone-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">get_task_id_for</a> (campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, role=None, configfile=None):</a></li>
+      <li><a href="#launch_jobs-campaign-testnone-experimentnone-rolenone-configfilenone" id="markdown-toc-launch_jobs-campaign-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_jobs</a> (campaign, test=None, experiment=None, role=None, configfile=None):</a></li>
+    </ul>
+  </li>
+</ul>
+<p>The following methods are available in the poms_client package.</p>
+
+<p>This documentation reflects version v4_2_0 of poms_client for v4_2_0 of POMS.</p>
+
+<p>In addition to this, in v4_2_0, most informational page URL’s in the regular POMS interactive interface can be called with @&amp;fmt=json@ on the end, to get a JSON dump of the data on the page.</p>
+
+<h2 id="current-methods">Current Methods</h2>
+
+<h5 id="campaign_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">campaign_rm</a> (experiment, name, test=False, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Remove a campaign.</li>
+</ul>
+
+<h5 id="campaign_stage_submissions-experiment-role-campaign_name-stage_name-testnone-configfilenone-kwargs"><a style="color:green">campaign_stage_submissions</a> (experiment, role, campaign_name, stage_name, test=None, configfile=None, **kwargs):</h5>
+
+<p>Get a JSON dump of submissions to a campaign stage, like:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+    "campaign_name": "fake demo v1.0  w/chars",
+     "stage_name": "f eg v1.0 - w/chars",
+     "campaign_stage_id": "1",
+     "data": {
+         "tmin": "2019-09-09T15:18:10",
+         "tmax": "2019-09-16T15:18:10",
+         "nextlink": "/poms/campaign_stage_submissions/samdev/production?campaign_name=fake demo v1.0  w/chars&amp;stage_name=f eg v1.0 - w/chars&amp;campaign_stage_id=1&amp;campaign_id=890&amp;tmax=2019-09-23+15:18:10&amp;tdays=7",
+         "prevlink": "/poms/campaign_stage_submissions/samdev/production?campaign_name=fake demo v1.0  w/chars&amp;stage_name=f eg v1.0 - w/chars&amp;campaign_stage_id=1&amp;campaign_id=890&amp;tmax=2019-09-09+15:18:10&amp;tdays=7",
+         "tdays": 7.0,
+         "tminsec": "1568063890",
+         "depends": {
+            "1267": null
+         },
+         "depth": {
+            "1267": 0
+         },
+         "submissions": [
+              {
+                "submission_id": 1267,
+                 "jobsub_job_id": "23733516@jobsub02.fnal.gov",
+                 "created": "2019-09-10T11:28:29",
+                 "creator": "mengel",
+                 "status": "Located",
+                 "jobsub_cluster": "23733516",
+                 "jobsub_schedd": "jobsub02.fnal.gov",
+                 "campaign_stage_name": "f eg v1.0 - w/chars",
+                 "available_output": 10,
+                 "output_dims": "ischildof:(  snapshot_for_project_name mengel-fife_wrap_20190910_112913_3600585  ) and create_date &gt; '2019-09-10 11:28:29' and  file_name like '%root' and version 'v1_2'"
+             }
+        ]
+    }
+}
+</code></pre></div></div>
+
+<h5 id="get_campaign_id-experiment-campaign_name-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_id</a> (experiment, campaign_name, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Lookup a campaign’s id from its name.</li>
+</ul>
+
+<h5 id="get_campaign_list-test_clientfalse-experimentnone-rolenone"><a style="color:green">get_campaign_list</a> (test_client=False, experiment=None, role=None):</h5>
+
+<ul>
+  <li>Get list of campaigns for an experiment.</li>
+</ul>
+
+<h5 id="get_campaign_name-experiment-campaign_id-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_name</a> (experiment, campaign_id, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Get a campaigns name given its id.</li>
+</ul>
+
+<h5 id="get_campaign_stage_id-experiment-campaign_name-campaign_stage_name-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_stage_id</a> (experiment, campaign_name, campaign_stage_name, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Get campaign stage’s id from its name, and its campaign’s  name.</li>
+</ul>
+
+<h5 id="get_campaign_stage_name-experiment-campaign_stage_id-testnone-rolenone-configfilenone"><a style="color:green">get_campaign_stage_name</a> (experiment, campaign_stage_id, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Get stage name from id.</li>
+</ul>
+
+<h5 id="get_submission_id_for-campaign_stage_id-usernone-command_executednone-input_datasetnone-parent_submission_idnone-submission_idnone-testnone-experimentnone-configfilenone"><a style="color:green">get_submission_id_for</a> (campaign_stage_id, user=None, command_executed=None, input_dataset=None, parent_submission_id=None, submission_id=None, test=None, experiment=None, configfile=None):</h5>
+
+<ul>
+  <li>Get a submission id for a new submission in a campaign and/or (with submission_id)  update information about the submission.</li>
+</ul>
+
+<h5 id="job_type_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">job_type_rm</a> (experiment, name, test=False, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Remove a job type.  This will only work if nothing is using it…</li>
+</ul>
+
+<h5 id="launch_campaign_jobs-campaign_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_campaign_jobs</a> (campaign_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Launch a submission for the first stage in a campaign.</li>
+</ul>
+
+<h5 id="launch_campaign_stage_jobs-campaign_stage_id-testnone-test_launchnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_campaign_stage_jobs</a> (campaign_stage_id, test=None, test_launch=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Launch a submission for a particular campaign stage.</li>
+</ul>
+
+<h5 id="login_setup_rm-experiment-name-testfalse-rolenone-configfilenone"><a style="color:green">login_setup_rm</a> (experiment, name, test=False, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Remove a particular login_setup configuration.  This will only work if nothing is using it…</li>
+</ul>
+
+<h5 id="modify_job_type_recoveries-job_type_id-recoveries-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">modify_job_type_recoveries</a> (job_type_id, recoveries, test=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>This lets you modify the recoveries for a given job type; the recoveries is a python object (or json dump of same) just as it comes in a workflow  .ini file dump
+    <ul>
+      <li>i.e  @[[“proj_status”, [[“-Osubmit.memory=”, “2000MB”]]]]@  A list of recovery-type, option-override pairs.</li>
+    </ul>
+  </li>
+</ul>
+
+<h5 id="show_campaign_stages-campaign_namenone-testnone-experimentnone-rolenone-configfilenone-view_activenone-view_minenone-view_othersnone-view_productionnone-update_viewnone"><a style="color:green">show_campaign_stages</a> (campaign_name=None, test=None, experiment=None, role=None, configfile=None, view_active=None, view_mine=None, view_others=None, view_production=None, update_view=None)</h5>
+
+<ul>
+  <li>Get json dump of the campaign stages in a campaign</li>
+</ul>
+
+<h5 id="show_campaigns-testnone-experimentnone-role--none-configfilenone-view_activenone-view_inactivenone-view_minenone-view_othersnone-view_productionnone-update_viewnone"><a style="color:green">show_campaigns</a> (test=None, experiment=None, role = None, configfile=None, view_active=None, view_inactive=None, view_mine=None, view_others=None, view_production=None, update_view=None)</h5>
+
+<ul>
+  <li>Json dump data from the show_campaigns page.</li>
+</ul>
+
+<h5 id="submission_details-experiment-role-submission_id-testnone-configfilenone"><a style="color:green">submission_details</a> (experiment, role, submission_id, test=None, configfile=None):</h5>
+
+<p>Json dump data from a submission details page.  Has lots of bits in it…</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+    "experiment": "uboone",
+     "role": "production",
+     "tl": [
+         {
+            "campaign_id": 1087,
+             "experiment": "uboone",
+             "name": "vito_prod_muminus_0-2.0GeV_isotropic_uboone",
+             "active": true,
+             "defaults": null,
+             "creator": 29,
+             "creator_role": "production",
+             "campaign_type": null,
+             "campaign_keywords": null,
+             "tags": null,
+             "stages": [{
+                    "campaign_stage_id": 1791,
+                     "experiment": "uboone",
+                     "name": "reco2",
+                     "job_type_id": 783,
+                     "creator": 29,
+                     "created": "2019-01-09T16:43:10",
+                     "updater": 29,
+                     "updated": "2019-01-10T11:31:33",
+                     "vo_role": "Analysis",
+                     "cs_last_split": null,
+                     "cs_split_type": "None",
+                     "cs_split_dimensions": null,
+                     "dataset": "None",
+                     "software_version": "v07_07_00",
+                     "login_setup_id": 516,
+                     "param_overrides": [
+                         ["--stage ", "reco2"],
+                         ["-Oglobal.sam_dataset=", "%(dataset)s"]
+                     ],
+                     "test_param_overrides": [
+                         ["--stage ", "reco2"],
+                         ["-Oglobal.sam_dataset=", "%(dataset)s"]
+                     ],
+                     "completion_type": "complete",
+                     "completion_pct": 95,
+                     "hold_experimenter_id": null,
+                     "creator_role": "production",
+                     "role_held_with": null,
+                     "campaign_stage_type": "test",
+                     "merge_overrides": false,
+                     "output_ancestor_depth": 1,
+                     "campaign_id": 1087,
+                     "experimenter_creator_obj": {
+                        "experimenter_id": 29,
+                         "first_name": "Vito",
+                         "last_name": "Di Benedetto",
+                         "username": "vito",
+                         "last_login": "2019-03-08T10:03:42",
+                         "session_experiment": "uboone",
+                         "session_role": "analysis",
+                         "root": false,
+                         "exp_expers": null
+                     },
+                     "experimenter_updater_obj": {
+                         "experimenter_id": 29,
+                         "first_name": "Vito",
+                         "last_name": "Di Benedetto",
+                         "username": "vito",
+                         "last_login": "2019-03-08T10:03:42",
+                         "session_experiment": "uboone",
+                         "session_role": "analysis",
+                         "root": false,
+                         "exp_expers": null
+                     },
+                     "experimenter_holder_obj": null,
+                     "experiment_obj": null,
+                     "job_type_obj": null,
+                     "login_setup_obj": null,
+                     "campaign_obj": {
+                        "name": "vito_prod_muminus_0-2.0GeV_isotropic_uboone"
+                     },
+                     "providers": null,
+                     "consumers": null,
+                     "consumer_associations": null,
+                     "provider_associations": null
+                 },
+             ],
+             "experimenter_creator_obj": {
+                "experimenter_id": 29,
+                 "first_name": "Vito",
+                 "last_name": "Di Benedetto",
+                 "username": "vito",
+                 "last_login": "2019-03-08T10:03:42",
+                 "session_experiment": "uboone",
+                 "session_role": "analysis",
+                 "root": false,
+                 "exp_expers": null
+             }
+         },
+     ],
+     "last_activity": "2019-08-20 18:07:02",
+     "msg": "OK",
+     "data": {
+         "view_active": "view_active",
+         "view_inactive": null,
+         "view_mine": 4,
+         "view_others": 4,
+         "view_analysis": null,
+         "view_production": "view_production",
+         "authorized": [true, true]
+     }
+}
+</code></pre></div></div>
+
+<h5 id="tag_campaigns-tag-cids-experiment-rolenone-test_clientfalse"><a style="color:green">tag_campaigns</a> (tag, cids, experiment, role=None, test_client=False):</h5>
+
+<ul>
+  <li>Apply tag to campaigns whose ids are in “cids” which is a comma-separated list.</li>
+</ul>
+
+<h5 id="update_stage_param_overrides-experiment-campaign_stage-param_overridesnone-test_param_overridesnone-testnone-rolenone-configfilenone"><a style="color:green">update_stage_param_overrides</a> (experiment, campaign_stage, param_overrides=None, test_param_overrides=None, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Lets you set the param overrides on a campaign stage.  These again are a list of pairs of strings, as in the .ini file dump;or a json dump of same.</li>
+</ul>
+
+<h5 id="update_submission-submission_id-jobsub_job_idnone-statusnone-projectnone-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">update_submission</a> (submission_id, jobsub_job_id=None, status=None, project=None, test=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Update a submission.</li>
+</ul>
+
+<h5 id="uploaded_files_rm-experiment-filename-testnone-rolenone-configfilenone"><a style="color:green">uploaded_files_rm</a> (experiment, filename, test=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Remove an uploaded file.</li>
+</ul>
+
+<h5 id="upload_file-file_name-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">upload_file</a> (file_name, test=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>Upload a file.</li>
+</ul>
+
+<h5 id="upload_wf-file_name-testnone-experimentnone-configfilenone-replacefalse-rolenone"><a style="color:green">upload_wf</a> (file_name, test=None, experiment=None, configfile=None, replace=False, role=None):</h5>
+
+<ul>
+  <li>Upload a campaign .ini file.</li>
+</ul>
+
+<h2 id="deprecated-methods">Deprecated Methods</h2>
+
+<h5 id="update_session_experiment-experiment-test_clientfalse"><a style="color:green">update_session_experiment</a> (experiment, test_client=False):</h5>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>You can now pass experiment and role on all calls.  This will still
+set defaults for them if you don't pass them in.
+</code></pre></div></div>
+
+<h5 id="update_session_role-role-test_clientfalse"><a style="color:green">update_session_role</a> (role, test_client=False):</h5>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>You can now pass experiment and role on all calls.  This will still
+set defaults for them if you don't pass them in.
+</code></pre></div></div>
+
+<h5 id="campaign_stage_edit-action-campaign_id-ae_stage_name-pc_username-experiment-vo_role-dataset-ae_active-ae_split_type-ae_software_version-ae_completion_type-ae_completion_pct-ae_param_overrides-ae_depends-ae_launch_name-ae_campaign_definition-ae_test_param_overrides-test_clientnone-configfilenone-experimentnone-rolenone"><a style="color:green">campaign_stage_edit</a> (action, campaign_id, ae_stage_name, pc_username, experiment, vo_role, dataset, ae_active, ae_split_type, ae_software_version, ae_completion_type, ae_completion_pct, ae_param_overrides, ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides, test_client=None, configfile=None) experiment=None, role=None)</h5>
+
+<h5 id="campaign_definition_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone-actionnone-namenone-experimentnone-recoveriesnone-test_clientfalse-configfilenone"><a style="color:green">campaign_definition_edit</a> (output_file_patterns, launch_script, def_parameter=None, pc_username=None, action=None, name=None, experiment=None, recoveries=None, test_client=False, configfile=None)</h5>
+<h5 id="campaign_edit-kwargs"><a style="color:green">campaign_edit</a> (**kwargs):</h5>
+
+<h5 id="register_poms_campaign-campaign_name-usernone-experimentnone-versionnone-datasetnone-campaign_definitionnone-testnone-rolenone-configfilenone"><a style="color:green">register_poms_campaign</a> (campaign_name, user=None, experiment=None, version=None, dataset=None, campaign_definition=None, test=None, role=None, configfile=None):</h5>
+
+<h5 id="job_type_edit-output_file_patterns-launch_script-def_parameternone-pc_usernamenone"><a style="color:green">job_type_edit</a> (output_file_patterns, launch_script, def_parameter=None, pc_username=None,</h5>
+
+<h5 id="launch_template_edit-actionnone-launch_namenone-launch_hostnone-user_accountnone-launch_setupnone-experimentnone-pc_usernamenone-test_clientfalse-rolenone-configfilenone"><a style="color:green">launch_template_edit</a> (action=None, launch_name=None, launch_host=None, user_account=None, launch_setup=None, experiment=None, pc_username=None, test_client=False, role=None, configfile=None)</h5>
+
+<h5 id="get_task_id_for-campaign-usernone-command_executednone-input_datasetnone-parent_task_idnone-task_idnone-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">get_task_id_for</a> (campaign, user=None, command_executed=None, input_dataset=None, parent_task_id=None, task_id=None, test=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>This is the old name for get_submission_id_for().</li>
+</ul>
+
+<h5 id="launch_jobs-campaign-testnone-experimentnone-rolenone-configfilenone"><a style="color:green">launch_jobs</a> (campaign, test=None, experiment=None, role=None, configfile=None):</h5>
+
+<ul>
+  <li>This is the old call for launch_campaign_stage_jobs</li>
+</ul>
+
+  </div>
+
+</article>
+
+        <button id="back-to-top-button"><i class="fas fa-arrow-up"></i></button>
+      </div>
+    </main>
+  </body>
+</html>

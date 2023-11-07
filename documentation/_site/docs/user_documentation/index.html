@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en}"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>User Documentation | POMS Guide</title>
+<meta name="generator" content="Jekyll v4.3.2" />
+<meta property="og:title" content="User Documentation" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<meta property="og:description" content="The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them." />
+<link rel="canonical" href="https://fermitools.github.io/poms/docs//docs/user_documentation/" />
+<meta property="og:url" content="https://fermitools.github.io/poms/docs//docs/user_documentation/" />
+<meta property="og:site_name" content="POMS Guide" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="User Documentation" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"The Production Operations Management System (POMS) is a project designed to provide a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users. POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping. The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid. POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them.","headline":"User Documentation","url":"https://fermitools.github.io/poms/docs//docs/user_documentation/"}</script>
+<!-- End Jekyll SEO tag -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/assets/poms_docs.js"></script>
+  <link rel="shortcut icon" href="#">
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"><link type="application/atom+xml" rel="alternate" href="https://fermitools.github.io/poms/docs//feed.xml" title="POMS Guide" /></head>
+<header><nav id="toc">
+    <center>
+        <img class="site-logo" src="https://fermitools.github.io/poms/docs//docs/images/poms.jpg"/>
+    </center>
+    <div class="navigation-area">
+        <h3>Navigation</h3>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search...">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+        </div>        
+    </div>
+    <div class="container">
+        <ul id="main-menu">
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/backwards_compatibility/index.html">Backwards Compatibility</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/campaign_editor/index.html">Campaign Editor</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/client_documentation/index.html">Client Documentation</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item has-submenu" >
+                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/index.html">Experimenters Corner</a>
+                        
+                            <ul>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/calendar_help/index.html">Calendar Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_deps_help/index.html">Campaign Deps Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_edit_help/index.html">Campaign Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_info_help/index.html">Campaign Info Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_layer_info/index.html">Campaign Layer Info</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_sheet_help/index.html">Campaign Sheet Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_task_files_help/index.html">Campaign Task Files Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/campaign_time_bars_help/index.html">Campaign Time Bars Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dashboard_help/index.html">Dashboard Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item has-submenu">
+                                        <a class="menu-link open" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/index.html">Data Dispatcher</a>
+                                        
+                                            <ul>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/environment_setup/index.html">Environment Setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/poms_campaign_setup/index.html">POMS Campaign_setup</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/split_types_and_data_dispatcher_fields/index.html">Split Types and Data Dispatcher Fields</a></li>
+                                                
+                                                    <li class="menu-item"><a class="menu-link" href="https://fermitools.github.io/poms/docs/experimenters_corner/data_dispatcher/tracking_submissions/index.html">Tracking Submissions</a></li>
+                                                
+                                            </ul>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/dataset_split_types/index.html">Dataset Split Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/edit_users_help/index.html">Edit Users Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/editing_job_types/index.html">Editing Job Types</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/experiment_edit_help/index.html">Experiment Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/fife_newsletter_article/index.html">Fife Newsletter Article</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/file_info_by_submission_help/index.html">File Info By Submission Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/generic_edit_help/index.html">Generic Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/getting_more_memory_in_recovery_jobs/index.html">Getting More Memory In Recovery Jobs</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/held_launches_help/index.html">Held Launches Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_make_snow_request_for_poms/index.html">How To Make Snow Request For Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/how_to_use_poms/index.html">How To Use Poms</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_efficiency_histo_help/index.html">Job Efficiency Histo Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_file_contents_help/index.html">Job File Contents Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/job_table_help/index.html">Job Table Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_campaign_help/index.html">Launch Campaign Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_jobs_help/index.html">Launch Jobs Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/launch_template_edit_help/index.html">Launch Template Edit Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/list_generic_help/index.html">List Generic Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/membership_help/index.html">Membership Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/oidc_auth_help/index.html">Oidc Auth Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/protoDUNE/index.html">Protodune</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/raw_tables_help/index.html">Raw Tables Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/sample_workflow/index.html">Sample Workflow</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/schedule_launch_help/index.html">Schedule Launch Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/search_tags_help/index.html">Search Tags Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/show_campaigns_help/index.html">Show Campaigns Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/submission_details_help/index.html">Submission Details Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/triage_job_help/index.html">Triage Job Help</a>
+                                        
+                                    </li>
+                                
+                                    <li class="menu-item ">
+                                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/experimenters_corner/tutorial_outline/index.html">Tutorial Outline</a>
+                                        
+                                    </li>
+                                
+                            </ul>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/frequently_asked_questions/index.html">Frequently Asked Questions</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/glossary/index.html">Glossary</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/gui_workflow_editor_user_guide/index.html">Gui Workflow Editor User Guide</a>
+                        
+                    </li>
+                
+            
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/launch_config_file_templates/index.html">Launch Config File Templates</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/release_notes/index.html">Release Notes</a>
+                        
+                    </li>
+                
+            
+                
+                    <li class="menu-item " >
+                        <a class="menu-link " href="https://fermitools.github.io/poms/docs/user_documentation/index.html">User Documentation</a>
+                        
+                    </li>
+                
+            
+        </ul>
+    </div>
+</nav>
+
+
+  </header>
+  <body>
+    <main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        
+<div class="breadcrumbs"></div>
+        <article class="post">
+
+  <header class="post-header">
+    <h1 class="post-title">User Documentation</h1>
+  </header>
+
+  <div class="post-content">
+    <ul id="markdown-toc">
+  <li><a href="#poms-overview" id="markdown-toc-poms-overview">POMS Overview</a>    <ul>
+      <li><a href="#basic-concepts" id="markdown-toc-basic-concepts">Basic Concepts</a></li>
+      <li><a href="#getting-access-new-experiments-new-accounts-users-and-roles" id="markdown-toc-getting-access-new-experiments-new-accounts-users-and-roles">Getting access: New Experiments, New Accounts, Users and Roles</a></li>
+      <li><a href="#a--practical-scenario" id="markdown-toc-a--practical-scenario">A  <em>“Practical Scenario”</em></a></li>
+      <li><a href="#the-big-picture" id="markdown-toc-the-big-picture">The <em>“Big Picture”</em></a></li>
+      <li><a href="#drilling-down" id="markdown-toc-drilling-down">Drilling down</a></li>
+      <li><a href="#compose-a-loginsetup-script" id="markdown-toc-compose-a-loginsetup-script">Compose a login/setup script</a></li>
+      <li><a href="#compose-a-job-type" id="markdown-toc-compose-a-job-type">Compose a job type</a></li>
+      <li><a href="#compose-a-campaign-stage" id="markdown-toc-compose-a-campaign-stage">Compose a campaign stage</a></li>
+      <li><a href="#bringing-it-all-together" id="markdown-toc-bringing-it-all-together">Bringing it all together</a></li>
+      <li><a href="#running-the-campaign" id="markdown-toc-running-the-campaign">Running the Campaign.</a></li>
+    </ul>
+  </li>
+  <li><a href="#poms-navigation-overview" id="markdown-toc-poms-navigation-overview">POMS: Navigation Overview</a></li>
+  <li><a href="#poms-detailing-the-components" id="markdown-toc-poms-detailing-the-components">POMS: Detailing the components</a></li>
+  <li><a href="#campaigns" id="markdown-toc-campaigns">Campaigns</a></li>
+  <li><a href="#campaigns-actions" id="markdown-toc-campaigns-actions">Campaigns Actions</a>    <ul>
+      <li><a href="#add-a-campaign" id="markdown-toc-add-a-campaign">Add a campaign</a></li>
+      <li><a href="#clone-an-existing-campaign" id="markdown-toc-clone-an-existing-campaign">Clone an existing campaign</a></li>
+      <li><a href="#launch-the-campaign" id="markdown-toc-launch-the-campaign">Launch the campaign</a></li>
+    </ul>
+  </li>
+  <li><a href="#campaign-stages" id="markdown-toc-campaign-stages">Campaign Stages</a>    <ul>
+      <li><a href="#editing-a-campaign-stage" id="markdown-toc-editing-a-campaign-stage">Editing a Campaign Stage</a></li>
+      <li><a href="#campaign-stage-loginsetup-and-job-type" id="markdown-toc-campaign-stage-loginsetup-and-job-type">Campaign Stage Login/Setup and Job Type</a></li>
+      <li><a href="#campaign-stage-datasets-and-split-types" id="markdown-toc-campaign-stage-datasets-and-split-types">Campaign Stage Datasets and Split types</a></li>
+      <li><a href="#campaign-stage-page-information" id="markdown-toc-campaign-stage-page-information">Campaign Stage Page Information</a></li>
+      <li><a href="#cloning-a-stage" id="markdown-toc-cloning-a-stage">Cloning a Stage</a></li>
+    </ul>
+  </li>
+  <li><a href="#sample-campaigns" id="markdown-toc-sample-campaigns">Sample Campaigns</a></li>
+  <li><a href="#monitoring" id="markdown-toc-monitoring">Monitoring</a></li>
+  <li><a href="#campaign-editor" id="markdown-toc-campaign-editor">Campaign Editor</a></li>
+  <li><a href="#glossary" id="markdown-toc-glossary">Glossary</a></li>
+</ul>
+
+<h3 id="poms-overview">POMS Overview</h3>
+
+<p>The <em>Production Operations Management System</em> (POMS) is a project designed to provide  a service to assist production teams and analysis groups of experiments in their MC production and DATA processing. As the quantity of data originated by the running experiments greatly increases, the ability of simplifying the steps in data processing and management has become more and more appealing to the users.</p>
+
+<p>POMS provides a web service interface that enables automated jobs submission on distributed resources according to customers’ requests and subsequent monitoring and recovery of failed submissions, debugging and record keeping.</p>
+
+<p>POMS is interfaced to the following systems:</p>
+
+<ul>
+  <li>
+    <p><a href="https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki">Jobsub</a>: a service that provides support for the job lifecycle enabling the management of jobs on distributed resources, such as the Grid.</p>
+  </li>
+  <li>
+    <p><a href="https://cdcvs.fnal.gov/redmine/projects/sam/wiki/User_Guide_for_SAM">SAM</a>: the data handling system, to keep track of files, their meta-data and processing.</p>
+  </li>
+  <li>
+    <p><a href="https://landscape.fnal.gov/monitor">FIFEmon</a>: for monitoring.</p>
+  </li>
+  <li>
+    <p><a href="https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki">FIFE_UTILS</a></p>
+  </li>
+  <li>
+    <p>ECL, the Electronic Collaboration Logbook  where experiments can keep track of the production and processing operations as a collection of records chronologically organized in the form of “logbook entries”.</p>
+  </li>
+</ul>
+
+<p>The ultimate goal is the most efficient utilization of all computing resources available to experiments, while providing a simple and transparent interface between users and the complexity of the grid.</p>
+
+<p>POMS runs behind a web service interface that provides both interactive pages to the users, and a REST interfaces to scripts that interact with it. This means that experiments can use POMS through their web browser to configure and run their production code, or they can use the poms_client and poms_jobsub_wrapper tools to submit jobs through a command line and have POMS tracking, debugging and monitoring them.</p>
+
+<p>To help understanding some terminology used in this document a <a href="https://fermitools.github.io/poms/docs//docs/glossary">Glossary</a>  is provided.</p>
+
+<h4 id="basic-concepts">Basic Concepts</h4>
+
+<p>POMS employs the concept of a “Campaign” to achieve the goal of data processing.  A “Campaign” is a collection of one or more stages executed in a user defined order to achieve the goal of data processing.</p>
+
+<p>Each campaign stage configuration involves three main steps, mainly the definition of parameters  and actions which will be used to launch the jobs:</p>
+
+<ul>
+  <li>
+    <p>Compose a login/setup.</p>
+  </li>
+  <li>
+    <p>Compose the job type.</p>
+  </li>
+  <li>
+    <p>Compose one or more campaign stages providing the login/setup template and job  types previously defined.</p>
+  </li>
+</ul>
+
+<p><em>Note:</em> <em>Both the Login/Setup and Job Type definitions can and should be reused.</em></p>
+
+<h4 id="getting-access-new-experiments-new-accounts-users-and-roles">Getting access: New Experiments, New Accounts, Users and Roles</h4>
+
+<p>To be able to use POMS interface the user needs to have an account. As this account has a level of authority in the experiment, its creation must be approved by the experiment.  The user needs to do the following to request an account (We assume the user has already a Fermilab Service account).</p>
+<ul>
+  <li>Open the webpage to Service Now<a href="https://fermi.servicenowservices.com/wp">(SNOW)</a> and login using the Service account.</li>
+  <li>Select the tile “Request Something”.</li>
+  <li>Select the tile “Experiment/Project/Collaboration Computing Account”.</li>
+  <li>Choose your experiment.</li>
+  <li>Choose the role “Production” or “Analysis”.   Analysis can view production campaign data, but cannot yet create its own.</li>
+</ul>
+
+<p>It can take up to one hour from when your request is approved until it appears in POMS.</p>
+
+<p>When a new experiment is interested in using POMS, a Service Desk ticket needs to be opened with the request. The user can go the Service Desk Website
+<a href="https://fermi.servicenowservices.com/nav_to.do?uri=%2Flist_service_areas.do%3Fdivision%3Dscientific_computing">Scientific Computing Services</a> , select <a href="https://fermi.servicenowservices.com/cmdb_ci_service.do?sys_id=bc926c686f46420032544d1fde3ee498&amp;sysparm_view=ess&amp;sysparm_affiliation=">Scientific Production Processing</a> and under the ‘Get Help’ select ‘Submit a request to service providers’.</p>
+
+<p>POMS has a concept of user <em>Roles</em> to control various operations on the components. User get assigned role also outside POMS through FERRY. Depending on the role, a user can perform certain actions.</p>
+
+<p>Three roles are provided : superuser, production and analysis.</p>
+
+<ul>
+  <li>The highest role is  <em>superuser</em> . This used to be <em>coordinator</em>  but has been changed to <em>superuser</em> to comply  with FERRY. To acquire the super user role go to the SNOW page “Add/Remove JobSub Group Superuser of an <a href="https://fermi.servicenowservices.com/wp?id=evg-search-results&amp;sysparm_filters=search_string%3Djobsub%20superuser">Experiment</a>. When you click on the link you will have to follow and submit a form with your information. A user with this role can modify any jobs.</li>
+  <li>Those with <em>production</em> role are able to modify ALL production templates.</li>
+  <li>Those with <em>analysis</em> role can only modify their templates.</li>
+</ul>
+
+<p>When logging in POMS, for the first time, the user has, by default, the lowest role allowed for the account/experiment.</p>
+
+<h4 id="a--practical-scenario">A  <em>“Practical Scenario”</em></h4>
+
+<p>Let’s envision a very possible scenario for an experiment during the initial phase of simulation:</p>
+
+<p>We want to use the production processing to simulate and recostruct events in a portion of the detector to test reconstruction accuracy.   Most likely we would use a MonteCarlo type programs to generate particles events in a detector, store data in files  which in turn will be used to reconstruct the events and then finally analyze the data.</p>
+
+<p>From POMS point of view, the overall process will represent a ‘campaign’ with possibly five stages:</p>
+
+<p>Stage 1: Event Generation jobs.<br />
+Stage 2: Geant simulation jobs.<br />
+Stage 3: Detector Simulation jobs.<br />
+Stage 4: Reconstrution jobs.<br />
+Stage 5: Analyzing jobs.</p>
+
+<p>Basic information need to be provided for each stage to achieve the goals of the whole campaign which could be simplified as the <em>“who-where-how”</em>:</p>
+<ul>
+  <li><em>who</em>
+    <ul>
+      <li>the account to use to login into the host (unix account)</li>
+    </ul>
+  </li>
+  <li><em>where</em>
+    <ul>
+      <li>the host on which the login script will be launched</li>
+    </ul>
+  </li>
+  <li><em>how</em>
+    <ul>
+      <li>the script to use to configure the environment</li>
+      <li>the job types to be used for each stage</li>
+      <li>the scripts to be used when submitting the jobs and the parameters to be used</li>
+      <li>the dependency between stages</li>
+      <li>the criterion to determine when a stage is considered finished so we can move on to the next stage</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Those steps are specified and grouped in three type of templates: <em>“Login Template”</em>, <em>“Job Types”</em>, <em>“Campaign stages”</em> which will be first viewed in the next section before expounding  in the details .</p>
+
+<h4 id="the-big-picture">The <em>“Big Picture”</em></h4>
+
+<p>Before entering into the details of the components, let’s examine the following <em>“Big Picture”</em> for a hypothetical campaign called eve_mc which could represent the above ‘Practical Scenario’.<br />
+This representation is done using the Campaign Editor, a POMS built-in tool which allows to create and manipulate campaigns. Details on how to use the tool  are available in the <a href="https://fermitools.github.io/poms/docs//docs/gui_workflow_editor_user_guide">Campaign Editor User Guide</a> User Guide.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_campaign.png" alt="eve_mc_campaign.png" /></p>
+
+<p>Let’s see first a brief description of the elements in the campaign’s layout:</p>
+
+<ul>
+  <li><em>Login/Setup</em> : This is the basic component which defines the host from which jobs will be launched, the account used to login into the host and the environment POMS configures for the jobs that will be launched. If you double click on the ‘generic_fife_launch’ login/setup element you will see the following:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_login.png" alt="eve_mc_login.png" /></p>
+
+<ul>
+  <li><em>Job Type</em> : This defines the type of job used for processing. Strictly speaking, there is no ‘field’ to store the job type, instead,  the type is the result of the launch script and parameters which are used to accomplish the purpose of the job.  As a suggestion, the user could give  it a meaningful name to reflect its purpose, for example <em>‘Myjob_MC</em>’ for a MonteCarlo job.<br />
+If you double click on the ‘generic_fife_process’ login/setup element you will see the following:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_jobtype.png" alt="eve_mc_jobtype.png" /></p>
+
+<ul>
+  <li><em>Campaign Stage</em>: A stage consists of a Login/Setup, a Job Type and a set of definitions and parameters used to run the jobs for accomplishing a ‘stage’ of the whole campaign. Campaign stages can be connected by dependencies, for examples, files produced by one stage can be used as input for the next stage.<br />
+If you double click on a stage element you will see the following:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_stage.png" alt="eve_mc_stage.png" /></p>
+
+<ul>
+  <li><em>Campaign Stage Dependency</em>: It defines how the stages depend on each other, typically specifying the file pattern of the files produce by one stage and used as input by the next stage.<br />
+If you double click on the arrow between two stages you will see the following:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_dependency.png" alt="eve_mc_dependency.png" /></p>
+
+<ul>
+  <li><em>Campaign Defaults</em>:  default values used when adding a new stage. If you double click on the arrow between two stages you will see the following:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_defaults.png" alt="eve_mc_defaults.png" /></p>
+
+<p>Campaign stages can branch out, have further dependency and eventually come back together. An example of a possible scenario based on the previous example could be if after generating the events, the user wants to continue the simulation under two different detectors configurations, with and without noise , and then compare the results.<br />
+The picture below shows this new scenario:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_campaign_double.png" alt="eve_mc_campaign_double.png" /></p>
+
+<p>Now let’s see the components in more details. The basic components can be created following the links in the Main Menu; <em>Sample Campaigns</em> are also available to provide samples of campaigns which can be cloned and then customized using the <em>Campaign Editor</em>.</p>
+
+<h4 id="drilling-down">Drilling down</h4>
+
+<p>Campaign definition, as already mentioned,  involves the definition of a <em>login/setup</em> , a <em>job type</em>  and one or more <em>stages</em>.<br />
+We strongly reccomend to use the Campaign Editor to define the  campaign stages, however, they can all be built using the links from the main menu.<br />
+At the time of writing, creating a new login setup and a job type can ONLY be done using the links from the main menu and that is shown in the following sections.</p>
+
+<h4 id="compose-a-loginsetup-script">Compose a login/setup script</h4>
+
+<p>Campaign setup involves the definition of a <em>login/setup</em> which is a collection of bash commands to be executed on the experiment’s user defined host to establish the environment from which POMS will launch all jobsub jobs.</p>
+
+<p>As a user may belong to more than one experiment, as a first step, make sure you select the experiment and role from the pull-down menu on the top right corner.</p>
+
+<p>Templates can be reused, cloned  and modified for different campaigns and are available to other users as well. So you can use the same template for different processing campaigns.</p>
+
+<p>Existing templates could be viewed following the  ‘Compose Login/setup’  link on the main page side panel to see if there is already a template usable for the purpose.  To create a new template just click the ‘Add’ button at the bottom of the page.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/login_example.png" alt="login_example.png" /></p>
+
+<p>Four fields need to be added or modified depending on the action:</p>
+
+<ul>
+  <li>
+    <p><em>Name</em>: Define the name of your login template. When you <em>clone</em> the login setup, the name will show with the prefix ‘CLONE OF:current name’</p>
+  </li>
+  <li>
+    <p><em>Host</em>: Define the interactive node or machine you are going to use to launch the login/setup script.</p>
+  </li>
+  <li>
+    <p><em>Account</em>: Define the user login account for the launch (ex.  novapro, minervapro, minervacal, uboonepro, etc )</p>
+  </li>
+  <li>
+    <p><em>Setup</em>: Define the environment variable, setups, or scripts that you usually setup on your own machine (e.g. setup_nova, launch script)  if you were to launch the jobs from the shell command line.
+**This must be done in one semicolon separated shell line, one line only, no <CR> otherwise the script will break.**  
+Typically, as part of the setup, [FIFE_UTILS](https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki) and [JOBSUB](https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki#Jobsub-services-on-fifebatch-infrastructure) are used.</CR></p>
+  </li>
+</ul>
+
+<p>Note: The Account above will need the following .k5login entries:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>   poms/cd/fermicloud045.fnal.gov@FNAL.GOV
+   poms/cd/pomsgpvm01.fnal.gov@FNAL.GOV
+   &lt;YOUR KERBEROS USERNAME&gt;@FNAL.GOV
+</code></pre></div></div>
+
+<p>You MUST add your default principal to the .k5login file if the .k5login file exists.  So if you’re creating a .k5login file for the first time don’t forget to add your account name in addition to the poms ids.  Your Fermilab username must be lower case and the FNAL.GOV must be uppercase.</p>
+
+<h4 id="compose-a-job-type">Compose a job type</h4>
+
+<p>Next step is to compose the job type. A Job ‘Type’ is a way of categorizing the job based on its purpose, for example, Monte Carlo, Calibration, Reconstruction etc. Jobs of the same ‘type’ will typically have same or similar set of parameters.<br />
+Since the Job Type defines the purpose of the processing accomplished in a certain stage, you can have different job types for the different campaign stages.<br />
+Furthermore, a typical way stages are connected is through the use of files produced by the previous stage and before the next stage can be started, you need a way to let the work flow know that the previous stage is finished.  This is also done configuring the Job Type.</p>
+
+<p>You can view, create or clone existing job types following the main menu link to ‘Compose Job Type’.</p>
+
+<p>The page might show existing job types; as per the template you can modify existing ones or click the ‘Add’ button to create a new one.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/job_type_example.png" alt="job_type_example.png" /></p>
+
+<p>The following are the fields that need to be filled:</p>
+
+<ul>
+  <li>
+    <p><em>Name</em>: A name that describes the kind of job campaign you are running (eg. Nova raw2root keepup FD, rock_neutrinoMC, minerva_cal).</p>
+  </li>
+  <li>
+    <p><em>Output file patterns</em>: The output pattern you are interested in your campaign (eg. %.root)</p>
+  </li>
+  <li>
+    <p><em>Launch Script</em>: In this field, you need to put the script that you run to submit jobs in your machine. In the example above, we specify the config file where variable definitions are specified to be used by fife_launch. Example of a config file can be found clicking on the ‘Config File Templates’ link from the main menu.</p>
+  </li>
+  <li>
+    <p><em>Definition Parameters</em>: The arguments your launch script (included in Launch script) used for the submission. In the example above, we specify to submit 5 jobs.</p>
+  </li>
+  <li>
+    <p><em>Recovery Launches</em>: When jobs complete there might be errors so that you want to re-launch the campaign stage: a Recovery Launch field is where you specify options to re-submit jobs based on their failure.  Example of available options:</p>
+    <ul>
+      <li>added_files: include files added to definition since previous job ran.</li>
+      <li>consumed_status: include files which were not flagged “consumed” by the original job. In the example above, we specify to re-submit starting 3 jobs.</li>
+      <li>delivered_not_consumed: include only delivered files which were not “consumed” by the original job.</li>
+      <li>pending_files: include files which do not have suitable children declared for this version of software.</li>
+      <li>process_status: like consumed status, but also include files which were processed by jobs that say they failed.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>About the use of the <em>‘Output file patterns’</em>:<br />
+User’s Jobs can use input files and produce output files  (it is responsability of the user’s job to declare the files to SAM for further data handling).<br />
+From the POMS perspective, when configuring the JOB type, the user can specify the output file patterns of the files produced by the jobs; these will be then used by POMS to check on the ‘completion’ level of the campaign stage the jobs ran for.</p>
+
+<p>About the use of the <em>‘Launch Script’</em>: 
+The launch script is used when starting the job using, in typical case fife_launch (example [mvi: change accordingly when showing the real example..]):</p>
+<blockquote>
+  <p>fife_launch -c /sbnd/app/users/dbrailsf/poms/soft/srcs/sbndutil/cfg/poms/sbnd_launch.cfg</p>
+</blockquote>
+
+<p>POMS strongly suggests the use of <a href="https://cdcvs.fnal.gov/redmine/projects/fife_utils/wiki/Fife_launchfife_wrap">fife_launch</a> which is a config-file based job launcher script; fife_launch is the front-end to jobsub_submit which is part of the <a href="https://cdcvs.fnal.gov/redmine/projects/jobsub/wiki/Using_the_Client">Jobsub</a> client library which in turn does the final job submission.<br />
+Example of a config file can be found clicking on the ‘Config File Templates’ link from the main menu.</p>
+
+<h4 id="compose-a-campaign-stage">Compose a campaign stage</h4>
+
+<p>A stage belongs to a campaign so the only way to create a stage, since POMS version &gt; 4.X.X,  is to use the Campaign Editor.<br />
+In previous versions a form was provided when selecting  the ‘Compose Campaign Stages’ menu item under ‘Configure Work’ but this has been discontinued.<br />
+For a detailed description of the fields and how to create,edit etc a stage please refer to the <a href="https://fermitools.github.io/poms/docs/#a-stylecolorgreencampaign-stagesa">Campaign Stages</a> section.</p>
+
+<h4 id="bringing-it-all-together">Bringing it all together</h4>
+
+<p>Using the <em>Compose Campaign Stage</em> from the main menu implies filling up the forms for each stage to build the whole campaign. 
+This is where the <em>Campaign Editor</em> becomes very useful so you can create all the stages and define how the stages depend on each other.<br />
+Let’s see how we can get to the campaign eve_mc used in the initial example using the Campaign Editor.<br />
+Let’s assume we have already defined the Login/setup and the job type. Also, let’s assume we have created one stage for it, so basically starting with the following picture:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_one_stage.png" alt="eve_mc_one_stage.png" /></p>
+
+<p>As you can see in picture below, if you right click on the existing stage a pop up window will show up where you can ‘Add Node’ which is the editor generic notation for ‘Add stage’ in our case; replace ‘ undefined’ with the stage name you want, in our case eve_g4: click OK and you will end up with what it is shown in the picture on the right.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_add_stage.png" alt="eve_mc_add_stage.png" />  <img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_two_stages.png" alt="eve_mc_two_stages.png" /></p>
+
+<p>The second stage has been created with the default values and you can then open the form and change the fields accordingly.<br />
+The arrow that connects the two stages represents the dependency from the first stage. Double clicking on the arrow it shows the type of dependency, in this case stage eve_g4 will use files with pattern ‘root’ created by eve_gen.<br />
+If we  continue to add stages in the same fashion  the whole campaign will be generated.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_mc_dep_1_2.png" alt="eve_mc_dep_1_2.png" /></p>
+
+<h4 id="running-the-campaign">Running the Campaign.</h4>
+
+<p>Now that the campaign has been defined, we can launch jobs, and to do so,  under the main menu, section  ‘Campaign Data’ click on  Campaign. This will show all the existing campaigns.  <br />
+You can filter on the names to find your campaign and then click on the ‘Launch’ symbol to start it;  this will start it from the first stage.</p>
+
+<p>Find more information in the <a href="https://fermitools.github.io/poms/docs/#campaigns">Campaigns</a> section below.</p>
+
+<h3 id="poms-navigation-overview">POMS: Navigation Overview</h3>
+
+<p>Lets see a general description of POMS from the Navigation perspective.<br />
+Logging into POMS will direct you to the Home Page:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/poms_home_page.png" alt="poms_home_page.png" /></p>
+
+<p>On the top right corner two selector fields show the experiment and the role based on your account; if you belong to multiple experiments you will be able to select accordingly.</p>
+
+<p>The Main Menu on the left panel is organized in various sections which allow the user to view, configure and monitor the work:</p>
+
+<ul>
+  <li>External Links:
+    <ul>
+      <li>Logbook: Link to the Electronic Collaboration Logbook for the experiment if available.</li>
+      <li>POMS SNOW Page: Link to POMS Service Desk Page (Service information)</li>
+      <li>Downtime Calendar: Link to the Scientific Services Outage Calendar</li>
+    </ul>
+  </li>
+  <li>Experiment:
+This page shows the members of the current group/experiment. Data is presented as a table which lets you sort and filter the results to easily find people:
+    <ul>
+      <li>You can click on column headings to sort the data.</li>
+      <li>You can type substrings in the boxes under the column headings to filter for matches.</li>
+    </ul>
+  </li>
+  <li>Campaign Data:
+    <ul>
+      <li>Campaigns: link to the list of existing campaigns for the experiment.</li>
+      <li>Campaign Stages: link to the list of existing stages.</li>
+      <li>Sample Campaigns: link to the list of existing samples to be used as templates when creating new campaign.</li>
+    </ul>
+  </li>
+  <li>Configure works:
+    <ul>
+      <li>Compose Login/setup: link to the list of existing login templates and possible actions.</li>
+      <li>Compose Job Type: link to the list of existing job types  and possible actions.</li>
+      <li>Compose Campaign Stages: link to the list of existing stages  and possible actions.</li>
+      <li>Config File Templates: link to some useful templates that can be used when launching jobs.</li>
+    </ul>
+  </li>
+  <li>Jobs:
+These links direct to <em>Landscape</em> plots to monitor campaigns and jobs status.</li>
+</ul>
+
+<p>From the center tiles selection</p>
+
+<h3 id="poms-detailing-the-components">POMS: Detailing the components</h3>
+
+<h3 id="campaigns">Campaigns</h3>
+
+<p>One of the most useful section from the Menu is the ‘Campaign Data’. Under ‘Campaigns’  you can view  all the campaigns and select various actions on them.<br />
+In the following pictures, a filter on the campaign name has been applied to narrow down the list.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/campaigns.png" alt="campaigns.png" /></p>
+
+<p>Results can be sorted  by clicking on column headings and can be  filtered by typing strings to match in the boxes under the column headings.<br />
+You can configure what is displayed on the page from the group of check boxes. By default, you will see Active campaigns that belong to you and others  with Production role.</p>
+
+<ul>
+  <li>You can perform some actions on the campaigns using the green buttons:
+    <ul>
+      <li>Using the ‘Select’ check box you can pick which campaign(s) to modify to change  the active/inactive status or assign (or remove) a tag.</li>
+      <li>Click on ‘Add’ button to add a new campaign.</li>
+      <li>Click on ‘Pick .ini file’  to select an existing ini file and then Upload it and in so doing create a new campaign based on the information in the ini file.</li>
+    </ul>
+  </li>
+  <li>Clicking on the campaign name you will be redirected to the campaign stages page.</li>
+  <li>Clicking on ‘Submissions running’ shows how many submissions are current.</li>
+  <li>Clicking on ‘Submission History’ you will see the submissions for the current week and you can navigate back and forth in time.</li>
+  <li>Clicking on ‘Dependencies’ it shows all the stages for the campaign.</li>
+  <li>Clicking on ‘GUI Editor’ you will be redirected to the Editor page where you can update all the components of the campaign.</li>
+  <li>Clicking on  .ini File you will be presented with a page with the list of all the campaign components and dependencies; this file can be saved and modified for further use. For example, it can be updated and then uploaded back into POMS using poms_client API.</li>
+  <li>Tags would show tags assigned for the campaign. People use tags to group campaigns by ‘theme’. Tags can be useful when filtering to narrow down the list.</li>
+  <li>You can ‘Rename’ and ‘Delete’ a campaign.</li>
+</ul>
+
+<p>Of the several actions that can be performed on the campaigns the following:</p>
+<ul>
+  <li>Add a campaign</li>
+  <li>Cloning the campaign</li>
+  <li>GUI editor</li>
+</ul>
+
+<p>Will direct you to the use of the Campaign Editor.</p>
+
+<h3 id="campaigns-actions">Campaigns Actions</h3>
+
+<p>This section looks a little more in details on the actions you can perform from the Campaigns page.</p>
+
+<ul>
+  <li>Add a campaign.</li>
+  <li>Clone an existing campaign.</li>
+  <li>Launch the campaign.</li>
+  <li>Pause the campaign.</li>
+  <li>Resume the campaign.</li>
+  <li>View results.</li>
+  <li>Re-launch and kill it.</li>
+</ul>
+
+<h4 id="add-a-campaign">Add a campaign</h4>
+
+<p>When you choose <em>Add a campaign</em>, after being prompted for a name, in this case <em>eve_calib</em> was given, you will be presented with the following page:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/add_campaign_eve_calib.png" alt="add_campaign_eve_calib.png" /></p>
+
+<p>A basic campaign <em>skeleton</em> is pre-built with default values, one generic stage which uses the generic login setup and job type.  This example will be used in the <a href="https://fermitools.github.io/poms/docs//docs/campaign_editor">Campaign Editor</a> documentation to show how to use the tool.</p>
+
+<h4 id="clone-an-existing-campaign">Clone an existing campaign</h4>
+
+<p>For this purpose we will go to the Campaigns page and clone the Campaign eve_demo which has 3 stages and  different job types for each stage.<br />
+You will be prompted for a new name, in our case eve_test, then you will be redirected to the Campaign Editor Page.</p>
+
+<p>The following picture illustrates the original campaign and the cloned one as they appear in the campaign editor.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_demo_clone.png" alt="eve_demo_clone.png" /></p>
+
+<p>As you can see, the new campaign has the new name assigned but all the stages have the <em>same</em> names as the original, HOWEVER once saved, they become private to the new campaign.<br />
+In the bottom section the Login setup and job types are <em>NOT</em> cloned. This is purposely done since multiple campaigns could use same job types and users are encouraged to re-use them. <br />
+However, if you need to change some field in the job type, then you must give a new name so that another job type will be created for your campaign so that nothing gets overridden in the original.
+For a visual quick association, each stage color is the same as the associated job type.</p>
+
+<p>The following picture shows how to change the name of the cloned stage to be more appropriate to the campaign:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_change_stname.png" alt="eve_test_change_stname.png" />
+The following picture shows the final campaign after changing the stage names.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_final.png" alt="eve_test_final.png" /></p>
+
+<h4 id="launch-the-campaign">Launch the campaign</h4>
+
+<p>Now that the campaign has been created, you can launch it going to the ‘Campaigns’ page , find the campaign and click on the ‘Launch’ button.</p>
+
+<p>This will launch the first stage,  eve_test_gen_v1.</p>
+
+<p>The ‘Submissions running’ will show that the campaign has submission. Then you can check also on the ‘Submissions History’ page:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_submission.png" alt="eve_test_submission.png" /></p>
+
+<p>As previously stated, each stage has its own page and can be individually launched which can be good in case of failure;  However, since the stages depend on each other, if no problems occur, after launching from first stage the whole campaign will be executed.</p>
+
+<p>On the previous picture you can see that ‘Commands’ can be execute on the stage:</p>
+<ul>
+  <li>Pause</li>
+  <li>Resume</li>
+  <li>Cancel</li>
+</ul>
+
+<p>At this level, the commands will be executed on the jobs running at the Condor level.  If you choose to ‘Pause’ the jobs, keep in mind that at Resume , jobs will be re-submitted.<br />
+Just an example of possible use of the ‘Pause’ at this level could be to free resources to launch another campaign that has become higher in priority for your accomplishments.</p>
+
+<p>You can see in the following picture that the first stage has completed and the second stage started (top part of the picture) and then you can see that all three stages have completed.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_submission_3together.png" alt="eve_test_submission_3together.png" /></p>
+
+<p>From the following picture you can see that the ‘gen’ stage is finished and the stage ‘sim’ is in ‘idle’  which could mean that part of the jobs are waiting in the queue to run.<br />
+You can click on the Status History green button and see the various states and the transition time.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_submission_and_states_history.png" alt="eve_test_submission_and_states_history.png" /></p>
+
+<p>To get more information on the submitted jobs for the stage, you can follow two paths:</p>
+
+<ul>
+  <li>Go back to the Campaign page, click on the campaign to find all the stages and then click on the stage, in our case eve_test_gen_v1 .</li>
+  <li>Go to the ‘Campaign Stages’ page, find the stage and click on it.</li>
+</ul>
+
+<p>Either way you will end up on the Campaign Stage page from which you can view all the information about the stage and the jobs:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_gen_v1_page.png" alt="eve_test_gen_v1_page.png" /></p>
+
+<p>A lot of information is available for the stage and we will cover the details under the <a href="https://fermitools.github.io/poms/docs/#a-stylecolorgreencampaign-stagesa">Campaign Stages</a> section.</p>
+
+<p>However, worth of mentioning here, is the action ‘Queue future job launches’. <br />
+When we launched the campaign, as mentioned, if all goes well, all the dependent stages will start in <em>cascade</em> based on the dependencies.</p>
+
+<p>This action allows you to <em>override</em>  the automatic flow. A useful scenario where the user might want to use this,  could be the following:</p>
+
+<ul>
+  <li>Our campaign has three stages; stage 1 produces output file that would be the input for stage 2. Let’s say we want to check that the files have the correct format first before automatically continuing to stage2: this is where we would queue jobs for future launches for stage 2. When we are satisfied with our checks we can resume and the campaign will continue till completion of stage 3.</li>
+</ul>
+
+<p>To monitor the jobs, you can go to the ‘All Jobs’ in Landscape and see the list of jobs running. The following  pictures illustrate  fifebatch monitoring page where you can see  jobs for the first two stages,  gen_v1 and sim_v1.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_jobs.png" alt="eve_test_jobs.png" /></p>
+
+<p>If a stage had some issues, for example not all jobs succeed, the batch job Status would appear as in the following pictures where we use a different campaign to show what to expect:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_demo_stage_gen_fail.png" alt="eve_demo_stage_gen_fail.png" /></p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_demo_stage_gen_fail_landscape.png" alt="eve_demo_stage_gen_fail_landscape.png" /></p>
+
+<h3 id="campaign-stages">Campaign Stages</h3>
+
+<p>Campaigns can have one or more stages. Stages represent different workflows for the campaign depending whether they are dependent on each other.<br />
+To view all the stages you can select the ‘Campaign Stages’ option from the side panel or you can go to the Campaigns page and click on the campaign of interest and you will be redirected to the stages page.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/campaigns_to_stages.png" alt="campaigns_to_stages.png" /></p>
+
+<p>The table shows campaigns and the associated stages. You can sort and filter to narrow down the choices. Clicking on a stage you will be redirected to the stage page where you can view all the stage information.<br />
+This will be covered later on under the  <a href="https://fermitools.github.io/poms/docs/#a-stylecolormagentacampaign-stage-page-informationa">Campaign Stage Page Information</a> section.</p>
+
+<h4 id="editing-a-campaign-stage">Editing a Campaign Stage</h4>
+
+<p>Because the stage belongs to a campaign, to add or modify stages you will use the Campaign Editor.<br />
+As an example, here we will keep using our eve_test campaign. From the picture you will notice the color coordination between each stage and the job type, just an easy visual way to associate the items.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_final.png" alt="eve_test_final.png" /></p>
+
+<p>The following picture shows how to view and edit the stage. As a side note, you might notice that the eve_test_gen_v1 stage position on the editor board has changed to better view the layout.<br />
+Moving the elements around can be very useful when campaigns have many stages; the new position is saved as well when you save the campaign.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_editor.png" alt="eve_test_editor.png" /></p>
+
+<p>Let’s examine in details the fields for a stage: some are text fields, some are pull-down menus and some upon ‘Edit’ will open other pop-up windows:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_stage_form.png" alt="eve_test_stage_form.png" /></p>
+
+<ul>
+  <li>
+    <p><i id="Name"><em>Name</em></i> : the name for this stage, which,  as a suggestion, it could be something meaningful for the purpose of the stage.</p>
+  </li>
+  <li>
+    <p><i id="VO-Role">VO Role</i>: the role to use for jobsub when submitting jobs for this campaign. It can be “Production”, “Analysis” or in some cases “Calibration” or others provided they exist in the experiment VO role.</p>
+  </li>
+  <li>
+    <p><i id="Software-Version">Experiment Software Version</i>: the software version. Typically experiment software components are bundled up in a version to be used by the running jobs.<br />
+The version will be set in the metadata of output files generated by this campaign.<br />
+POMS assumes files have metadata that lists their parentage, and software application information; it can then use the software version, filename patterns, and parentage to define datasets for the output of this campaign layer.<br />
+Please be advise for the following: To propagate this value to the launch of the jobs, the user need to either:</p>
+
+    <ol>
+      <li>
+        <p>specify %(version)s  in the launch/setup command, example:</p>
+
+        <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>source myexp.sh; setup myexpcode %(version)s; OR
+</code></pre></div>        </div>
+      </li>
+      <li>
+        <p>specify it as override parameter when using fife_launch, example:</p>
+
+        <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>fife_launch -c my.cfg -O global.version=$(version)s;
+</code></pre></div>        </div>
+      </li>
+    </ol>
+  </li>
+</ul>
+
+<p>If you don’t use either cases, the software version will be stored in the database as information for the stage BUT NOT used.</p>
+
+<ul>
+  <li>
+    <p><i id="Dataset">Dataset or split data</i>: Dataset this campaign stage will process. If this campaign is only ever run as a later stage in a workflow, this is ignored. This field is used in conjunction of the split type when appropriate.</p>
+  </li>
+  <li>
+    <p><i id="Split-Type">Dataset Split Type</i>:  It specifies how the Dataset could be split, please refer to <a href="https://fermitools.github.io/poms/docs/#a-stylecolormagentacampaign-stage-datasets-and-split-typesa">Dataset and Split Types</a> below for details.</p>
+  </li>
+  <li><i id="Completion-Type">Completion Type</i>:  This is where you specify the criterion  used to be able to move to next stage. Two options are available:
+    <ul>
+      <li><em>Complete</em>:  to say the campaign layer submissions are complete when their jobs complete, or</li>
+      <li><em>Located</em>:  to say the layer is completed when the submissions output files are located.</li>
+    </ul>
+  </li>
+  <li><i id="Completion-Percent">Completion %</i>:  This is related to the completion type: please advise that the percentage refers to the jobs in both cases:
+    <ul>
+      <li>If you say that Completion type is ‘complete’ and specify a completion percent of 75%, then the campaign will move on to the next stage when 75% of the jobs are completed.</li>
+      <li>If you say that Completion type is ‘located’ and specify completion percent of 75%, then the campaign will move on to the next stage when 75% of the jobs are completed AND 75% of  the output files are found in SAM.</li>
+    </ul>
+  </li>
+  <li><i id="Parameter-Overrides">Parameter Overrides</i>:  This allows you to override parameters to your Job Type’s launch command.  Clicking on the edit icon will pop up a window where you can specify the parameter as a key-value pairs that will be concatenated and put on the command line.
+    <ul>
+      <li>Note that matching keys will replace matching keys from similar parameter lists you had previously assigned in the  <em>Definition Parameters</em> in the Job Type.</li>
+      <li>Note that the values in the Parameter Overrides will have <a href="https://fermitools.github.io/poms/docs//docs/internals/variable_substitution">Variable Substitution</a> performed on them.</li>
+    </ul>
+  </li>
+  <li>
+    <p><i id="Tes-Parameter-Overrides">Test Parameter Overrides</i>:  These are used in the same fashion as the <em>Parameter Overrides</em> but only when Testing the campaign submission (see later).</p>
+  </li>
+  <li>
+    <p><i id="Depends-On">Depends On</i>: This lets you define the dependencies on other campaign layers that this one has. Note that to add a circular dependency (i.e. to make this campaign auto-launch the next submission as each one completes) you have to have saved the campaign at least once, so it will show up in the list of campaigns to choose from.</p>
+
+    <ul>
+      <li>For example, if you had a campaign stage “stage1” that provides output for “stage2”.</li>
+      <li>
+        <p>You would want to define the previous stage, and the output file patterns to use on stage2 as:</p>
+
+        <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{"campaign_stages": ["stage1"], "file_patterns": ["%%"]} 
+</code></pre></div>        </div>
+      </li>
+    </ul>
+  </li>
+  <li><em>Login setup</em>: The login setup script to be used: a collection of bash commands to be executed on the experiment’s user defined host to establish the environment from which POMS will launch all jobsub jobs.</li>
+  <li><em>Job Type</em>: A Job ‘Type’ is a way of categorizing the job based on its purpose.</li>
+</ul>
+
+<p>About <em>Parameter Overrides</em>: the following example shows how to override a parameter defined in the config file using the value of another existing parameter also defined in the config file:</p>
+
+<p>Let’s say we have the following in a config file:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[global]
+...
+outdir=/pnfs/exp/scratch/exppro/poms/jobs/outputs
+...
+
+[job_test_output]
+
+job_outdir=/pnfs/scratch/exppro/
+</code></pre></div></div>
+
+<p>For a certain stage in our campaign then we want to override the <em>job_outdir</em> with the value of <em>outdir</em>.
+Then using the editor for the param override field, for the key-value pair we would specify the following:</p>
+
+<p>key                                 value</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-Ojob_test_output.job_outdir         '%%(global.outdir)s'
+</code></pre></div></div>
+
+<p>so then when  you launch, in the command line it will look like:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>-Ojob_test_output.job_outdir='%(global.outdir)s'
+</code></pre></div></div>
+
+<p>The single-percent is for a POMS defined value, and the double-percent one is for a value in your config.</p>
+
+<h4 id="campaign-stage-loginsetup-and-job-type">Campaign Stage Login/Setup and Job Type</h4>
+
+<p>The following picture shows the Login/Setups and the Jobtype for the current stage.
+<img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_login_jobtype.png" alt="eve_test_login_jobtype.png" /></p>
+
+<p>For details on the Login/Setup and Job Type definition please refer to <a href="https://fermitools.github.io/poms/docs/#compose-a-loginsetup-script">Compose a login setup</a> and <a href="https://fermitools.github.io/poms/docs/#compose-a-job-type">Compose a job type</a> sections.<br />
+One thing to keep in mind is that the Login/Setup and the Job Type are now campaign specific, they may be shared by other campaigns; if this is the case and you want to change any of the fields in either components you will be asked to change the name not to affect other campaigns.</p>
+
+<h4 id="campaign-stage-datasets-and-split-types">Campaign Stage Datasets and Split types</h4>
+
+<p>The following picture shows the available Split types.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_stage_and_split_types.png" alt="eve_test_stage_and_split_types.png" /></p>
+
+<p>Depending on the selection, more information can be filled in the form accordingly and also in the dataset or split type data field for which  an ‘Edit’ button may appear.<br />
+For example, if you choose a split type of ‘list’ then you will use the dataset field to specify the list itself, see example below:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_stage_list_split_type.png" alt="eve_test_stage_list_split_type.png" /></p>
+
+<p>In this case three datasets have been assigned, ds1,ds2 and ds3 leading to use ds1 in first submission, ds2 in second etc etc.</p>
+
+<p>Another interesting example for  split types is the ‘multiparam’ option:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_stage_multip_split_type.png" alt="eve_test_stage_multip_split_type.png" /></p>
+
+<p>When you select the multiparam split type and accept it, the field ‘dataset or split type data’ on the form appears with an additional ‘Edit’ button to pass the desired information.<br />
+The final results is a list of lists: internally this is translated  in all the possible permutations which will be used, one per submission.<br />
+Example, let’s say you want to generate different particles at different energies to produce data to be used in particle simulation through a detector.<br />
+So you could enter the following data:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_ele_mu_multip.png" alt="eve_test_ele_mu_multip.png" /></p>
+
+<p>This will generate the following permutations:</p>
+<ul>
+  <li>electron_1GeV</li>
+  <li>muon_1GeV</li>
+  <li>electron_3GeV</li>
+  <li>muon_3GeV</li>
+</ul>
+
+<p>and if you submit the campaign, you could see in the log for the eve_test_gen_v1 stage, for example,  the following</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>....
+fife_launch -c cfg/generic.cfg --stage=gen  -Oglobal.    sam_dataset=electron_1GeV -Oglobal.release=v1_1 -Osubmit.N=5
+....
+</code></pre></div></div>
+
+<p>and if you submit again:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>....
+fife_launch -c cfg/generic.cfg --stage=gen  -Oglobal.    sam_dataset=muon_3GeV -Oglobal.release=v1_1 -Osubmit.N=5
+....
+</code></pre></div></div>
+
+<p>If you try to submit more times than the number of permutations, in our case 4, you would get and error and to submit again,
+from the stage page, you need to reset the ‘Last Split’, see the following snippet from the campaign stage page:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_gen_no_split_error.png" alt="eve_test_gen_no_split_error.png" /></p>
+
+<h4 id="campaign-stage-page-information">Campaign Stage Page Information</h4>
+
+<p>Each stage of a campaign has its own page with a lot of information:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_stage_sim_page.png" alt="eve_test_stage_sim_page.png" /></p>
+
+<p>The page has several sections organized by the type of information they present:</p>
+
+<p>The top section shows plot generated within Landscape with statistics for the last 30 days.</p>
+
+<ul>
+  <li>Job status for the campaign stage</li>
+  <li>Reports</li>
+  <li>Actions</li>
+  <li>Campaign Stage general information</li>
+  <li>Job Type information</li>
+  <li>Login/Setup Information</li>
+  <li>Diagram with stages  immediate dependencies.</li>
+  <li>Links to Recent Launch Outputs.</li>
+</ul>
+
+<p>Reports:
+Two types of reports are available (for a more general description with pictures see the <a href="https://fermitools.github.io/poms/docs/#monitoring">Monitoring</a> section below:</p>
+
+<ul>
+  <li>Reports generated and available from the Landscape web pages
+    <ul>
+      <li>Production Shifter Page:  a summary for the last 24 hours for your experiment of all the campaign/stages jobs.</li>
+      <li>POMS Campaign Stage: a summary for the last 30 days for the jobs for the selected stage.</li>
+      <li>Campaign Stage Stats: a summary for the last 30 days with efficiency ,memory requests and usage.</li>
+      <li>Submissions: a summary for the lat 7 days on the submission with details on the jobs.</li>
+    </ul>
+  </li>
+  <li>Reports generated within POMS.
+    <ul>
+      <li>Campaign Stage Submissions: by default it shows information for the last 7 days but you can navigate in the paste and future. You will see, for example, all the submissions history, current status and commands you could issue.</li>
+      <li>Campaign Stage Submission Files: a summary for the last 7 days on all the files for the jobs with SAM related information.</li>
+    </ul>
+  </li>
+</ul>
+
+<p id="Actions">Actions:</p>
+
+<ul>
+  <li>Editing: this will redirect (for now) to the stage form not the editor, which we strongly suggest to use to update the stage.</li>
+  <li>Launching the campaign: before starting it, you can view the commands that will be executed clicking on <i style="color:orange">commands</i> (see more information about this below):
+    <ul>
+      <li>If you are sure to start the campaign for production , you would  click on ‘Launch Campaign Jobs Now’,</li>
+      <li>If you prefer testing first  you can select the ‘Launch Campaign Test Jobs Now’.
+In either case, after confirming the launch, you will be redirected to the log page. <br />
+The user can verify the status of the jobs choosing various options in the ‘Reports/Status’ section.</li>
+    </ul>
+  </li>
+  <li>Kill, Hold, Release jobs: these actions are to control the jobs on Condor.</li>
+  <li>Schedule Future Job Launches: this is to setup a crontab job or use an existing one.
+This page lets you generate/update a crontab entry to push the “launch jobs” button for this project on a schedule.<br />
+If there is a current crontab entry , it shows in the labelled box, otherwise it shows “None”. To set times, fill in the lower form with cron values (see the cron man page for more information).<br />
+For example, to run it at 3:00 every morning, you would fill in 0 in Minutes, 0 in hours, and check All for the days of the week, and leave days of the month as an asterisk “*”.<br />
+Or to run it on the first of every month, set fill in as above, but set the days of the month to “1”. Then hit “Submit”, and the current crontab entry should update, and you have scheduled an entry.<br />
+To stop submissions, the “Delete” button should clear the current entry to “None”.</li>
+  <li>
+    <p>Queue future jobs launches: This action allows you to <em>override</em>  the automatic flow for a campaign where stages depend on each other and the next stage would automatically start when previous has finished. A useful scenario where the user might want to use this  could be checking that output files from the current stage are correct before feeding them as input to the next stage.</p>
+  </li>
+  <li><i style="color:orange">About showing the commands</i> to launch: when you click on this, a page with the list of commands to be executed will appear: Please notice though , that a <em>submission id</em> is reserved at this point in case you do decide to execute the commands and launch it.<br />
+If after <em>commands</em>  you click on  <em>‘Campaign Stage Submission’</em> on the stage page, you will see the submission id for the stage and the status is <em>New</em>.<br />
+If you decide NOT to submit using the commands, after two hours the launch will be automatically killed for you.  See the pictures below:</li>
+</ul>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/f_demo_1_reco_cmds_list.png" alt="f_demo_1_reco_cmds_list.png" /></p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/f_demo_1_reco_submission_history_new.png" alt="f_demo_1_reco_submission_history_new.png" /></p>
+
+<h4 id="cloning-a-stage">Cloning a Stage</h4>
+
+<p>From the Campaign Editor you can clone stages; using our eve_test campaign, if you right click on, for example, eve_test_gen_v1 stage, the ‘Add Stage’ pop up window will appear.<br />
+An interesting way to clone, is simply to specify how many ‘copies’ of the original you want, 3 in the example, using the simple syntax  <em>*3</em> :</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_cloning_stages.png" alt="eve_test_cloning_stages.png" /></p>
+
+<p>and you will end up with three copies with a default naming conventions as shown in the next picture:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/eve_test_cloned_stages.png" alt="eve_test_cloned_stages.png" /></p>
+
+<p>The new stages are created independently from each other and they all inherit the fields and definitions of the original stage.<br />
+At this point you can edit them and do whatever you need. Remember to save them!</p>
+
+<h3 id="sample-campaigns">Sample Campaigns</h3>
+
+<p>POMS provides few sample campaigns for the user to view and clone; then the cloned campaign can be saved and modified accordingly using the Campaign Editor.<br />
+Few sample campaign are provided which you can view to see which one could fit your purpose.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/clone_from_sample.png" alt="clone_from_sample.png" /></p>
+
+<p>When you click on ‘Clone Campaign’ a pop up box opens up in which you specify the desired name for the cloned campaign.<br />
+You will notice that the name you provided, in this case mvi_test, replaces the word ‘sample’ in the original campaign name.</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/clone_sample_before_after.png" alt="clone_sample_before_after.png" /></p>
+
+<p>Another thing to notice is that the stages have kept the original names: since stages belong to a campaign, duplicate names across campaigns are allowed.<br />
+Remember to save the campaign before leaving the Campaign Editor.</p>
+
+<h3 id="monitoring">Monitoring</h3>
+
+<p>After launching a campaign you can monitor the jobs either viewing Kibana plots in Landscape or check the status within POMS.<br />
+Let’s use for our examples the campaign f_demo_2_mvi which has three stages:</p>
+<ul>
+  <li>f_eg_v1</li>
+  <li>f_sim_v1</li>
+  <li>f_reco_v1</li>
+</ul>
+
+<p>Launching the campaign it will launch the three stages in sequence, provided all goes well. To monitor we need to go the the first stage page (we will show just the top section of the page):</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/Monitor_eg_v1_page.png" alt="Monitor_eg_v1_page.png" /></p>
+
+<p>If you follow the link for <em>Campaign Stage Submissions</em> you can see the leader job in a ‘New’ state:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/Monitor_eg_v1_submission_new.png" alt="Monitor_eg_v1_submission_new.pn" /></p>
+
+<p>After a little bit, if you view the same page again, you can see that the stage is in running mode and you can click on History to see the transitions:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/Monitor_eg_submission_and_history.png" alt="Monitor_eg_submission_and_history.png" /></p>
+
+<p>You can see jobs information also viewing Kibana plots in Landscape selecting the ‘All jobs’ option from the ‘Jobs’ menu item on the side panel:<br />
+In the following picture you can see jobs for all the three stages</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/Monitor_kibana_dashboard_all3stages.png" alt="Monitor_kibana_dashboard_all3stages.png" /></p>
+
+<p>Then, checking the Campaign stage submissions again, you can finally see that all three stages have finished and you can view the individual history with the transitions times:</p>
+
+<p><img src="https://fermitools.github.io/poms/docs//docs/images/Monitor_all_submissions_and_history.png" alt="Monitor_all_submissions_and_history.png" /></p>
+
+<ul>
+  <li>
+    <h3 id="campaign-editor"><a href="https://fermitools.github.io/poms/docs//docs/campaign_editor">Campaign Editor</a></h3>
+  </li>
+  <li>
+    <h3 id="glossary"><a href="https://fermitools.github.io/poms/docs//docs/glossary">Glossary</a></h3>
+  </li>
+</ul>
+
+  </div>
+
+</article>
+
+        <button id="back-to-top-button"><i class="fas fa-arrow-up"></i></button>
+      </div>
+    </main>
+  </body>
+</html>
