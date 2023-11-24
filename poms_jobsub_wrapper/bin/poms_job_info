@@ -51,12 +51,16 @@ add_item "POMS4_TEST_LAUNCH:$POMS4_TEST_LAUNCH"
 
 add_item "JOBSUB_JOB_ID: $JOBSUB_JOB_ID"
 
-case "x$POMS_TEST" in
-xint*) baseurl=$(awk -F "=" '/poms_base_url_int/ {print $2}' $WEB_CONFIG) ;;
-x1*)   baseurl=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG) ;;
-x*)    baseurl=$(awk -F "=" '/poms_base_url_prod/ {print $2}' $WEB_CONFIG) ;;
-esac
+if [ "x$WEB_CONFIG" == "x" ]
+then
+    WEB_CONFIG=$POMS_CLIENT_DIR/bin/client.cfg
+fi
 
+case "x$POMS_TEST" in
+xint*) baseurl=$(awk -F "=" '/base_url_int/ {print $2}' $WEB_CONFIG) ;;
+x1*)   baseurl=$(awk -F "=" '/base_url_dev/ {print $2}' $WEB_CONFIG) ;;
+x*)    baseurl=$(awk -F "=" '/base_url_prod/ {print $2}' $WEB_CONFIG) ;;
+esac
 
 reporturl="$baseurl/update_submission"
 submission_url="$baseurl/submission_details?submission_id=$POMS_TASK_ID"
