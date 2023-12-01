@@ -1,13 +1,37 @@
 #!/bin/bash
 
+echo "poms_jobsub_info: starting... "
+#set -x
+: poms_jobsub_info: args: $*
+
 JOBSUB_JOB_ID=$1
 shift
+
+args="$(eval echo $* | sed -e s/[][,]//g)"
+
+gnext=false
+for arg in $args
+do
+    if $gnext
+    then
+        GROUP=$arg
+        gnext=false
+    fi
+    case "$arg" in
+    -G) gnext=true;;
+    esac
+done
+: GROUP=$GROUP
+export GROUP
+
+BEARER_TOKEN_FILE=$(/opt/jobsub_lite/lib/fake_ifdh.py getToken)
+: BEARER_TOKEN_FILE=$BEARER_TOKEN_FILE
 
 extra=""
 
 if [ "x$GROUP" != "x" ]
 then
-    extra="$extra --experiment $GROUP -G $GROUP"
+    extra="$extra --experiment $GROUP"
 fi
 
 if [ "x$POMS_TEST" != "x" ]
@@ -26,7 +50,7 @@ then
    extra="$extra --submission_id=$POMS_TASK_ID"
 fi
 
-result=`get_submission_id_for --command="jobsub_submit $*" --campaign=$POMS_CAMPAIGN_ID $extra`
+result=`get_submission_id_for --command="jobsub_submit $args" --campaign=$POMS_CAMPAIGN_ID $extra`
 #
 # we build up a javascript dictionary to report to elasticsearch
 # in esdata.  Mainly lines we see in the jobsub output, plus
@@ -70,7 +94,7 @@ X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
 if [ "x$JOBSUB_JOB_ID" != "x" ] 
 then
     JOBSUB_JOB_ID=`echo $JOBSUB_JOB_ID | sed -e 's/\.0@/@/'`
-    wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New" 
+    curl -o - -H "Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})" "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New" 
 
     submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;'`
     echo "For Status, use URL: $submission_url"
@@ -86,4 +110,7 @@ esdata="$esdata }"
 
 echo "posting elasticsearch data: $esdata"
 
-curl -XPOST $(awk -F "=" '/elasticsearch_post_url/ {print $2}' $WEB_CONFIG) -d "$esdata"
+esurl="$(awk -F "=" '/elasticsearch_post_url/ {print $2}' $WEB_CONFIG)"
+curl -XPOST -H "Authorization: Bearer `cat ${BEARER_TOKEN_FILE}`"  -d "$esdata" "$esurl"
+
+echo "poms_jobsub_info: done."
