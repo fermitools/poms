@@ -1,23 +1,28 @@
 #!/bin/sh
 
-. ${SETUPS_DIR:-/grid/fermiapp/products/common/etc}/setups
+#. ${SETUPS_DIR:-/grid/fermiapp/products/common/etc}/setups
 
 cmd="$0 $*"
 
-host=$(awk -F "=" '/poms_base_url_prod/ {print $2}' $WEB_CONFIG)
+if [ ! -r "$WEB_CONFIG" ]
+then
+   WEB_CONFIG=$POMS_CLIENT_DIR/bin/client.cfg
+fi
+
+host=$(awk -F "=" '/base_.*prod/ {print $2; exit}' $WEB_CONFIG | sed -e 's;https://;;' -e 's/:.*//')
 while :
 do
 case x$1 in
-x--test)   extra="--test=1"; host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG); shift;;
-x--dev)   extra="--test=dev";host=$(awk -F "=" '/poms_base_url_dev/ {print $2}' $WEB_CONFIG);  shift;;
-x--int)   extra="--test=int";host=$(awk -F "=" '/poms_base_url_int/ {print $2}' $WEB_CONFIG);  shift;;
+x--test)   extra="--test=1"; host=$(awk -F "=" '/base_url_dev/ {print $2}' $WEB_CONFIG); shift;;
+x--dev)   extra="--test=dev";host=$(awk -F "=" '/base_url_dev/ {print $2}' $WEB_CONFIG);  shift;;
+x--int)   extra="--test=int";host=$(awk -F "=" '/base_url_int/ {print $2}' $WEB_CONFIG);  shift;;
 x--debug)  set -x; shift;;
 *) break;;
 esac
 done
 
 log_status() {
-    curl -k --cert ${X509_USER_PROXY:-/tmp/x509up_u$UID} --key ${X509_USER_PROXY:-/tmp/x509up_u$UID}  --data "submission_id=$POMS_TASK_ID" --data "jobsub_job_id=$JOBSUB_JOB_ID" --data "status=$1" "https://$host:8443/poms/update_submission"
+    curl -k --cert ${X509_USER_PROXY:-/tmp/x509up_u$UID} --key ${X509_USER_PROXY:-/tmp/x509up_u$UID}  "https://$host:8443/poms/update_submission?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=$1"
 }
 
 startup() {
@@ -28,7 +33,7 @@ startup() {
 
     export CLUSTER="`date +%s`"
     export PROCESS="0"
-    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@$(awk -F "=" '/fakebatch1/ {print $2}' $WEB_CONFIG)"
+    export JOBSUB_JOB_ID="$CLUSTER.$PROCESS@fakebatch1.fnal.gov"
     log_status "Idle"
 
     sleep 1
