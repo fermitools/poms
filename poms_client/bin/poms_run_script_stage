@@ -17,7 +17,7 @@ esac
 done
 
 log_status() {
-    curl -k --cert /tmp/x509up_u$UID --key /tmp/x509up_u$UID  --data "submission_id=$POMS_TASK_ID" --data "jobsub_job_id=$JOBSUB_JOB_ID" --data "status=$1" "https://$host:8443/poms/update_submission"
+    curl -k --cert ${X509_USER_PROXY:-/tmp/x509up_u$UID} --key ${X509_USER_PROXY:-/tmp/x509up_u$UID}  --data "submission_id=$POMS_TASK_ID" --data "jobsub_job_id=$JOBSUB_JOB_ID" --data "status=$1" "https://$host:8443/poms/update_submission"
 }
 
 startup() {
