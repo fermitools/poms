@@ -30,3 +30,5 @@ tmp
 .DS_Store
 __pycache__
 fife_wrap.py
+bin/db_equalizer.py
+bin/db_equalizing_script.sql
