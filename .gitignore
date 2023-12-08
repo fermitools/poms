@@ -18,8 +18,8 @@ CVS
 *.diff
 poms.dbs
 *.swp
-/webservice/poms.ini
-/poms_client/bin/setup.cfg
+*.ini
+*.cfg
 /poms_client/bin/client.cfg
 /submission_broker/submission_agent.cfg
 *.conf
