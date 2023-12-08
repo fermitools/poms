@@ -5,7 +5,6 @@
 POMS:Submission #{{submission.submission_id}}: {{submission.jobsub_job_id}} Details
 {%endblock%}
 
-
 {%block header%}
 Submission Details {%include 'help_button.html'%}
 {%endblock%}
@@ -25,6 +24,7 @@ Submission Details {%include 'help_button.html'%}
 </style>
 {%endblock%}
 {%block content%}
+<script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
 <script>
  function confirm_call(msg, url, icon = null) {
     var r = confirm(msg);
@@ -117,8 +117,9 @@ Dependencies launched:
 <!-- submission_log_format {{submission_log_format}}
 View <a href="{{pomspath}}/list_launch_file?/{{session_experiment}}/{{session_role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 -->
-
-{%if submission_log_format == 3 %}
+{%if submission_log_format == 4 %}
+View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&submission_id={{submission.submission_id}}">launch output </a> <br>
+{%elif submission_log_format == 3 %}
 View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 {%elif submission_log_format == 2%}
 View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}">launch output </a> <br>
@@ -179,12 +180,22 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 {%endif%}
 <br>
 
-Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
-{%if submission.recovery_tasks_parent %}
-'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
-{%else%}
-'{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
-{%endif%}
+{% if submission.data_dispatcher_submission_obj %}
+    Re-Launch Submission on Project ID: {{submission.data_dispatcher_submission_obj.project_id}} &nbsp; <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+    {% if submission.recovery_tasks_parent %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
+    {% else %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
+    {% endif %}
+{% else %}
+    Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
+    {% if submission.recovery_tasks_parent %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
+    {% else %}
+        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
+    {% endif %}
+{% endif %}
+
 )">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
@@ -223,6 +234,7 @@ Launch Recovery for Submission
 
 </div>
 </div>
+{% include 'data_dispatcher_projects.html' %}
 <div class="ui horizontal segments">
 <div class="ui segment raised">
 <h3>Submission fields</h3>

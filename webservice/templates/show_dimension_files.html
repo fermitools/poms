@@ -6,7 +6,11 @@ Files for dimension...
 
 {%block header%}
 <h1 class="ui header">
+    {% if data_handler == "sam" and flist %}
          Files for Dimension{%include 'help_button.html'%}
+    {% elif data_handler == "data_dispatcher" and fdict %}
+        Data Dispatcher Files
+    {% endif %}
 </h1>
 {%endblock%}
 
@@ -17,18 +21,43 @@ Files for dimension...
 
 
 {%block content %}
-Files for dimension <pre>
-{{dims}}
-</pre>
-Count: {{flist|length}}
-<br>
-
-<div class="ui raised padded text container segment">
-<div class="ui list">
-{% for f in flist %}
-<div class="item"> <a href="{{sam_base}}/sam/{{session_experiment}}/api/files/name/{{f}}/metadata">{{f}}</a>  <br>
+{% if data_handler == "sam" and flist %}
+    Files for dimension <pre>
+    {{dims}}
+    </pre>
+    Count: {{flist|length}}
+    <br>
+    <div class="ui raised padded text container segment"></div>
+        <div class="ui list">
+            {% for f in flist %}
+                <div class="item"> <a href="{{sam_base}}/sam/{{session_experiment}}/api/files/name/{{f}}/metadata">{{f}}</a>  <br></div>
+            {%endfor%}
+        </div>
+    </div>
+{% elif data_handler == "data_dispatcher" and fdict %}
+    <div class="ui raised padded text container segment">
+        <h3><center>{{querying}}</center></h3>
+        <h4><center>File Count: {{fdict|length}}</center></h4>
+        <div class=menu>
+            {% for file, url in fdict.items() %}
+                <div class="item">
+                    <a href="{{url}}">{{file}}</a>
+                </div>
+            {%endfor%}
+        </div>
+    </div>
 </div>
-{%endfor%}
-</div>
+{% endif %}
 
+<script type="text/javascript">
+    $("#copyButton").on("click", function() {
+        const tempElement = $("<textarea></textarea>");
+        tempElement.val($("#queryText").text());
+        $("body").append(tempElement);
+        tempElement.select();
+        document.execCommand("copy");
+        tempElement.remove();
+        alert(`Copied query to clipboard`);
+      });
+</script>
 {%endblock%}

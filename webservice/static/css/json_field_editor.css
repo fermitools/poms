@@ -20,6 +20,12 @@
     box-shadow: 10px 10px 20px grey;
 }
 
+.nfiles_input{
+  width: 30% !important;
+  padding: 5px;
+  margin-right: 10px;
+}
+
 
 .popup_form_json table {
     width: 90%;

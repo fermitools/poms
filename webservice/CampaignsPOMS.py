@@ -85,9 +85,10 @@ class CampaignsPOMS:
         experimenter = ctx.get_experimenter()
         data = {}
         name = kwargs.get("campaign_name")
+        metadata_service = kwargs.get("service")
         data["message"] = "ok"
         try:
-            camp = Campaign(name=name, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
+            camp = Campaign(name=name, metadata_service=service, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
             ctx.db.add(camp)
             ctx.db.commit()
             c_s = CampaignStage(
@@ -272,6 +273,10 @@ class CampaignsPOMS:
             raise KeyError("Cannot find Campaign with id %s" % campaign_id)
 
         csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign.campaign_id).all()
+        
+        data_dispatcher_projects = None
+        if campaign.data_handling_service == "data_dispatcher":
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id)
 
         pct_complete = 0.0
         c_ids = deque()
@@ -374,10 +379,10 @@ class CampaignsPOMS:
         res.append("setTimeout(() => {$('#tot_consumed').html('Total Consumed: %d');$('#consumed_pct').html('Consumed pct: %3.2f%s');$('#pct_complete').html('Pct Complete: %3.2f%s');}, 100);" % (total_consumed, ((total_consumed/total) * 100) if total != 0 else 0, "%", pct_complete, "%"))
         res.append("</script>")
 
-        return campaign, "\n".join(res), sp_list
+        return campaign, "\n".join(res), sp_list, data_dispatcher_projects
 
     def show_watching(self, ctx):
-        #self.poms_service.submissionsPOMS.wrapup_tasks(ctx)
+        
         experimenter_id = ctx.get_experimenter().experimenter_id
 
         logit.log(logit.INFO, "entering show_watching: %s" % experimenter_id)
@@ -608,7 +613,7 @@ class CampaignsPOMS:
                 param_overrides,
                 test_login_setup,
                 test_launch,
-                output_commands, 
+                output_commands
             )
         raise AssertionError("Cannot determine which stage in campaign to launch of %d candidates" % len(stages))
 
@@ -635,7 +640,9 @@ class CampaignsPOMS:
             c_s.updated = datetime.now(utc)
             c_s.vo_role = "Production" if ctx.role == "production" else "Analysis"
             c_s.creator_role = ctx.role
-            c_s.dataset = ""
+            c_s.dataset = "",
+            c_s.data_dispatcher_dataset_query = None,
+            c_s.data_dispatcher_project_id = None,
             c_s.login_setup_id = l_t.login_setup_id
             c_s.software_version = ""
             c_s.campaign_stage_type = "regular"
@@ -731,6 +738,7 @@ class CampaignsPOMS:
             res.append("experiment=%s" % the_campaign.experiment)
             res.append("poms_role=%s" % the_campaign.creator_role)
             res.append("name=%s" % the_campaign.name)
+            res.append("data_handling_service=%s" % the_campaign.data_handling_service)
             res.append("state=%s" % ("Active" if the_campaign.active else "Inactive"))
             res.append(
                 "campaign_keywords=%s" % (json.dumps(the_campaign.campaign_keywords) if the_campaign.campaign_keywords else "{}")
@@ -752,8 +760,12 @@ class CampaignsPOMS:
                     res.append("vo_role=%s" % defaults.get("vo_role"))
                     # res.append("state=%s" % defaults.get("state"))
                     res.append("software_version=%s" % defaults.get("software_version"))
-                    res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
+                    res.append("sam_dataset_or_split_data=%s" % defaults.get("dataset"))
+                    res.append("data_dispatcher_dataset_query=%s" % defaults.get("data_dispatcher_dataset_query" or None))
+                    res.append("data_dispatcher_project_id=%s" % defaults.get("data_dispatcher_project_id" or None))
+                    res.append("data_handling_service=%s" % defaults.get("data_handling_service") or "sam")
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("test_split_type=%s" % defaults.get("test_split_type"))
                     res.append("default_clear_cronjob=%s" % "True")
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
@@ -784,12 +796,20 @@ class CampaignsPOMS:
                 res.append("software_version=%s" % c_s.software_version)
             if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth", 1):
                 res.append("output_ancestor_depth=%s" % c_s.output_ancestor_depth)
-            if c_s.dataset != defaults.get("dataset_or_split_data"):
-                res.append("dataset_or_split_data=%s" % c_s.dataset)
+            if c_s.dataset != defaults.get("sam_dataset_or_split_data" or "") or defaults.get("dataset_or_split_data" or ""):
+                res.append("sam_dataset_or_split_data=%s" % c_s.dataset)
             if c_s.cs_split_type != defaults.get("cs_split_type"):
                 res.append("cs_split_type=%s" % c_s.cs_split_type)
+            if c_s.test_split_type != defaults.get("test_split_type", None):
+                res.append("test_split_type=%s" % c_s.test_split_type)
             if c_s.completion_type != defaults.get("completion_type"):
                 res.append("completion_type=%s" % c_s.completion_type)
+            if c_s.campaign_obj.data_handling_service != defaults.get("data_handling_service"):
+                res.append("data_handling_service=%s" % c_s.campaign_obj.data_handling_service)
+            if c_s.data_dispatcher_dataset_query != defaults.get("data_dispatcher_dataset_query" or None):
+                res.append("data_dispatcher_dataset_query=%s" % c_s.data_dispatcher_dataset_query)
+            if c_s.data_dispatcher_project_id != defaults.get("data_dispatcher_project_id" or None):
+                res.append("data_dispatcher_project_id=%s" % c_s.data_dispatcher_project_id)
             if str(c_s.completion_pct) != defaults.get("completion_pct"):
                 res.append("completion_pct=%s" % c_s.completion_pct)
             if json.dumps(c_s.param_overrides) != defaults.get("param_overrides"):
@@ -864,12 +884,12 @@ class CampaignsPOMS:
             cidl1 = (
                 ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
-                .all()
+                .values()
             )
             cidl2 = (
                 ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
-                .all()
+                .values()
             )
             s = set([campaign_stage_id])
             s.update(cidl1)
@@ -1164,6 +1184,7 @@ class CampaignsPOMS:
 
         # Process job types and login setups first
         misc = everything["misc"]
+        selected_data_handler = None
         for el in misc:
             eid = el.get("id")
             old_name = eid.split(" ", 1)[1]
@@ -1173,6 +1194,10 @@ class CampaignsPOMS:
             #
             if not clean:
                 name = new_name
+                
+                if eid.startswith("data_handling_service"):
+                    selected_data_handler = form.get("data_handling_service")
+                    
                 if eid.startswith("job_type "):
                     definition_parameters = form.get("parameters")
                     if definition_parameters:
@@ -1232,7 +1257,9 @@ class CampaignsPOMS:
         if "campaign_keywords" in defaults:
             del defaults["campaign_keywords"]
         position = campaign.get("position")
-
+        logit.log("campaign data: %s" % campaign)
+        selected_data_handler = defaults.get("data_handling_service", "sam")
+        logit.log("selected_data_handler: %s" % selected_data_handler)
         the_campaign = ctx.db.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == ctx.experiment).scalar()
         if the_campaign:
             # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
@@ -1242,6 +1269,8 @@ class CampaignsPOMS:
             }  # Store the defaults unconditionally as they may be not be stored yet
             if c_new_name != c_old_name:
                 the_campaign.name = c_new_name
+            if selected_data_handler:
+                the_campaign.data_handling_service = selected_data_handler
 
             the_campaign.campaign_keywords = campaign_keywords
             ctx.db.add(the_campaign)
@@ -1254,6 +1283,7 @@ class CampaignsPOMS:
             the_campaign.creator = user_id
             the_campaign.creator_role = role
             the_campaign.campaign_keywords = campaign_keywords
+            the_campaign.data_handling_service = selected_data_handler if selected_data_handler else "sam"
             ctx.db.add(the_campaign)
         ctx.db.commit()
 
@@ -1310,8 +1340,14 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
+            test_split_type = form.pop("test_split_type", None)
             default_clear_cronjob = form.pop("default_clear_cronjob", True)
-            dataset = form.pop("dataset_or_split_data")
+            if "sam_dataset_or_split_data" in form:
+                dataset = form.pop("sam_dataset_or_split_data")
+            else:
+                dataset = form.pop("dataset_or_split_data")
+            data_dispatcher_dataset_query = form.pop("data_dispatcher_dataset_query", None)
+            data_dispatcher_project_id = form.pop("data_dispatcher_project_id", None)
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop("login_setup")
@@ -1378,8 +1414,11 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
+                    obj.test_split_type = test_split_type
                     obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
+                    obj.data_dispatcher_dataset_query = data_dispatcher_dataset_query
+                    obj.data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
@@ -1405,8 +1444,11 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
+                    test_split_type=test_split_type,
                     default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
+                    data_dispatcher_dataset_query = data_dispatcher_dataset_query,
+                    data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None,
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,
