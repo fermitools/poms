@@ -63,3 +63,8 @@ alter table submissions add CONSTRAINT fk_submission_dd_project FOREIGN KEY ( da
 ALTER TABLE data_dispatcher_projects OWNER TO pomsdev;
 grant select, insert, update, delete on data_dispatcher_projects to pomsdbs;
 grant usage on all sequences in schema public to pomsdbs;
+
+# test splits:
+alter table campaign_stage_snapshots add column test_split_type text default '';
+alter table campaign_stages add column last_split_test int default null;
+alter table campaign_stage_snapshots add column last_split_test int default null;

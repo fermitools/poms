@@ -6,14 +6,20 @@ class limitn:
        Useful for analysis users who want a limited set
     """
 
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
+        self.test = test
         self.cs = cs
         self.dmr_service = ctx.dmr_service
         try:
-            self.n = int(cs.cs_split_type[7:].strip(")"))
+            self.n = int(cs.cs_split_type[7:].strip(")")) if not self.test else int(cs.test_split_type[7:].strip(")"))
         except:
-            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type)
-
+            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type if not self.test else cs.test_split_type)
+        
+        if self.test:
+            self.last_split = self.cs.last_split_test
+        else:
+            self.last_split = self.cs.cs_last_split
+            
     def params(self):
         return ["n"]
 
@@ -31,8 +37,8 @@ class limitn:
                                         project_name=project_name,
                                         campaign_id=self.cs.campaign_id, 
                                         campaign_stage_id=self.cs.campaign_stage_id,
-                                        split_type=self.cs.cs_split_type,
-                                        last_split=self.cs.cs_last_split,
+                                        split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
+                                        last_split=self.last_split,
                                         creator=self.cs.experimenter_creator_obj.experimenter_id,
                                         creator_name=self.cs.experimenter_creator_obj.username)
         return dd_project

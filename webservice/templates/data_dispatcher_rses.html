@@ -21,7 +21,7 @@
                 </div>
                 <div class="dd-results-row dd-row-toggle-inactive rses_row" id="active_rses" style="display: none;">
                     {% for rse in all_rses if rse.is_enabled %}
-                        <div class="dd-results-card" style="width:30%;">
+                        <div class="dd-results-card">
                             <div class="dd-results-card-header">
                                 <p><span class="active-rses-rse-name">{{rse.name}}</span></p>
                             </div>
@@ -37,7 +37,7 @@
                 </div>
                 <div class="dd-results-row dd-row-toggle-inactive rses_row" id="inactive_rses" style="display: none;">
                     {% for rse in all_rses if not rse.is_enabled %}
-                        <div class="dd-results-card" style="width:30%;">
+                        <div class="dd-results-card">
                             <div class="dd-results-card-header">
                                 <p><span class="inactive-rses-rse-name">{{rse.name}}</span></p>
                             </div>

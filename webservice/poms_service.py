@@ -556,7 +556,7 @@ class PomsService:
         need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
-        return {}
+        return {} #CampaignsPOMS.gui_wf_edit(self, kwargs)
 
     # h4. gui_wf_clone
     @poms_method(
@@ -658,8 +658,8 @@ class PomsService:
         redirect="%(poms_path)s/campaign_stage_info/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
         rtype="redirect",
     )
-    def reset_campaign_split(self, **kwargs):
-        return self.stagesPOMS.reset_campaign_split(**kwargs)
+    def reset_campaign_split(self, *args, **kwargs):
+        return self.stagesPOMS.reset_campaign_split(*args,**kwargs)
 
     
     # see &l=webservice/StagesPOMS.py#update_campaign_split&

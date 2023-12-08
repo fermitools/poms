@@ -26,6 +26,7 @@ poms.dbs
 /poms_config
 /test/data/*
 poms.egg-info/
+docs/internals
 tmp
 .DS_Store
 .data_dispatcher_worker_id
@@ -35,3 +36,4 @@ fife_wrap
 submission_broker/submission_broker_uwsgi.ini
 bin/db_equalizer.py
 bin/db_equalizing_script.sql
+documentation

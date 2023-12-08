@@ -593,7 +593,7 @@ $(document).ready(function() {
         $(`#project_change_submit`).attr(`disabled`, `disabled`);
         $(`#project_restart`).attr(`disabled`, `disabled`);
         $.ajax({
-            url: pomspath + `/test_project_changes/` + session_experiment + '/' + session_role + '/' + username,
+            url: pomspath + `/test_project_changes/` + session_experiment + '/' + session_role + '/' + $(`#signed-in-user`).html(),
             type: 'POST',
             data: {
                 "project_id": parseInt($(`#test_pid`).val()),
@@ -636,10 +636,11 @@ $(document).ready(function() {
             }
         }, 3000);
     }
+    
     async function ping_task(project_id, task_id, started){
         response = null;
         await $.ajax({
-            url: pomspath + `/ping_project_changes_results/` + session_experiment + '/' + session_role + '/' + username,
+            url: pomspath + `/ping_project_changes_results/` + session_experiment + '/' + session_role + '/' + $(`#signed-in-user`).html(),
             type: 'POST',
             data: {
                 "project_id": project_id,
@@ -670,7 +671,7 @@ $(document).ready(function() {
         $(`#project_restart`).attr(`disabled`, `disabled`);
         $(`#test_pid`).parent().find(`.dd-search-result-icon`).addClass(`pending`);
         $.ajax({
-            url: pomspath + `/restart_project/` + session_experiment + '/' + session_role + '/' + username,
+            url: pomspath + `/restart_project/` + session_experiment + '/' + session_role + '/' + $(`#signed-in-user`).html(),
             type: 'POST',
             data: {
                 "project_id": $(`#test_pid`).val()

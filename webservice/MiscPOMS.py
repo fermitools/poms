@@ -561,9 +561,10 @@ class MiscPOMS:
     def split_type_javascript(self, ctx, do_data_dispatcher=False):
         class fake_campaign_stage:
             # h3. __init__
-            def __init__(self, dataset="", cs_split_type="", data_dispatcher_dataset_query = ""):
+            def __init__(self, dataset="", cs_split_type="", cs_last_split = None, data_dispatcher_dataset_query = ""):
                 self.dataset = dataset
                 self.cs_split_type = cs_split_type
+                self.cs_last_split = cs_last_split
                 self.data_dispatcher_dataset_query = data_dispatcher_dataset_query
 
         modmap = {}

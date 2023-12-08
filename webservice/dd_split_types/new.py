@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 class new:
     """
@@ -22,7 +23,8 @@ class new:
            new(firsttime=1497934800, window=1w)
     """
 
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
+        self.test = test
         self.cs = cs
         self.dmr_service = ctx.dmr_service
         # default parameters
@@ -32,13 +34,12 @@ class new:
         self.tlocaltime = 0  # assume GMT
         self.tfirsttime = None  # override start time
         self.tlasttime = time.time()  # override end time -- default now
-
-        if cs.cs_split_type[3:] == "_local":
-            self.tlocaltime = 1
+        if (not test and cs.cs_split_type[3:] == "_local") or (test and cs.test_split_type[3:] == "_local"):
+                self.tlocaltime = 1
 
         # if they specified any, grab them ...
-        if cs.cs_split_type[3] == "(":
-            parms = cs.cs_split_type[4:].split(",")
+        if (not test and cs.cs_split_type[3] == "(") or (test and cs.test_split_type[3] == "("):
+            parms = cs.cs_split_type[4:].split(",") if not test else cs.test_split_type[4:].split(",")
             for p in parms:
                 pmult = 1
                 if p.endswith(")"):
@@ -137,7 +138,7 @@ class new:
                                         project_name=project_name,
                                         campaign_id=self.cs.campaign_id, 
                                         campaign_stage_id=self.cs.campaign_stage_id,
-                                        split_type=self.cs.cs_split_type,
+                                        split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
                                         last_split=self.cs.cs_last_split,
                                         creator=self.cs.experimenter_creator_obj.experimenter_id,
                                         creator_name=self.cs.experimenter_creator_obj.username)

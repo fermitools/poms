@@ -80,7 +80,7 @@ class sam_specifics:
                 dataset = s.submission_params.get("dataset")
             elif s.project:
                 # details = samhandle.fetch_info(
-                details = ctx.sam.fetch_info(experiment, s.project, dbhandle)
+                details = self.ctx.sam.fetch_info(s.job_type_snapshot_obj.experiment, s.project, self.ctx.db)
                 dataset = details["dataset"]
             else:
                 dataset = None
@@ -350,7 +350,7 @@ class sam_specifics:
                     ischildof,
                     basedims,
                     isclose,
-                    s.created.strftime("%Y-%m-%d %H:%M:%S"),
+                    s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
                 )

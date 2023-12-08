@@ -7,10 +7,11 @@ class mod:
        expressions.
     """
 
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
+        self.test = test
         self.cs = cs
         self.dmr_service = ctx.dmr_service
-        self.m = int(cs.cs_split_type[4:].strip(")"))
+        self.m = int(cs.cs_split_type[4:].strip(")")) if not self.test else int(cs.test_split_type[4:].strip(")"))
 
     def params(self):
         return ["modulus"]
@@ -38,7 +39,7 @@ class mod:
                                         project_name=project_name,
                                         campaign_id=self.cs.campaign_id, 
                                         campaign_stage_id=self.cs.campaign_stage_id,
-                                        split_type=self.cs.cs_split_type,
+                                        split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
                                         last_split=self.cs.cs_last_split,
                                         creator=self.cs.experimenter_creator_obj.experimenter_id,
                                         creator_name=self.cs.experimenter_creator_obj.username)

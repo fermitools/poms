@@ -169,19 +169,21 @@ class StagesPOMS:
         elif action in ("add", "edit"):
             logit.log("campaign_stage_edit: add or edit case")
             name = kwargs.pop("ae_stage_name")
+            data_handling_service = kwargs.pop("ae_data_handling_service", "sam")
             if isinstance(name, str):
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop("ae_split_type", None)
+            test_split_type = kwargs.pop("ae_test_split_type", None)
             default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
-            vo_role = kwargs.pop("ae_vo_role")
-            software_version = kwargs.pop("ae_software_version")
-            dataset = kwargs.pop("ae_dataset")
+            vo_role = kwargs.pop("ae_vo_role", ctx.role )
+            software_version = kwargs.pop("ae_software_version", None)
+            dataset = kwargs.pop("ae_dataset", "None")
             campaign_type = kwargs.pop("ae_campaign_type", "test")
             dd_dataset_query = kwargs.pop("ae_dd_dataset_query", None) 
             dd_project_id_override = kwargs.pop("ae_dd_project_id", None) 
 
-            completion_type = kwargs.pop("ae_completion_type")
+            completion_type = kwargs.pop("ae_completion_type", "located" if data_handling_service == "sam" else "complete")
             completion_pct = kwargs.pop("ae_completion_pct")
             depends = kwargs.pop("ae_depends", "[]")
 
@@ -256,13 +258,14 @@ class StagesPOMS:
                 depends["campaign_stages"] = depends["campaigns"]
 
             # fail if they're setting up a trivial infinite loop
-            if split_type in [None, "None", "none", "Draining"] and name in [x[0] for x in depends["campaign_stages"]]:
+            for split in [split_type, test_split_type]:
+                if split in [None, "None", "none", "Draining"] and name in [x[0] for x in depends["campaign_stages"]]:
 
-                raise cherrypy.HTTPError(
-                    404,
-                    "This edit would make an infinite loop. "
-                    "Go Back in your browser and set cs_split_type or remove self-dependency.",
-                )
+                    raise cherrypy.HTTPError(
+                        404,
+                        "This edit would make an infinite loop. "
+                        "Go Back in your browser and set cs_split_type or remove self-dependency.",
+                    )
 
             try:
                 if action == "add":
@@ -278,6 +281,7 @@ class StagesPOMS:
                             default_clear_cronjob=default_clear_cronjob,
                             # active=active,
                             cs_split_type=split_type,
+                            test_split_type=test_split_type,
                             software_version=software_version,
                             dataset=dataset,
                             data_dispatcher_dataset_query = dd_dataset_query,
@@ -301,12 +305,15 @@ class StagesPOMS:
                     logit.log("Attempting to campaign stage: %s" % campaign_stage_id)
                     cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
                     if cs:
-                        if ((split_type != cs.cs_split_type) or (cs.campaign_obj.data_handling_service == "sam" and dataset != cs.dataset) or
-                            (cs.campaign_obj.data_handling_service == "data_dispatcher" and dd_dataset_query != cs.data_dispatcher_project_id)):
+                        if ((split_type != cs.cs_split_type) or 
+                            (cs.campaign_obj.data_handling_service == "sam" and dataset != cs.dataset) or
+                            (cs.campaign_obj.data_handling_service == "data_dispatcher" and dd_dataset_query != cs.data_dispatcher_dataset_query)
+                            ):
                             cs.cs_last_split = None
-                        cs.name = name
+                            cs.last_split_test = None
                         cs.vo_role = vo_role
                         cs.cs_split_type = split_type
+                        cs.test_split_type = test_split_type
                         cs.default_clear_cronjob =default_clear_cronjob
                         cs.software_version = software_version
                         cs.dataset = dataset
@@ -320,6 +327,7 @@ class StagesPOMS:
                         cs.updater = experimenter_id
                         cs.completion_type = completion_type
                         cs.completion_pct = completion_pct
+                        ctx.db.add(cs)
                         ctx.db.commit()
                         logit.log("Updated campaign stage: %s" % campaign_stage_id)
                     else:
@@ -328,6 +336,7 @@ class StagesPOMS:
                             "vo_role": vo_role,
                             # "active": active,
                             "cs_split_type": split_type,
+                            "test_split_type": test_split_type,
                             "default_clear_cronjob":default_clear_cronjob,
                             "software_version": software_version,
                             "dataset": dataset,
@@ -708,7 +717,7 @@ class StagesPOMS:
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
     # h3. reset_campaign_split
-    def reset_campaign_split(self, ctx, campaign_stage_id):
+    def reset_campaign_split(self, ctx, campaign_stage_id, test=False):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over
@@ -716,10 +725,14 @@ class StagesPOMS:
         campaign_stage_id = int(campaign_stage_id)
 
         c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
-        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == c_s.cs_split_type).all()
-        c_s.cs_last_split = None
+        split = "%s" % (c_s.cs_split_type if not test else c_s.test_split_type)
+        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == split).all()
         for sub in dd_subs:
             sub.splits_reset = True
+        if not test:
+            c_s.cs_last_split = None
+        else:
+            c_s.last_split_test = None
         ctx.db.commit()
 
     # h3. update_campaign_split
@@ -760,6 +773,9 @@ class StagesPOMS:
             logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not belong to this campaign")
             raise AssertionError("Requested campaign stage snapshot does not belong to this campaign")
         if c_s.cs_split_type != c_s_s.cs_split_type:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
+            raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
+        if c_s.test_split_type != c_s_s.test_split_type:
             logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
             raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
         
@@ -1116,15 +1132,17 @@ class StagesPOMS:
             use the split_type modules to get the next dataset for
             launch for a given campaign
         """
-        if test_launch and camp.test_split_type:
+        use_test = bool(test_launch)
+        if test_launch and camp.test_split_type and camp.test_split_type not in [None, "", "None", "none"]:
             split_type = camp.test_split_type
         else:
+            use_test = False
             split_type = camp.cs_split_type
         
 
         if not split_type or split_type == "None" or split_type == "none":
             if do_data_dispatcher:
-                return camp.data_dispatcher_dataset_query, None
+                return None
             else:
                 return camp.dataset, None
 
@@ -1149,15 +1167,15 @@ class StagesPOMS:
 
         modname = split_type[0:p1]
         
-        
+        splitter = None
         if camp.campaign_obj.data_handling_service == "data_dispatcher":
             mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
             split_class = getattr(mod, modname)
-            splitter = split_class(ctx, camp)
+            splitter = split_class(ctx, camp, use_test)
         else:
             mod = importlib.import_module("poms.webservice.split_types." + modname)
             split_class = getattr(mod, modname)
-            splitter = split_class(camp, ctx.sam, ctx.db)
+            splitter = split_class(camp, ctx.sam, ctx.db, use_test)
         
         try:
             if do_data_dispatcher:

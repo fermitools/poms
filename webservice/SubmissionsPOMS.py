@@ -19,7 +19,7 @@ import cherrypy
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy import and_, desc, func, text, Integer
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -1723,7 +1723,7 @@ class SubmissionsPOMS:
                 DataDispatcherSubmission.archive == False,
                 DataDispatcherSubmission.experiment == cs.experiment,
                 DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
-                DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).one_or_none()
+                DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).order_by(desc(DataDispatcherSubmission.created)).first()
         if do_data_dispatcher:
             if cs.completion_type != "complete":
                 cs.completion_type = "complete"
@@ -1732,6 +1732,7 @@ class SubmissionsPOMS:
                 dataset = None
                 
         dd_project = None
+        dataset = None
         if dataset_override:
             dataset = dataset_override
             if do_data_dispatcher and dd_project_idx and not dd_project_override:
@@ -1754,13 +1755,17 @@ class SubmissionsPOMS:
                             dataset = "project_idx:%s" % dd_project.data_dispatcher_project_idx
                         else:
                             dataset = None
-                            
-        logit.log("Dataset is: %s" % dataset)
+        if 'dataset' in locals():
+            dataset = None                 
+        else:
+            logit.log("Dataset is: %s" % dataset)
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
         elif "fermicloudmwm" in self.poms_service.hostname:
             poms_test = "int"
+        elif "fermicloud210" in self.poms_service.hostname or "fermicloud821" in self.poms_service.hostname:
+            poms_test = "dev"
         else:
             poms_test = "1"
 
@@ -1813,17 +1818,16 @@ class SubmissionsPOMS:
         # BEGIN TOKEN LOGIC
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
+        tok_permissions = []
+        scp_command = []
         if role == "analysis" or ctx.experiment == "samdev":
-            tok_permissions = "chmod 0600 %s;" % (vaultfile)
-            scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
-            scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)
-            #scp_command = "rsync -r %s %s@%s:%s" % (sandbox, lt.launch_account, lt.launch_host, sandbox)
-            if lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST"):  
+            if lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST"):
+                tok_permissions.append("chmod 0600 %s;" % (vaultfile))
+                scp_command.append("scp %s %s@%s:/tmp" % (vaultfile, lt.launch_account, lt.launch_host))
+                scp_command.append("scp %s %s@%s:/tmp" % (proxyfile, lt.launch_account, lt.launch_host))
                 vaultfile = "/tmp/%s" % vaultfilename
                 proxyfile = "/tmp/x509up_voms_%s_Analysis_%s" % (exp, experimenter_login)
-        else:
-            tok_permissions = ""
-            scp_command = ""
+            
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if role == "production" and ctx.experiment == "samdev": 
@@ -1838,29 +1842,26 @@ class SubmissionsPOMS:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
                                          and "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
                                          and "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
-        #ifdhc_version = "ifdhc v2_6_10," if "ifdhc " not in cs.login_setup_obj.launch_setup else ""
         
         # token logic if not defined in launch script
         token_logic = [
             ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export EXPERIMENT=%s;" % ctx.experiment if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_VTOKEN=%s;" % vaultfilename if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_CREDKEY=%s;" % ctx.username if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export XDG_RUNTIME_DIR=/tmp/;" if role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
             "export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/puppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
-            
-            # We are hiding this for now, and assuming that uploaded vault tokens are already stored in credmon vault
-            #if role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
-            #else
-            #("poms_condor_vault_storer -v %s_default; ") % ctx.experiment,
         ]
         # END TOKEN LOGIC
-        
-        # BEGIN DATA_DISPATCHER LOGIC
+        formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
+        input_dict = {
+            "dataset": dataset % formatdict if dataset and "%(" in dataset and ")s" in dataset else dataset,
+            "parameter": dataset % formatdict if dataset and"%(" in dataset and ")s" in dataset else dataset,
+            "version": vers % formatdict if "%(" in vers and ")s" in vers else vers,
+            "group": group % formatdict if "%(" in group and ")s" in group else group,
+            "experimenter": experimenter_login,
+            "experiment": exp,
+        }
         data_dispatcher_logic = []
         if do_data_dispatcher:
             if dd_project:
@@ -1953,22 +1954,16 @@ class SubmissionsPOMS:
                 submission.data_dispatcher_project_idx = dd_project.data_dispatcher_project_idx
                 ctx.db.commit()
         
+        
         cmdl = [
             "exec 2>&1;",
             "set -x;",
             "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
-            scp_command if do_tokens and lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST") else "",
-            tok_permissions if do_tokens else "",
+            "; ".join(scp_command) if do_tokens and scp_command and lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST") else "",
+            "; ".join(tok_permissions) if do_tokens and tok_permissions else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
-            % {
-                "dataset": dataset,
-                "parameter": dataset,
-                "experiment": exp,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-            },
+            % input_dict,
             
             "echo == process_id: $$ ==;",
             "export UPLOADS='%s';" % sandbox,
@@ -2005,14 +2000,7 @@ class SubmissionsPOMS:
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             (
                 lt.launch_setup
-                % {
-                    "dataset": dataset,
-                    "parameter": dataset,
-                    "experiment": exp,
-                    "version": vers,
-                    "group": group,
-                    "experimenter": experimenter_login,
-                }
+                % input_dict
             ).replace("'", """'"'"'"""),
             "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
         ]
@@ -2025,7 +2013,8 @@ class SubmissionsPOMS:
             
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
+            # , -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; 
+            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             # POMS4 'properly named' items for poms_jobsub_wrapper
@@ -2090,16 +2079,7 @@ class SubmissionsPOMS:
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
         formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
-        formatdict.update(
-            {
-                "dataset": dataset,
-                "parameter": dataset,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-                "experiment": exp,
-            }
-        )
+        formatdict.update(input_dict)
 
         lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")

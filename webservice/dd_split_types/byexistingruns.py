@@ -12,10 +12,15 @@ class byexistingruns:
        is stored in cs_last_split
     """
 
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
+        self.test = test
         self.cs = cs
         self.dmr_service = ctx.dmr_service
         self.db = ctx.db
+        if self.test:
+            self.last_split = self.cs.last_split_test
+        else:
+            self.last_split = self.cs.cs_last_split
 
 
     def params(self):
@@ -24,7 +29,7 @@ class byexistingruns:
     def peek(self):
         query = self.cs.data_dispatcher_dataset_query
         fids_already_processed = []
-        if self.cs.cs_last_split > 0:
+        if self.cs.last_split > 0:
             for project in self.db.query(DataDispatcherSubmission).filter(and_(
                         DataDispatcherSubmission.archive == False,
                         DataDispatcherSubmission.experiment == self.cs.experiment,
@@ -52,10 +57,10 @@ class byexistingruns:
         if len(project_files) == 0:
             raise StopIteration
         
-        if self.cs.cs_last_split == 0:
+        if self.last_split == 0:
             project_name = "%s | byexistingrun(%s)-full | %s" % (self.cs.name, run_number, int(time.time()))
         else:
-            project_name = "%s | byexistingrun(%s) | slice %s" % (self.cs.name, run_number, self.cs.cs_last_split)
+            project_name = "%s | byexistingrun(%s) | slice %s" % (self.cs.name, run_number, self.last_split)
         
         dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
                                                files=project_files,
@@ -64,18 +69,18 @@ class byexistingruns:
                                                project_name=project_name,
                                                campaign_id=self.cs.campaign_id, 
                                                campaign_stage_id=self.cs.campaign_stage_id,
-                                               split_type=self.cs.cs_split_type,
-                                               last_split=self.cs.cs_last_split,
+                                               split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
+                                               last_split=self.last_split,
                                                creator=self.cs.experimenter_creator_obj.experimenter_id,
                                                creator_name=self.cs.experimenter_creator_obj.username)
         
         return dd_project
 
     def next(self):
-        if self.cs.cs_last_split is None:
-            self.cs.cs_last_split = 0
+        if self.last_split is None:
+            self.last_split = 0
         else:
-            self.cs.cs_last_split = self.cs.cs_last_split + 1
+            self.last_split= self.last_split + 1
             
         dd_project = self.peek()
         

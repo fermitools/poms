@@ -10,7 +10,8 @@ class list:
        submit each one separately. Please follow the following format: ['files from namespace:name', 'project_id: INTEGER_VALUE']
     """
 
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
+        self.test = test
         self.cs = cs
         self.dmr_service = ctx.dmr_service
         self.list = ast.literal_eval(cs.data_dispatcher_dataset_query) if cs.data_dispatcher_dataset_query else []
@@ -37,7 +38,7 @@ class list:
                                             project_name=project_name,
                                             campaign_id=self.cs.campaign_id, 
                                             campaign_stage_id=self.cs.campaign_stage_id,
-                                            split_type=self.cs.cs_split_type,
+                                            split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
                                             last_split=self.cs.cs_last_split,
                                             creator=self.cs.experimenter_creator_obj.experimenter_id,
                                             creator_name=self.cs.experimenter_creator_obj.username,
@@ -58,7 +59,7 @@ class list:
                                                                             project_name=project_name,
                                                                             campaign_id=self.cs.campaign_id, 
                                                                             campaign_stage_id=self.cs.campaign_stage_id,
-                                                                            split_type=self.cs.cs_split_type,
+                                                                            split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
                                                                             last_split=self.cs.cs_last_split,
                                                                             creator=self.cs.experimenter_creator_obj.experimenter_id,
                                                                             creator_name=self.cs.experimenter_creator_obj.username, 
@@ -145,7 +146,7 @@ class list:
                                                         project_name=project_name,
                                                         campaign_id=self.cs.campaign_id, 
                                                         campaign_stage_id=self.cs.campaign_stage_id,
-                                                        split_type=self.cs.cs_split_type,
+                                                        split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
                                                         last_split=self.cs.cs_last_split,
                                                         creator=self.cs.experimenter_creator_obj.experimenter_id,
                                                         creator_name=self.cs.experimenter_creator_obj.username, 

@@ -1843,6 +1843,12 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
        
         if (k == 'cs_split_type' || k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
+            //if (val.includes("drainingn") || val.includes("limitn") || val.includes("nfiles")){
+            //    res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id, this.previousElementSibling.id.replace('cs_split_type', 'split_nfiles_test'))">Edit</button>`);
+            //}
+            //else{
+            //    res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
+            //}
         }
         if (k == 'recoveries') {
             res.push(`<button type="button" onclick="json_field_editor.recovery_start(this.previousElementSibling.id)">Edit</button>`);
@@ -2092,6 +2098,7 @@ gui_editor.prototype.new_stage = function (name, label) {
         'data_dispatcher_project_id': null,
         //'data_handling_service': null,
         'cs_split_type': null,
+        'test_split_type': null,
         'default_clear_cronjob':true,
         'completion_type': null,
         'completion_pct': null,
@@ -2372,6 +2379,7 @@ wf_uploader.prototype.upload_stage = function (stage_name) {
         'software_version': 'ae_software_version',
         'vo_role': 'ae_vo_role',
         'cs_split_type': 'ae_split_type',
+        'test_split_type': 'ae_test_split_type',
         'job_type': 'ae_campaign_definition',
         'login_setup': 'ae_launch_name',
         'param_overrides': 'ae_param_overrides',

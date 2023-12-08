@@ -74,6 +74,7 @@ class CampaignStage(Base):
 
     vo_role = Column(Text, nullable=False)
     cs_last_split = Column(Integer, nullable=True)
+    last_split_test = Column(Integer, nullable=True)
     cs_split_type = Column(Text, nullable=True)
     cs_split_dimensions = Column(Text, nullable=True)
     dataset = Column(Text, nullable=False)
@@ -344,7 +345,9 @@ class CampaignStageSnapshot(Base):
     updater = Column(Integer)
     updated = Column(DateTime(True))
     cs_last_split = Column(Integer)
+    last_split_test = Column(Integer, nullable=True)
     cs_split_type = Column(Text)
+    test_split_type = Column(Text, nullable=False, server_default=text(""))
     cs_split_dimensions = Column(Text)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
     # completion_pct = Column(Text, nullable=False, server_default="95")

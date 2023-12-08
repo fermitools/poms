@@ -765,6 +765,7 @@ class CampaignsPOMS:
                     res.append("data_dispatcher_project_id=%s" % defaults.get("data_dispatcher_project_id" or None))
                     res.append("data_handling_service=%s" % defaults.get("data_handling_service") or "sam")
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
+                    res.append("test_split_type=%s" % defaults.get("test_split_type"))
                     res.append("default_clear_cronjob=%s" % "True")
                     res.append("completion_type=%s" % defaults.get("completion_type"))
                     res.append("completion_pct=%s" % defaults.get("completion_pct"))
@@ -799,6 +800,8 @@ class CampaignsPOMS:
                 res.append("sam_dataset_or_split_data=%s" % c_s.dataset)
             if c_s.cs_split_type != defaults.get("cs_split_type"):
                 res.append("cs_split_type=%s" % c_s.cs_split_type)
+            if c_s.test_split_type != defaults.get("test_split_type", None):
+                res.append("test_split_type=%s" % c_s.test_split_type)
             if c_s.completion_type != defaults.get("completion_type"):
                 res.append("completion_type=%s" % c_s.completion_type)
             if c_s.campaign_obj.data_handling_service != defaults.get("data_handling_service"):
@@ -1337,8 +1340,12 @@ class CampaignsPOMS:
             completion_pct = form.pop("completion_pct")
             completion_type = form.pop("completion_type")
             split_type = form.pop("cs_split_type", None)
+            test_split_type = form.pop("test_split_type", None)
             default_clear_cronjob = form.pop("default_clear_cronjob", True)
-            dataset = form.pop("sam_dataset_or_split_data")
+            if "sam_dataset_or_split_data" in form:
+                dataset = form.pop("sam_dataset_or_split_data")
+            else:
+                dataset = form.pop("dataset_or_split_data")
             data_dispatcher_dataset_query = form.pop("data_dispatcher_dataset_query", None)
             data_dispatcher_project_id = form.pop("data_dispatcher_project_id", None)
             job_type = form.pop("job_type")
@@ -1407,6 +1414,7 @@ class CampaignsPOMS:
                     obj.completion_pct = completion_pct
                     obj.completion_type = completion_type
                     obj.cs_split_type = split_type
+                    obj.test_split_type = test_split_type
                     obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
                     obj.dataset = dataset
                     obj.data_dispatcher_dataset_query = data_dispatcher_dataset_query
@@ -1436,6 +1444,7 @@ class CampaignsPOMS:
                     completion_pct=completion_pct,
                     completion_type=completion_type,
                     cs_split_type=split_type,
+                    test_split_type=test_split_type,
                     default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
                     dataset=dataset,
                     data_dispatcher_dataset_query = data_dispatcher_dataset_query,

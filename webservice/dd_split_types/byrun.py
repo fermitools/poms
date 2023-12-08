@@ -7,13 +7,18 @@ class byrun:
     """
     
         
-    def __init__(self, ctx, cs):
+    def __init__(self, ctx, cs, test=False):
         self.cs = cs
         self.dmr_service = ctx.dmr_service
         self.low = 1
         self.high = 999999
+        self.test=test
+        if self.test:
+            self.last_split = self.cs.last_split_test
+        else:
+            self.last_split = self.cs.cs_last_split
         
-        parms = cs.cs_split_type[6:].split(",")
+        parms = cs.cs_split_type[6:].split(",") if not self.test else cs.test_split_type[6:].split(",")
         low = 1
         for p in parms:
             if p.endswith(")"):
@@ -22,13 +27,14 @@ class byrun:
                 self.low = int(p[4:])
             if p.startswith("high="):
                 self.high = int(p[5:])
+                
 
     def params(self):
         return ["low=", "high="]
 
     def peek(self):
-        project_name = "%s | byrun(%s -> %s) | run: %d" % (self.cs.name, self.low, self.high, self.cs.cs_last_split )
-        query = "%s where core.run_number = %s" % (self.cs.data_dispatcher_dataset_query, self.cs.cs_last_split)
+        project_name = "%s | byrun(%s -> %s) | run: %d" % (self.cs.name, self.low, self.high, self.last_split)
+        query = "%s where core.run_number = %s" % (self.cs.data_dispatcher_dataset_query, self.last_split)
         project_files =  list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         
         if len(project_files) == 0:
@@ -41,27 +47,27 @@ class byrun:
                                                project_name=project_name,
                                                campaign_id=self.cs.campaign_id, 
                                                campaign_stage_id=self.cs.campaign_stage_id,
-                                               split_type=self.cs.cs_split_type,
-                                               last_split=self.cs.cs_last_split,
+                                               split_type=self.cs.cs_split_type if not self.test else self.cs.test_split_type,
+                                               last_split=self.last_split,
                                                creator=self.cs.experimenter_creator_obj.experimenter_id,
                                                creator_name=self.cs.experimenter_creator_obj.username)
         
         return dd_project
 
     def next(self):
-        if self.cs.cs_last_split is None:
-            self.cs.cs_last_split = self.low
-        if self.cs.cs_last_split >= self.high:
+        if self.last_split is None:
+            self.last_split = self.low
+        if self.last_split >= self.high:
             raise StopIteration
         
         dd_project = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        self.last_split = self.last_split + 1
         
         logit.log("nfiles.next(): created data_dispatcher project with id: %s " % dd_project.project_id)
         return dd_project
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split - 1
+        self.last_split = self.last_split - 1
         dd_project = self.peek()
         return dd_project
 

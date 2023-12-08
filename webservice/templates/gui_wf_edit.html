@@ -4,7 +4,7 @@
 {%block title%}
 <title>POMS Campaign Editor</title>
 <script src="{{pomspath}}/static/js/split_type_picker.js"></script>
-{% if campaign.data_handling_service == "data_dispatcher" %}
+{% if data_handling_service == "data_dispatcher" %}
 <script src="{{pomspath}}/split_type_javascript?data_dispatcher=true"></script>
 {% else %}
 <script src="{{pomspath}}/split_type_javascript?data_dispatcher=false"></script>
