@@ -43,6 +43,7 @@ from sqlalchemy.inspection import inspect
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
 
+
 # we import our logic modules, so we can attach an instance each to
 # our overall poms_service class.
 
@@ -60,6 +61,7 @@ from . import (
     Permissions,
     logit,
     version,
+    DMRService
 )
 
 #
@@ -138,11 +140,11 @@ class PomsService:
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")
-        self.sam_base = self.web_config.get("SAM", "sam_base")
         self.landscape_base = self.web_config.get("FNAL", "landscape_base")
         self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
         self.servicenow = self.web_config.get("FNAL", "servicenow")
         self.redmine_url = self.web_config.get("FNAL", "redmine_url")
+        self.sam_base = self.web_config.get("SAM", "sam_base")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -195,10 +197,90 @@ class PomsService:
             raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, experiment, role))
         return {"version": self.version, "launches": self.submissionsPOMS.get_job_launches(kwargs["ctx"])}
     
+    
+    ####################
+    # Data Dispatcher
+    
+    @poms_method(
+        help_page="experimenters_corner/data_dispatcher",
+        t="data_dispatcher_overview.html",
+        p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
+    )
+    def data_dispatcher_overview(self, ctx, **kwargs):
+        if not ctx.dmr_service.services_logged_in or not ctx.dmr_service.services_logged_in.get("data_dispatcher", False):
+            ctx.dmr_service.begin_services("data_dispatcher")
+        retval = ctx.dmr_service.session_status()[1]
+        retval['method'] = 'index'
+        command = kwargs.get("command", None)
+        if command:
+            if command == 'list_rses':
+                retval['method'] = 'list_rses'
+                retval['all_rses'] = ctx.dmr_service.list_rses()
+                return retval
+            elif command == 'list_projects':
+                retval['method'] = 'list_projects'
+                retval['data_dispatcher_projects'] = ctx.dmr_service.list_all_projects(**kwargs)
+                return retval
+        return retval
+    
+    @poms_method(rtype="json")
+    def get_project_handles(self, ctx, **kwargs):
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.get_project_handles(int(kwargs["project_id"]))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def test_project_changes(self, ctx, **kwargs):
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.start_pass_fail_files_background_task(kwargs.get("project_id"), kwargs.get("n_pass"),kwargs.get("n_fail"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def ping_project_changes_results(self, ctx, **kwargs):
+        if ctx.dmr_service.session_status()[0]:
+            res = {}
+            res['status'] = ctx.dmr_service.check_task(kwargs.get("task_id"), kwargs.get("started"))
+            res['info'] = ctx.dmr_service.get_project_handles(int(kwargs["project_id"]))
+            return res
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"info": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def restart_project(self, ctx, **kwargs):
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.restart_project(kwargs.get("project_id"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
+    @poms_method(rtype="json")
+    def activate_project(self, ctx, **kwargs):
+        if ctx.dmr_service.session_status()[0]:
+            return ctx.dmr_service.activate_project(kwargs.get("project_id"))
+        else:
+            retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
+            return {"project_handles": retval, "msg": "Fail"}
+        
+    
+    @poms_method(rtype="json")
+    def login_data_dispatcher(self, ctx, **kwargs):
+        # Assuming user is either logging in the first time, or signing in as someone else,
+        # hence, we will reinitialize the service and clear out any session info.
+        try:
+            return ctx.dmr_service.login_with_x509()
+        except:
+            session_details = ctx.dmr_service.session_status()[1]
+            session_details['login_method'] = "Failed x509 login"
+            return json.dumps(session_details)
 
     ####################
     # UtilsPOMS
-
+    
     # h4. quick_search
     @poms_method()
     def quick_search(self, **kwargs):
@@ -330,8 +412,8 @@ class PomsService:
         p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], t="campaign_overview.html", help_page="experimenters_corner/campaign_deps_help"
     )
     def campaign_overview(self, **kwargs):
-        c, d, sl = self.campaignsPOMS.campaign_overview(**kwargs)
-        return {"s": c, "svgdata": d, "slist": sl}
+        c, d, sl, dd_projects = self.campaignsPOMS.campaign_overview(**kwargs)
+        return {"s": c, "svgdata": d, "slist": sl, "data_dispatcher_projects": dd_projects}
 
     @poms_method(
         p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="experimenters_corner/campaign_deps_help"
@@ -474,7 +556,7 @@ class PomsService:
         need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
-        return {}
+        return {} #CampaignsPOMS.gui_wf_edit(self, kwargs)
 
     # h4. gui_wf_clone
     @poms_method(
@@ -576,8 +658,8 @@ class PomsService:
         redirect="%(poms_path)s/campaign_stage_info/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s",
         rtype="redirect",
     )
-    def reset_campaign_split(self, **kwargs):
-        return self.stagesPOMS.reset_campaign_split(**kwargs)
+    def reset_campaign_split(self, *args, **kwargs):
+        return self.stagesPOMS.reset_campaign_split(*args,**kwargs)
 
     
     # see &l=webservice/StagesPOMS.py#update_campaign_split&
@@ -614,7 +696,8 @@ class PomsService:
             "submission_log_format",
             "recovery_ids",
             "depend_ids",
-            "statuses"
+            "statuses",
+            "data_dispatcher_projects"
         ],
         t="submission_details.html",
         help_page="experimenters_corner/submission_details_help",
@@ -647,7 +730,8 @@ class PomsService:
             "dep_svg",
             "last_activity",
             "recent_submissions",
-            "campaign_stage_snapshots"
+            "campaign_stage_snapshots",
+            "data_dispatcher_projects"
         ],
         help_page="user_documentation",
         t="campaign_stage_info.html",
@@ -802,6 +886,16 @@ class PomsService:
             cl = None
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
 
+    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
+    def calculate_dd_project_completion(self, **kwargs):
+        if kwargs.get("ctx", None) and kwargs.get("dd_submissions", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_ids=kwargs["dd_submissions"])
+        elif kwargs.get("ctx", None) and kwargs.get("dd_submission", None):
+            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_id=kwargs.get("dd_submission"))
+        else:
+            return {}
+
+
     # see &l=webservice/SubmissionsPOMS.py#running_submissions&
 
     # h4. update_submission
@@ -811,6 +905,18 @@ class PomsService:
         if kwargs.get("redirect", None):
             raise cherrypy.HTTPRedirect(kwargs["ctx"].headers_get("Referer"))
         return res
+    
+    # h4. update_submissions
+    @poms_method(p=[{"p": "can_do", "t": "Submission"}], rtype="json")
+    def update_submissions(self, **kwargs):
+        data = kwargs.get("submission_updates", None)
+        if data:
+            res = self.submissionsPOMS.update_submissions(kwargs["ctx"], json.loads(data))
+            del kwargs["submission_updates"]
+            return res
+        else:
+            return {"status": "Failed", "message": "No data in request."}
+    
 
     # h3. File upload management for Analysis users
     #
@@ -906,10 +1012,10 @@ class PomsService:
     # h4. launch_campaign
     @poms_method(
         p=[{"p": "can_do", "t": "Campaign", "item_id": "campaign_id"}],
-        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
+        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile", "submission_id"],
         rtype="redirect",
         help_page="experimenters_corner/launch_campaign_help",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s" 
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&submission_id=%(submission_id)s" 
         ) 
     def launch_campaign(self, ctx, **kwargs):
         self.assert_token(ctx, **kwargs)
@@ -925,10 +1031,10 @@ class PomsService:
 
     @poms_method(
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
-        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile"],
+        u=["lcmd", "cs", "campaign_stage_id", "outdir", "outfile", "submission_id"],
         rtype="redirect",
         help_page="experimenters_corner/launch_jobs_help",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&submission_id=%(submission_id)s",
     )
     def launch_jobs(self, ctx, **kwargs):
         self.assert_token(ctx, **kwargs)
@@ -1009,7 +1115,13 @@ class PomsService:
 
     @poms_method(t="show_dimension_files.html")
     def show_dimension_files(self, **kwargs):
-        return {"flist": self.filesPOMS.show_dimension_files(kwargs["ctx"], kwargs["dims"])}
+        flist, data_handler, fdict, querying = self.filesPOMS.show_dimension_files(kwargs["ctx"], 
+                                                                         dims = kwargs.get("dims", None), 
+                                                                         project_id=kwargs.get("project_id", None), 
+                                                                         project_idx=kwargs.get("project_idx", None), 
+                                                                         mc_query=kwargs.get("mc_query", None),
+                                                                         querying=kwargs.get("querying", None))
+        return {"flist": flist, "data_handler": data_handler, "fdict": fdict, "querying": querying}
 
     # h4. link_tags
     @poms_method(rtype="json", p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
@@ -1056,7 +1168,7 @@ class PomsService:
     # h4. split_type_javascript
     @poms_method(rtype="rawjavascript")
     def split_type_javascript(self, **kwargs):
-        return self.miscPOMS.split_type_javascript(kwargs["ctx"])
+        return self.miscPOMS.split_type_javascript(kwargs["ctx"], kwargs.get("data_dispatcher", False))
 
     # see &l=webservice/MiscPOMS.py#split_type_javascript&
 

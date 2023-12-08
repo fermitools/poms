@@ -4,6 +4,7 @@ from .get_user import get_user
 from .poms_model import Experimenter
 from sqlalchemy import text
 from configparser import ConfigParser
+from . import DMRService
 
 # h2. Ctx "Context" class
 
@@ -32,7 +33,9 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
-        web_config=None
+        dmr=None,
+        web_config=None,
+        function=None
     ):
 
         # functions take experiment and role, but we steal them out
@@ -56,7 +59,7 @@ class Ctx:
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
 
         self.username = username if username else get_user()
-        rows = self.db.execute("select txid_current();")
+        rows = self.db.execute(text("select txid_current();"))
         for r in rows:
             self.dbtransaction = r[0]
         rows.close()
@@ -66,16 +69,33 @@ class Ctx:
         self.tmax = tmax
         self.tdays = tdays
         self.experimenter_cache = None
-
+            
         if self.experiment == None or self.role == None:
             e = self.get_experimenter()
             self.experiment = e.session_experiment
             self.role = e.session_role
+            
+        self.dmr_service = dmr if dmr else cherrypy.request.dmr_service
+        self.dmr_service.update_config_if_needed(self.db,self.experiment, self.username, self.role)
+        services = self.dmr_service.services_logged_in
+        if services:
+            if not services["data_dispatcher"]:
+                self.dmr_service.begin_services("data_dispatcher")
+            if not services["metacat"]:
+                self.dmr_service.begin_services("metacat")
+        else:
+            self.dmr_service.begin_services()
+        cherrypy.request.dmr_service = self.dmr_service
 
     def get_experimenter(self):
         if not self.experimenter_cache:
             self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
         return self.experimenter_cache
+    
+    def get_experimenter_id(self):
+        if not self.experimenter_cache:
+            self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
+        return self.experimenter_cache.experimenter_id
 
     def __repr__(self):
         res = ["<Ctx:"]

@@ -16,14 +16,14 @@ import glob
 import uuid
 from datetime import datetime, timedelta
 import time
-
 from sqlalchemy.orm import joinedload
 
 from . import logit
-from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign
+from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExperimenters, Campaign, DataDispatcherSubmission
 from .utc import utc
 from .SAMSpecifics import sam_specifics
-
+import shutil
+from urllib.parse import unquote
 
 class FilesStatus:
     """
@@ -82,112 +82,205 @@ class FilesStatus:
                 cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
             else:
                 raise KeyError("need campaign_stage_id or campaign_id")
-        (
-            summary_list,
-            some_kids_decl_needed,
-            some_kids_needed,
-            base_dim_list,
-            output_files,
-            output_list,
-            all_kids_decl_needed,
-            some_kids_list,
-            some_kids_decl_list,
-            all_kids_decl_list,
-        ) = sam_specifics(ctx).get_file_stats_for_submissions(tl, cs.experiment)
-
-        columns = [
-            "campign<br>stage",
-            "submission<br>jobsub_jobid",
-            "project",
-            "dataset",
-            "date",
-            "available<br>output",
-            "submit-<br>ted",
-            "deliv-<br>ered<br>SAM",
-            "unknown<br>SAM",
-            "con-<br>sumed",
-            "cancelled",
-            "failed",
-            "skipped",
-            "w/some kids<br>declared",
-            "w/all kids<br>declared",
-            "w/kids<br>located",
-            "pending",
-        ]
-
-        if clear_campaign_column:
-            columns = columns[1:]
-
-        listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
-        datarows = deque()
-        i = -1
-        for s in tl:
-            logit.log("task %d" % s.submission_id)
-            i = i + 1
-            psummary = summary_list[i]
-            partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
-            # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
-            pending = partpending
-
-            task_jobsub_job_id = s.jobsub_job_id
-            if task_jobsub_job_id is None:
-                task_jobsub_job_id = "s%s" % s.submission_id
-            row = [
-                [
-                    s.campaign_stage_obj.name,
-                    "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
-                ],
-                [
-                    task_jobsub_job_id.replace("@", "@<br>"),
-                    "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
-                ],
-                [
-                    s.project,
-                    "%s/station_monitor/%s/stations/%s/projects/%s"
-                    % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project),
-                ],
-                [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
-                [s.created.strftime("%Y-%m-%d %H:%M"), None],
-                [output_list[i], listfiles % output_files[i]],
-                [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-                [
-                    "%d"
-                    % (
-                        psummary.get("tot_consumed", 0)
-                        + psummary.get("tot_cancelled", 0)
-                        + psummary.get("tot_failed", 0)
-                        + psummary.get("tot_skipped", 0)
-                        + psummary.get("tot_delivered", 0)
-                    ),
-                    listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
-                ],
-                ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-                [psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
-                [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-                [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-                [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-                [some_kids_list[i], listfiles % some_kids_needed[i]],
-                [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+            
+        data_handling_service = cs.campaign_obj.data_handling_service
+        if data_handling_service == "sam":
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                output_files,
+                output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(tl, cs.experiment)
+            
+            columns = [
+                "campign<br>stage",
+                "submission<br>jobsub_jobid",
+                "project",
+                "dataset",
+                "date",
+                "available<br>output",
+                "submit-<br>ted",
+                "deliv-<br>ered<br>SAM",
+                "unknown<br>SAM",
+                "con-<br>sumed",
+                "cancelled",
+                "failed",
+                "skipped",
+                "w/some kids<br>declared",
+                "w/all kids<br>declared",
+                "w/kids<br>located",
+                "pending",
             ]
 
             if clear_campaign_column:
-                row = row[1:]
-            datarows.append(row)
+                columns = columns[1:]
+
+            listfiles = "../../show_dimension_files/%s/%s?dims=%%s" % (cs.experiment, ctx.role)
+            datarows = deque()
+            i = -1
+            for s in tl:
+                logit.log("task %d" % s.submission_id)
+                i = i + 1
+                psummary = summary_list[i]
+                partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
+                # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+                pending = partpending
+
+                task_jobsub_job_id = s.jobsub_job_id
+                if task_jobsub_job_id is None:
+                    task_jobsub_job_id = "s%s" % s.submission_id
+                row = [
+                    [
+                        s.campaign_stage_obj.name,
+                        "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
+                    ],
+                    [
+                        task_jobsub_job_id.replace("@", "@<br>"),
+                        "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
+                    ],
+                    [
+                        s.project,
+                        "%s/station_monitor/%s/stations/%s/projects/%s"
+                        % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project),
+                    ],
+                    [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
+                    [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                    [output_list[i], listfiles % output_files[i]],
+                    [psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                    [
+                        "%d"
+                        % (
+                            psummary.get("tot_consumed", 0)
+                            + psummary.get("tot_cancelled", 0)
+                            + psummary.get("tot_failed", 0)
+                            + psummary.get("tot_skipped", 0)
+                            + psummary.get("tot_delivered", 0)
+                        ),
+                        listfiles % (base_dim_list[i] + " and consumed_status consumed,completed,failed,skipped,delivered "),
+                    ],
+                    ["%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
+                    [psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+                    [psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
+                    [psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
+                    [psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
+                    [some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
+                    [all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
+                    [some_kids_list[i], listfiles % some_kids_needed[i]],
+                    [pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+                ]
+                if clear_campaign_column:
+                    row = row[1:]
+                datarows.append(row)
+                
+        elif data_handling_service == "data_dispatcher":
+            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
+                    DataDispatcherSubmission.experiment == cs.experiment,
+                    DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
+                ).all()
+            submission_info = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
+            
+            columns = [
+                "campign<br>stage",
+                "submission<br>jobsub_jobid",
+                "project_id",
+                "project name",
+                "date",
+                "percent<br>complete",
+                "available<br>output",
+                "submitted",
+                "not submitted",
+                "done",
+                "failed",
+                "reserved",
+                "not located",
+                "files in<br>project",
+                "parents",
+                "children",
+            ]
+
+            if clear_campaign_column:
+                columns = columns[1:]
+
+            datarows = deque()
+            for s in dd_submissions:
+                logit.log("task %d" % s.submission_id)
+                task_jobsub_job_id = s.jobsub_job_id
+                if task_jobsub_job_id is None:
+                    task_jobsub_job_id = "s%s" % s.submission_id
+                details = submission_info.get(s.submission_id, None)
+                if "project_id" in details:
+                    listfiles = "../../show_dimension_files/%s/%s?project_id=%s" % (cs.experiment, ctx.role, details["project_id"])
+                else:
+                    listfiles = "../../show_dimension_files/%s/%s?project_idx=%s" % (cs.experiment, ctx.role, details["project_idx"])
+                if details:
+                    row = [
+                        [
+                            s.campaign_stage_obj.name,
+                            "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
+                        ],
+                        [ 
+                            task_jobsub_job_id.replace("@", "@<br>"),
+                            "../../submission_details/%s/%s/?submission_id=%s" % (ctx.experiment, ctx.role, s.submission_id),
+                        ],
+                        [ #TODO: is there a monitoring page?
+                            s.project_id,listfiles
+                        ],
+                        [s.project_name or "N/A", listfiles + "&querying=all&mc_query=%s" % details["total"]],
+                        [s.created.strftime("%Y-%m-%d %H:%M"), None],
+                        [details["statistics"].get("pct_complete", "0%"), listfiles + "&querying=children&mc_query=%s" % details["children"]],
+                        [details["statistics"].get("children", 0), listfiles + "&querying=output&mc_query=%s" % details["children"]],
+                        [details["statistics"].get("submitted", 0), listfiles + "&querying=submitted&mc_query=%s" % details["submitted"]],
+                        [details["statistics"].get("initial", 0), listfiles + "&querying=initial&mc_query=%s" % details["initial"]],
+                        [details["statistics"].get("done", 0), listfiles + "&querying=done&mc_query=%s" % details["done"]],
+                        [details["statistics"].get("failed", 0), listfiles + "&querying=failed&mc_query=%s" % details["failed"]],
+                        [details["statistics"].get("reserved", 0), listfiles + "&querying=reserved&mc_query=%s" % details["reserved"]],
+                        [details["statistics"].get("unknown", 0), listfiles + "&querying=unknown&mc_query=%s" % details["unknown"]],
+                        [details["statistics"].get("total", 0), listfiles + "&querying=all&mc_query=%s" % details["total"]],
+                        [details["statistics"].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" %  details["parents"]],
+                        [details["statistics"].get("children", 0), listfiles + "&querying=children&mc_query=%s" % details["children"]],
+                    ]
+            
+
+                    if clear_campaign_column:
+                        row = row[1:]
+                    datarows.append(row)
 
 
 
         return cs, columns, datarows, tmins, tmaxs, prevlink, nextlink, tdays
 
     # h3. show_dimension_files
-    def show_dimension_files(self, ctx, dims):
-
+    def show_dimension_files(self, ctx, dims=None, project_id=None,project_idx=None,mc_query=None, querying=None):
         try:
-            flist = sam_specifics(ctx).list_files(dims)
+            flist = None
+            fdict = None
+            data_handler = "sam"
+            info = ""
+            if dims:
+                flist = sam_specifics(ctx).list_files(dims)
+            else:
+                info = "%s files in project_id%s" % (querying.capitalize(), ": %s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
+            if project_id:
+                data_handler = "data_dispatcher"
+                querying = querying.capitalize()
+                fdict, did_all = ctx.dmr_service.list_file_urls(project_id=project_id, mc_query=mc_query)
+                if did_all:
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
+            elif project_idx:
+                data_handler = "data_dispatcher"
+                querying = querying.capitalize()
+                fdict, did_all = ctx.dmr_service.list_file_urls(project_idx=project_idx, mc_query=mc_query)
+                if did_all:
+                    info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
         except ValueError:
             flist = deque()
-        return flist
+        return flist, data_handler, fdict, info
 
     # h3. get_file_upload_path
     def get_file_upload_path(self, ctx, filename):
@@ -293,13 +386,83 @@ class FilesStatus:
             logit.log("get_launch_sandbox failed to link items from upload_path %s into the sandbox: %s" % (upload_path, repr(e)))
             return ctx.config_get("base_uploads_dir")
             
+            
+            
+    def is_date_older_than_six_months(self, date_string):
+        # Convert the date string to a datetime object
+        date_format = "%Y%m%d_%H%M%S"
+        date = datetime.strptime(date_string, date_format)
+        six_months_ago = datetime.now() - timedelta(days=6*30)
+        if date < six_months_ago:
+            return True
+        else:
+            return False
+
+    
+    def refactor_launch_directory(self, ctx):
+        final_destinations = {}
+        submission_paths = {}
+        submission_dates = {}
+        #files_to_remove = []
+        doesnt_satisfy = []
+        for root, dirs, ignore in os.walk("/home/poms/private/logs/poms/launches"):
+            for dir in dirs:
+                if "_" in dir:
+                    for pwd, subdirs, files in os.walk(os.path.join(root, dir)):
+                        for file in files:
+                            splitFile = file.split("_")
+                            if len(splitFile) < 3:
+                                doesnt_satisfy.append(os.path.join(pwd, file))
+                            #elif len(splitFile) > 1 and self.is_date_older_than_six_months("%s_%s" % (splitFile[0], splitFile[1])):
+                            #    files_to_remove.append(file)
+                            else:
+                                if len(splitFile) == 4:
+                                    submission_paths[splitFile[3]] = os.path.join(pwd, file)
+                                    submission_dates[splitFile[3]] = datetime.strptime("%s_%s" % (splitFile[0], splitFile[1]), "%Y%m%d_%H%M%S")
         
+        results = (
+                ctx.db.query(Submission)
+                #.filter(CampaignStage.campaign_stage_id in campaign_stage_submissions.keys())
+                .filter(Submission.submission_id.in_(list(submission_dates.keys())))
+                .all()
+            )
+        result_ids = {}
+        for result in results:
+            submission_id = '%s' % result.submission_id
+            result_ids[submission_id] = submission_id in submission_dates
+            # {{date_of_submission}}/{{experiment}}/{{campaign_id}}/{{campaign_stage_id}}/{{submission_id}}_{{submission_timestamp}}
+            if submission_id in submission_dates and submission_id in submission_paths:
+                # Create the new directory if it does not yet exist
+                directory = "/home/poms/private/logs/poms/launches/%s/%s/%s/%s" % (
+                    submission_dates[submission_id].date(), # Date of creation
+                    result.campaign_stage_obj.experiment, # Name of experiment
+                    result.campaign_stage_obj.campaign_id, # Campaign ID
+                    result.campaign_stage_id, # Campaign Stage ID
+                )
+                # Create the directory
+                try:
+                     shutil.rmtree(directory)
+                except:
+                    pass
+                os.makedirs(directory)
+                # ensures correct new path for old files
+                final_destinations[submission_paths[submission_id]] = "%s/%s_%s" % (
+                    directory,
+                    submission_id, # Submission ID
+                    result.created.strftime('%Y%m%d_%H%M%S') # Submission Timestamp
+                    )
+                # Copy the file to the destination directory
+                shutil.copy2(submission_paths[submission_id], final_destinations[submission_paths[submission_id]])
+
+               
+                            
 
     # h3. list_launch_file
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname=None, login_setup_id=None, submission_id=None):
         """
             get launch output file and return the lines as a list
         """
+        #self.refactor_launch_directory(ctx)
         if campaign_stage_id and campaign_stage_id != "None":
             q = (
                 ctx.db.query(CampaignStage, Campaign)
@@ -312,19 +475,48 @@ class FilesStatus:
         else:
             campaign_name = "-"
             stage_name = "-"
-        if login_setup_id:
-            dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
+        
+        if submission_id:
+            result = (
+                ctx.db.query(Submission)
+                .filter(Submission.submission_id == submission_id)
+                .first()
+            )
+            base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
+            directory = "%s/%s/%s/%s/%s/%s_%s" % (
+                        base_dir,
+                        result.created.astimezone(utc).date(), # Date of creation
+                        result.campaign_stage_obj.experiment, # Name of experiment
+                        result.campaign_stage_obj.campaign_id, # Campaign ID
+                        result.campaign_stage_id, # Campaign Stage ID
+                        result.submission_id, # Submission ID
+                        result.created.astimezone(utc).strftime('%Y%m%d_%H%M%S')
+                    )
+            logit.log("Attempting to open log file at: %s" %directory)
+            if os.path.exists(directory):
+                lf = open(directory, "r", encoding="utf-8", errors="replace")
+            else:
+                lf = None
         else:
-            dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
-        lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
-        sb = os.fstat(lf.fileno())
-        lines = lf.readlines()
-        lf.close()
-        # if file is recent set refresh to watch it
-        if (time.time() - sb[8]) < 5:
-            refresh = 3
-        elif (time.time() - sb[8]) < 30:
-            refresh = 10
+            if login_setup_id:
+                dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
+            else:
+                dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
+            lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
+        if lf:
+            sb = os.fstat(lf
+                          .fileno())
+            lines = lf.readlines()
+            lf.close()
+            # if file is recent set refresh to watch it
+            if (time.time() - sb[8]) < 5:
+                refresh = 3
+            elif (time.time() - sb[8]) < 30:
+                refresh = 10
+            else:
+                refresh = 0
         else:
+            lines = ["No log records exist for this submission"]
             refresh = 0
+        
         return lines, refresh, campaign_name, stage_name

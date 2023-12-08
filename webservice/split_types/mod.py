@@ -7,10 +7,11 @@ class mod:
        expressions.
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.ds = cs.dataset
-        self.m = int(cs.cs_split_type[4:].strip(")"))
+        self.m = int(cs.cs_split_type[4:].strip(")")) if not self.test else int(cs.test_split_type[4:].strip(")"))
         self.samhandle = samhandle
 
     def params(self):

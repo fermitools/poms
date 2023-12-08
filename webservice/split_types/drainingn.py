@@ -12,12 +12,13 @@ class drainingn:
        for datasets that are growing or changing from under it.
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.dataset = cs.dataset
-        self.n = int(cs.cs_split_type[10:].strip(")"))
+        self.n = int(cs.cs_split_type[10:].strip(")")) if not self.test else int(cs.test_split_type[10:].strip(")"))
 
     def params(self):
         return ["nfiles"]

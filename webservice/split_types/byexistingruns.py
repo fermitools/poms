@@ -12,7 +12,8 @@ class byexistingruns:
        is stored in cs_last_split
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.samhandle = samhandle
         self.dbhandle = dbhandle

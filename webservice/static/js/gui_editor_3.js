@@ -1059,6 +1059,7 @@ gui_editor.prototype.draw_state = function () {
 
     stagelist = [];
     this.jobtypelist = [];
+    this.dataHandlingTempList = [];
     launchtemplist = [];
 
     for (k in this.state) {
@@ -1070,6 +1071,9 @@ gui_editor.prototype.draw_state = function () {
             this.jobtypelist.push(n);
         } else if (p === 'login_setup') {
             launchtemplist.push(n);
+        }
+        else if (p === 'data_handling_service') {
+            dataHandlingTempList.push(n);
         }
     }
 
@@ -1127,6 +1131,12 @@ gui_editor.prototype.draw_state = function () {
 
     for (i in this.jobtypelist) {
         k = 'job_type ' + this.jobtypelist[i];
+        b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
+        this.miscboxes.push(b);
+        x = x + gridx;
+    }
+    for (i in this.dataHandlingTempList) {
+        k = 'data_handling_service ' + this.dataHandlingTempList[i];
         b = new misc_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);
         this.miscboxes.push(b);
         x = x + gridx;
@@ -1690,6 +1700,16 @@ gui_editor.prototype.completion_type_select = function (sval, eid, placeholder) 
     return `<select id="${eid}" name="completion_type" required>\n${res}</select>\n`;
 }
 
+gui_editor.prototype.data_handling_service = function (sval, eid, placeholder) {
+    let res = ["sam", "data_dispatcher"].reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign")  ? "" : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return (eid.startsWith("_inpcampaign") && !eid.startsWith("_inpcampaign_stage")) ? `<select id="${eid}" name="data_handling_service" required>\n${res}</select>\n` : null;
+}
+
 gui_editor.prototype.state_select = function (sval, eid, placeholder) {
     let res = ["active", "inactive"].reduce(
         function (acc, val) {
@@ -1743,8 +1763,8 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     //} else {
     //this.box.style.width = "120px";
     //}
-    const w = Math.max(...(name.split(' ').map(v => v.length))) * 8;
-    this.box.style.width = Math.max(w, 128) + "px";
+    const w = Math.max(...(name.split(' ').map(v => v.length))) * 9;
+    this.box.style.width = Math.max(w, 160) + "px";
 
     this.box.style.left = x.toString() + "px";
     this.box.style.top = y.toString() + "px";
@@ -1774,6 +1794,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         const ro = (k.includes("param") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || k == "test_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
         if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
             continue;
+            
         if (vdict[k] == null) {
             val = "";
             //VP~ placeholder = "default";
@@ -1787,7 +1808,12 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             //VP~ placeholder = "default";
             placeholder = (this.gui.mode[k]);
         }
-        res.push(`<label>${k}</label>`);
+        if(!name.includes("campaign ") && k.includes('data_handling_service')){
+            continue;
+        }
+        else{
+            res.push(`<label>${k}</label>`);
+        }
         if (k.includes("job_type")) {
             res.push(this.gui.jobtype_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else if (k.includes("login_setup")) {
@@ -1796,7 +1822,10 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             res.push(this.gui.completion_type_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else if (k.includes("state")) {
             res.push(this.gui.state_select(val, `${this.get_input_tag(k)}`, placeholder));
-        } else {
+        } else if (name.includes("campaign ") && k.includes('data_handling_service')){
+            res.push(this.gui.data_handling_service(val, `${this.get_input_tag(k)}`, placeholder));
+        }
+         else {
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
         if (k.includes('param')) {
@@ -1804,11 +1833,22 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         } else if ( k.includes('keywords')) {
             res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
-        if (k == 'dataset_or_split_data') {
-            res.push(`<button type="button" class="split_type_picker_custom_edit" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        if (k == 'data_dispatcher_dataset_query') {
+            
+            res.push(`<button type="button" class="split_type_picker_custom_edit dd_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
+        if (k == 'sam_dataset_or_split_data') {
+            res.push(`<button type="button" class="split_type_picker_custom_edit sam_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        }
+       
         if (k == 'cs_split_type' || k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
+            //if (val.includes("drainingn") || val.includes("limitn") || val.includes("nfiles")){
+            //    res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id, this.previousElementSibling.id.replace('cs_split_type', 'split_nfiles_test'))">Edit</button>`);
+            //}
+            //else{
+            //    res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
+            //}
         }
         if (k == 'recoveries') {
             res.push(`<button type="button" onclick="json_field_editor.recovery_start(this.previousElementSibling.id)">Edit</button>`);
@@ -1820,7 +1860,7 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     // res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form('fields_${name}')">OK</button>`);
     res.push(`<button class="rightbutton" type="reset" value="Cancel" onclick="this.parentNode.style.display='none';">Cancel</button>`);
     res.push(`<button class="rightbutton" type="button" onclick="gui_editor.toggle_form(this.parentNode.id)">OK</button>`);
-    res.push(`<button type="reset" value="Reset">Reset</button>`);
+    res.push(`<button class="resetbutton" type="reset" value="Reset">Reset</button>`);
     res.push('</form>');
     // Form is ready
     this.popup_parent.innerHTML = res.join('\n');
@@ -2053,8 +2093,12 @@ gui_editor.prototype.new_stage = function (name, label) {
         'vo_role': null,
         // 'state': null,
         'software_version': null,
-        'dataset_or_split_data': null,
+        'sam_dataset_or_split_data': null,
+        'data_dispatcher_dataset_query': null,
+        'data_dispatcher_project_id': null,
+        //'data_handling_service': null,
         'cs_split_type': null,
+        'test_split_type': null,
         'default_clear_cronjob':true,
         'completion_type': null,
         'completion_pct': null,
@@ -2335,6 +2379,7 @@ wf_uploader.prototype.upload_stage = function (stage_name) {
         'software_version': 'ae_software_version',
         'vo_role': 'ae_vo_role',
         'cs_split_type': 'ae_split_type',
+        'test_split_type': 'ae_test_split_type',
         'job_type': 'ae_campaign_definition',
         'login_setup': 'ae_launch_name',
         'param_overrides': 'ae_param_overrides',

@@ -592,7 +592,7 @@ def update_campaign_stage(campaign_stage, experiment=None, role=None, test=None,
 
 
 def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experiment, vo_role,
-                        dataset, ae_active, ae_split_type, ae_software_version,
+                        dataset, ae_active, ae_split_type, ae_test_split_type, ae_software_version,
                         ae_completion_type, ae_completion_pct, ae_param_overrides,
                         ae_depends, ae_launch_name, ae_campaign_definition, ae_test_param_overrides,
                         test_client=None, role=None, configfile=None, ae_cronjob = True):
@@ -632,6 +632,7 @@ def campaign_stage_edit(action, campaign_id, ae_stage_name, pc_username, experim
                                        ae_dataset=dataset,
                                        # ae_active=ae_active,
                                        ae_split_type=ae_split_type,
+                                       ae_test_split_type=ae_test_split_type,
                                        ae_software_version=ae_software_version,
                                        ae_completion_type=ae_completion_type,
                                        ae_completion_pct=ae_completion_pct,
@@ -681,6 +682,7 @@ def update_session_role(role, test_client=False):
 def auth_cert():
     # rs.cert = '/tmp/x509up_u`id -u`'
     cert = os.environ.get('X509_USER_PROXY', None)
+    
     if not cert:
         proxypath = '/tmp/x509up_u%d' % os.getuid()
         # proxypath = "/tmp/x509up_u50765"
@@ -737,11 +739,20 @@ def base_path(test_client, config, tokens=False):
     return base
 
 def auth_token():
-    return os.environ['BEARER_TOKEN_FILE']
+    token_path = os.environ.get("BEARER_TOKEN_FILE", None)
+    if token_path and os.path.exists(token_path):
+        with open(token_path, "r", encoding="UTF-8") as f:
+            _token_string = f.read()
+            return _token_string.strip() 
+    return None
+    
 
 def check_stale_token(options):
     token = auth_token()
-    rs.headers['Authorization'] = 'BEARER %s' % token
+    if not token:
+        logging.exception("Failed fetching bearer token")
+        return False
+    rs.headers['Authorization'] = f"Bearer {token}"
     rs.verify = False
     try:
         url = "%s/file_uploads/%s/analysis/%s?fmt=json" % (
@@ -819,20 +830,24 @@ def make_poms_call(**kwargs):
 
     logging.debug("in make_poms_call test_client = %r", test_client)
 
-    base = base_path(test_client, config)
-
+    token = auth_token()
+    base = base_path(test_client, config, (token is not None))
     for k in list(kwargs.keys()):
         if kwargs[k] is None:
             del kwargs[k]
-
-    cert = auth_cert()
-    if os.environ.get("POMS_CLIENT_DEBUG", None):
+            
+    if token:
+        logging.debug("poms_client: Bearer token detected, making call %s( %s ) at %s with the bearer token file: %s", method, kwargs, base, os.environ["BEARER_TOKEN_FILE"])
+        rs.headers['Authorization'] = f"Bearer {token}"
+    else:
+        cert = auth_cert()
+        if os.environ.get("POMS_CLIENT_DEBUG", None):
+            logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s", method, kwargs, base, cert)
+        if cert is None and base[:6] == "https:":
+            return ("No client certificate", 500)
+        rs.cert = (cert, cert)
+        rs.verify = False
         logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s", method, kwargs, base, cert)
-    if cert is None and base[:6] == "https:":
-        return ("No client certificate", 500)
-    rs.cert = (cert, cert)
-    rs.verify = False
-    logging.debug("poms_client: making call %s( %s ) at %s with the proxypath = %s", method, kwargs, base, cert)
 
     # ignore insecure request warnings...
     with warnings.catch_warnings():

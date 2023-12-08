@@ -23,7 +23,8 @@ class multiparam:
         This split_tpe has a custom editor for the list-of-lists dataset value
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.list = json.loads(cs.dataset)
         self.dims = []

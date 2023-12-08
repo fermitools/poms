@@ -4,6 +4,7 @@
 <title>POMS:Campaign Stage {{CampaignStage.name}} Info</title>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+
 {%endblock%}
 
 {% macro show_hint(anchor, hint) %}
@@ -15,6 +16,9 @@
 {%block header%}
 Campaign Stages
     {{ show_hint('#campaign-stages', 'Help page') }}
+    {% if data_dispatcher_projects %}
+        <script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
+    {% endif %}
 {%endblock%}
 
 {%block subheader%}
@@ -51,8 +55,11 @@ all the time...
         function showEditLastSplitModal(){
           $("#edit_last_split_modal").modal("show");
         }
+        function showEditLastSplitTestModal(){
+          $("#edit_last_split_test_modal").modal("show");
+        }
         $(function() {
-          $("#last_split_submit").submit(function(){
+          $("#last_split_submit, #last_split_test_submit").submit(function(){
             return confirm("Are you sure you want to change the last split?");
           });
         });
@@ -134,6 +141,66 @@ all the time...
       </form>
   </div>
 </div> <!-- Ends edit_last_split_modal  -->
+<div class="ui small modal" id="edit_last_split_test_modal">
+  <i class="close icon"></i>
+  <div class="header">
+    Last Split Editor
+  </div>
+  <div class="ui text container">
+      <form id="last_split_test_submit" class="ui form raised segment" action="{{pomspath}}/update_campaign_split/{{session_experiment}}/{{session_role}}?test=true" method="GET">
+        <table class="ui celled table" id="ep_table">
+          <thead>
+            <tr>
+              <th>Select a Campaign Stage Snapshot ID</th>
+            </tr>
+          </thead>
+          <tbody id="last_split_test_body">
+              <tr>
+                <td>
+                  <input type="hidden" name="campaign_stage_id" value="{{CampaignStage.campaign_stage_id}}"/>
+                  <label for="last_split_test_custom_val">Enter a custom last split value</label>
+                  <input type="number" name="last_split_test_custom_val" id="last_split_test_custom_val" placeholder="{{CampaignStage.last_split_test}}"/>
+                  <label for="campaign_stage_snapshot_id">Or select from the following options</label>
+                  <select name="campaign_stage_snapshot_id" id="campaign_stage_snapshot_id">
+                      <option id="0"  value="0">-</option>
+                      {% for cs in campaign_stage_snapshots %}
+                        {% if CampaignStage.last_split_test == cs[0] %}
+                          <option id="{{cs[3]}}" selected value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%else%}
+                          <option id="{{cs[3]}}" value="{{cs[0]}}">{{cs[0]}} - {{cs[1]}} - ({{cs[2]}})</option>
+                        {%endif%}
+                      {% endfor %}
+                  </select>
+                </td>
+              </tr>
+          </tbody>
+          <script>
+            $("#last_split_test_custom_val").keypress(function(e){
+              $("option").removeAttr("selected");
+              if ($("#"+ String.fromCharCode(e.keyCode)).length){
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='"+ String.fromCharCode(e.keyCode)+"']").prop("selected", "selected");
+              }
+              else{
+                $("#campaign_stage_snapshot_id option[id='0']").attr("selected", "selected");
+                $("#campaign_stage_snapshot_id option[id='0']").prop("selected", "selected");
+              }
+          });
+          </script>
+          <tfoot>
+            <tr>
+              <th colspan="2">
+                <div class="actions">
+                  <button type="button" class="ui button deny red">Cancel</button>
+                  <button type="submit" class="ui button approve teal">Accept</button>
+                </div>
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </form>
+  </div>
+</div> <!-- Ends edit_last_test_split_modal -->
 
   <div class="ui horizontal segments">
     <div class="ui segment raised">
@@ -300,6 +367,7 @@ all the time...
     {% else %}
     <b>Dataset</b>: {{CampaignStage.dataset}}<br/>
     {% endif %}
+    <b>Data Handling Service</b>: {{CampaignStage.campaign_obj.data_handling_service}}<br/>
     <b>Software Version</b>: {{CampaignStage.software_version}}<br/>
     <b>VO Role</b>: {{CampaignStage.vo_role}}<br/>
     {% if CampaignStage.param_overrides %}
@@ -313,6 +381,7 @@ all the time...
     <b>Split Dimensions</b>: {{CampaignStage.cs_split_dimensions}}<br/>
     #}
     <b>Last Split</b>: {{CampaignStage.cs_last_split}} <i class="large edit link blue icon" id="edit_last_split_modal_btn" onclick="showEditLastSplitModal()"></i><a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
+    <b>Last Test Split</b>: {{CampaignStage.last_split_test}} <i class="large edit link blue icon" id="edit_last_split_test_modal_btn" onclick="showEditLastSplitTestModal()"></i><a href="{{pomspath}}/reset_campaign_split/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&test=true"><button class="mini ui button"><i class="fast backward icon"></i>Reset</button></a><br/>
     <!-- <b>Active</b>: {{CampaignStage.active}} <br/> -->
     <b>Created</b>: {{CampaignStage.created}}<br/>
     <b>Creator</b>: {{Campaign_info.Experimenter.username}}<br/>
@@ -338,6 +407,7 @@ all the time...
     <b>
     </div>
   </div>
+  {% include 'data_dispatcher_projects.html' %}
     <div class="ui segment raised">
     <h3>Launch/Setup</h3>
     <b>Name</b>: {{login_setup_info.LoginSetup.name}}<br/>
@@ -357,46 +427,90 @@ all the time...
       {{dep_svg|safe}}
   </div>
 
+  
 
  <div class="ui segment raised">
    <h3>Recent Launch Outputs </h3>
-   <ul>
-   {%for f in launch_flist|sort(reverse=True)%}
-      <li>
-      <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&fname={{f}}">{{f}}</a>
-      {%if f|length > 22 %}
-          {%set submission_id = f.split('_')[3]|default('0')|int %}
-          {%if submission_id != 0 %}
-          <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
-          {%if recent_submissions[submission_id]|default(9999) == 2000 %}
-            <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
-           {%else%}
-             <button class="mini ui button"><i class="ui fire extinguisher icon grey"></i></button>&nbsp;
-          {%endif%}
-          {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
-    
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><button class="mini ui button"> <i class="ui pause icon"></i></button></a>&nbsp;
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><button class="mini ui button"><i class="ui play icon"></i></button></a>&nbsp;
-              <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><button class=mini ui button"><i class="ui trash icon"></i></button></a>
-               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
-                    
-          {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
-               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
-               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
-               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
-                    <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><button class="mini ui button"><i class="ui forward icon"></i></button></a>
-          {%else%}
-               <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
-               <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
-               <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
-               <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
-          {%endif%}
-          {%endif%}
-      {%endif%}
-   {%endfor%}
-   </ul>
+    <ul>
+      {% for date_key, submissions in launch_flist.items() %}
+        <li>
+          <div class="expandable">
+          {% if loop.first %}
+                <span class="date">{{ date_key }}</span>
+                <span class="submission-count">&nbsp;({{ submissions|length }} Submissions)</span>
+                <i class="angle down icon expand-icon" style="float:right"></i>
+            </div>
+            <ul class="submissions">
+          {% else %}
+              <span class="date">{{ date_key }}</span>
+              <span class="submission-count">&nbsp;({{ submissions|length }} Submissions)</span>
+              <i class="angle right icon" style="float:right"></i>
+            </div>
+            <ul class="submissions closed" style="display:none;">
+          {% endif %}
+          
+            {% for submission in submissions %}
+                {% set submission_id = submission[0] %}
+                {% set submission_time = submission[1]|string %}
+                {% set submitter = submission[2]|string %}
+                <li class>
+                  <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{CampaignStage.campaign_stage_id}}&submission_id={{submission_id}}">
+                    Submission: {{ submission_id }} | Submitted by: {{submitter}} | Time of submission: {{ submission_time }}
+                  </a>
+                  {%if submission_id != 0 %}
+                  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}"><span class="ui label green">info</span></a>
+                  {%if recent_submissions[submission_id]|default(9999) == 2000 %}
+                    <button class="mini ui button" onclick="confirm_call('Are you sure you want to abort this launch?','{{pomspath}}/abort_launch/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}')"> <i class="external fire extinguisher icon" data-content="abort Submission" data-variation="basic"> </i></button>
+                  {%else%}
+                    <button class="mini ui button"><i class="ui fire extinguisher icon grey"></i></button>&nbsp;
+                  {%endif%}
+                  {%if recent_submissions[submission_id]|default(9999) < 7000 and recent_submissions[submission_id]|default(9999) != 2000 %}
+            
+                      <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=hold" title="Hold"><button class="mini ui button"> <i class="ui pause icon"></i></button></a>&nbsp;
+                      <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=release" title="Release"><button class="mini ui button"><i class="ui play icon"></i></button></a>&nbsp;
+                      <a href="/poms/kill_jobs/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}&act=kill" title="Kill"><button class=mini ui button"><i class="ui trash icon"></i></button></a>
+                      <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
+                            
+                  {%elif recent_submissions[submission_id]|default(9999) == 7000 %}
+                      <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+                      <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+                      <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+                            <a href="{{pomspath}}/force_locate_submission/{{session_experiment}}/{{session_role}}?submission_id={{submission_id}}" title="Skip ahead to Located"><button class="mini ui button"><i class="ui forward icon"></i></button></a>
+                  {%else%}
+                      <button class="mini ui button"><i class="ui pause icon grey"></i></button>&nbsp;
+                      <button class="mini ui button"><i class="ui play icon grey"></i></button>&nbsp;
+                      <button class="mini ui button"><i class="ui trash icon grey"></i></button>&nbsp;
+                      <button class="mini ui button"><i class="ui forward icon  grey"></i></button>&nbsp;
+                  {%endif%}
+                  {%endif%}
+                </li>
+            {% endfor %}
+              </ul>
+          </li>
+      {% endfor %}
+      </ul>
  </div>
-
+ <script type="text/javascript">
+  
+  $(".expandable").on("click", function(){
+    elem = $(this).parent().children(".submissions");
+    icon =  $(this).children("i");
+    if(elem.hasClass("closed")){
+      icon.removeClass("right").addClass("down");
+      elem.slideDown("0.5s", function(){
+        elem.removeClass("closed");
+      });
+    }
+    else{
+      icon.removeClass("down").addClass("right");
+      elem.slideUp("0.5s", function(){
+        elem.addClass("closed");
+      });
+    }
+  });
+</script>
 
 {%endblock%}
+
+
 

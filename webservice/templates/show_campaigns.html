@@ -372,7 +372,17 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
             <div class="field">
                 <input type="text" id="add_campaign_name" name="add_campaign_name" placeholder="Enter new campaign name" class="prompt">
             </div>
-            <div class="ui hidden divider"></div>
+            <div for="metadata_service" style="display: inline-flex; justify-content:center; width: 100%;">Data Handling Service</div>
+            <div id="metadata_service" class="field" style="display: inline-flex; justify-content:center; width: 100%;">
+                <div style="padding: 20px;">
+                    <label for="sam">SAM</label>
+                    <input type="radio" id="sam" name="service" value="sam" checked>
+                </div>
+                <div style="padding: 20px;">
+                    <label for="data_dispatcher">Data Dispatcher</label>
+                    <input type="radio" id="data_dispatcher" name="service" value="data_dispatcher">
+                </div>
+            </div>
         </form>
         <div class="actions">
             <div class="ui button deny red">Cancel</div>

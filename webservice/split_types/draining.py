@@ -6,7 +6,8 @@ class draining:
        you the work remaining to be done.
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.only = cs.dataset
         self.id = uuid.uuid4()
 
