@@ -34,6 +34,9 @@ __pycache__
 fife_wrap.py
 fife_wrap
 submission_broker/submission_broker_uwsgi.ini
+submission_broker/config/submission_broker_uwsgi_config.ini
+submission_broker/config/submission_agent.cfg
+test/rucio_metacat_sample_dataset_generator/rucio_client.py
 bin/db_equalizer.py
 bin/db_equalizing_script.sql
 documentation
