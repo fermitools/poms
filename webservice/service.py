@@ -19,6 +19,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
+import toml
+
 from prometheus_client import make_wsgi_app
 
 from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment, FilterOutArchived
@@ -99,7 +101,9 @@ class SATool(cherrypy.Tool):
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
-        self.dmr_service = DMRService.DMRService() # Data-Dispatcher/Metacat/Rucio
+        logit.log(f"Setting DMR Service")
+        self.dmr_service = DMRService.DMRService(cherrypy.config.get("Shrek", {})) # Data-Dispatcher/Metacat/Rucio
+        logit.log(f"cherrypy.request.dmr_service exists: {self.dmr_service is not None}")
 
     def _setup(self):
         cherrypy.Tool._setup(self)
@@ -111,6 +115,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
         cherrypy.request.dmr_service = self.dmr_service
+        logit.log(f"cherrypy.request.dmr_service exists: {self.dmr_service is not None}")
         try:
             # Disabiling pylint false positives
             self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
@@ -126,7 +131,7 @@ class SATool(cherrypy.Tool):
             self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
             self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
-
+            
     def release_session(self):
         # flushing here deletes it too soon...
         # cherrypy.request.jobsub_fetcher.flush()
@@ -214,6 +219,7 @@ def pidfile():
 def parse_command_line():
     parser = argparse.ArgumentParser()
     parser.add_argument("-cs", "--config", help="Filepath for POMS config file.")
+    parser.add_argument("-sc", "--shrek_config", help="Filepath for SHREK config file.")
     parser.add_argument("--use-wsgi", dest="use_wsgi", action="store_true", help="Run behind WSGI. (Default)")
     parser.add_argument("--no-wsgi", dest="use_wsgi", action="store_false", help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)
@@ -225,10 +231,13 @@ def parse_command_line():
 run_it = True
 if run_it:
 
-    configfile = "poms.ini"
+    poms_config_path = "config/poms.ini"
+    shrek_config_path = "config/shrek.toml"
     parser, args = parse_command_line()
     if args.config:
-        configfile = args.config
+        poms_config_path = args.config
+    if args.shrek_config:
+        shrek_config_path = args.shrek_config
 
     #
     # make %(HOME) and %(POMS_DIR) work in various sections
@@ -242,13 +251,18 @@ if run_it:
         % os.environ
     )
 
-    cf = open(configfile, "r")
-    confs = confs + cf.read()
-    cf.close()
-
+    poms_cf = open(poms_config_path, "r")
+    confs = confs + poms_cf.read()
+    poms_cf.close()
+    
+    with open(shrek_config_path, 'r') as shrek_cf:
+        shrek_config = toml.load(shrek_cf)
+    
+    
     try:
         cherrypy.config.update(io.StringIO(confs))
-        # cherrypy.config.update(configfile)
+        cherrypy.config["Shrek"] = shrek_config
+        # cherrypy.config.update(poms_config_path)
     except IOError as mess:
         print(mess, file=sys.stderr)
         parser.print_help()
@@ -277,16 +291,18 @@ if run_it:
     pidfile()
 
     poms_instance.post_initialize()
+    
 
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
 
     cherrypy.engine.start()
-
+    
     if not args.use_wsgi:
         cherrypy.engine.block()  # Disable built-in HTTP server when behind wsgi
         logit.log("Starting Cherrypy HTTP")
-
+        
+    
     application = cherrypy.tree
 
     # END

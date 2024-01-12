@@ -1542,3 +1542,19 @@ class CampaignsPOMS:
         ctx.db.commit()
 
         return auth_error
+
+    def get_ui_editor_items(self, **kwargs):
+        ctx = kwargs["ctx"]
+        campaign_id = kwargs.get("campaign_id", 0)
+        cstages = (ctx.db.query(CampaignStage).join(CampaignStage.campaign_obj).filter(CampaignStage.campaign_id == campaign_id).all())
+        c = cstages[0].campaign_obj
+        job_types =  {jt.name: jt for jt in ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment, JobType.creator_role == ctx.role, JobType.active == True).all()}
+        retval = {
+            "cd": c.defaults,
+            "campaign_keywords": c.campaign_keywords,
+            "stages": cstages,
+            "jt":job_types
+            }
+        return retval
+    
+        

@@ -163,7 +163,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 </td>
                 <td>
                     {%if data.authorized[loop.index0] %}
-                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}">
+                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}&campaign_id={{s.campaign_id}}">
                         <button class="button">
                             <i class="edit icon blue"></i>
                         </button>

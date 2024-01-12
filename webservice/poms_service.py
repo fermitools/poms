@@ -207,7 +207,18 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
     )
     def data_dispatcher_overview(self, ctx, **kwargs):
-        if not ctx.dmr_service.services_logged_in or not ctx.dmr_service.services_logged_in.get("data_dispatcher", False):
+        if not self.permissions.is_superuser(ctx):
+            raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+        if ctx.experiment not in cherrypy.config.get("Shrek", {}):
+            return {
+                "method": "index",
+                "login_method" : "Not Currently Onboarded",
+                "login_status": 'N/A', 
+                "experiment": ctx.experiment, 
+                "dd_username":"poms", 
+                "timestamp":datetime.datetime.now()
+            }
+        if not cherrypy.session["Shrek"]["services_logged_in"] or not cherrypy.session["Shrek"]["services_logged_in"].get("data_dispatcher", False):
             ctx.dmr_service.begin_services("data_dispatcher")
         retval = ctx.dmr_service.session_status()[1]
         retval['method'] = 'index'
@@ -556,6 +567,7 @@ class PomsService:
         need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
+        return self.campaignsPOMS.get_ui_editor_items(**kwargs)
         return {} #CampaignsPOMS.gui_wf_edit(self, kwargs)
 
     # h4. gui_wf_clone

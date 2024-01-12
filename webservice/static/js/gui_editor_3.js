@@ -1834,7 +1834,6 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'data_dispatcher_dataset_query') {
-            
             res.push(`<button type="button" class="split_type_picker_custom_edit dd_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
         }
         if (k == 'sam_dataset_or_split_data') {
@@ -2179,6 +2178,14 @@ gui_editor.prototype.add_dependency = function (frm, to, id) {
     return db.box.id;
 }
 
+function getURLParameter(name) {
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    var results = regex.exec(location.href);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 gui_editor.prototype.save_state = function () {
     var sb = document.getElementById("savebusy");
     sb.innerHTML = "Saving...";
@@ -2197,10 +2204,11 @@ gui_editor.prototype.save_state = function () {
                 const args = mwm_utils.getSearchParams();
                 const base = mwm_utils.getBaseURL();
                 console.log(["args:", args, "base:", base]);
-                const campaign = encodeURIComponent(this.nodes.get().filter(x => x.id.startsWith('campaign '))[0].label);
+                const campaign = getURLParameter('campaign');
+                const campaign_id= getURLParameter('campaign_id');
                 const experiment = this.state['campaign']['experiment'];
                 const role = this.state['campaign']['poms_role'];
-                location.href = `${base}gui_wf_edit/${experiment}/${role}?campaign=${campaign}`;
+                location.href = `${base}gui_wf_edit/${experiment}/${role}?campaign=${campaign}&campaign_id=${campaign_id}`;
             }, 1500);
         });
 }

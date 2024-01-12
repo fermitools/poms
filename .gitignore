@@ -47,3 +47,6 @@ bin/db_equalizer.py
 bin/db_equalizing_script.sql
 documentation
 
+webservice/config/shrek.toml
+config/shrek/dune-data-dispatcher.sh
+test/set_hypot_config_shrek

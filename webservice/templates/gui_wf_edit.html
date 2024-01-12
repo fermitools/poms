@@ -71,9 +71,18 @@
 </div>
 
 
-<h3>Campaign <span id="camp_header2">{{campaign}}</span>
-    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
+<h3>Campaign 
+    <span id="camp_header2">{{campaign}}</span>
+    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button>
+    <span id="savebusy"></span>
 </h3>
+<!--
+    TODO: Maybe replace the editors with templates?
+    This would make new fields easier to add later
+
+<button onclick="openModal()">Open Modal</button>
+{% include "gui_editor/campaign_defaults.html" %}
+    -->
 <!--
 <div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
 -->

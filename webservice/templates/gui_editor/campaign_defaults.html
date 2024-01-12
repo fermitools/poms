@@ -1,0 +1,177 @@
+<div id="campaign_defaults_modal" class="modal">
+    <div class="modal-content" id="draggableModal">
+        <div class="card">
+            <div class="card-header" id="draggableArea" >
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Campaign</h2>
+            </div>
+            <div class="card-body">
+                    <table>
+                        <tbody >
+                            <tr>
+                                <td><a>Name</a></td>
+                                <td><input type="text" id="campaign_defaults_name" value="{{cd['defaults']['name']}}"></td>
+                            </tr>
+                            <tr>
+                                <td><a>Campaign Keywords</a></td>
+                                <td><input type="text" id="campaign_defaults_campaign_keywords" value="{{campaign_keywords}}" disabled/></td>
+                                <td><button type="text" id="campaign_defaults_campaign_keywords_edit">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td><a>VO Role</a></td>
+                                <td><input type="text" id="campaign_defaults_vo_role" value="{{cd['defaults']['vo_role']}}"></td>
+                            </tr>
+                            <tr>
+                                <td><a>Software Version</a></td>
+                                <td><input type="text" id="campaign_defaults_software_version" value="{{cd['defaults']['software_version']}}"></td>
+                            </tr>
+                            <tr>
+                                <td><a>Data Handling Service</a></td>
+                                <td>
+                                    <select type="text" id="campaign_defaults_data_handling_service_dropdown">
+                                        <option value="data_dispatcher" {% if cd['defaults']['data_handling_service'] == 'data_dispatcher' %}selected{% endif %} >Data Dispatcher</option>
+                                        <option value="sam" {% if cd['defaults']['data_handling_service'] == 'sam' %}selected{% endif %}>SAM</option>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr class="sam_group" {% if cd['defaults']['data_handling_service'] == 'data_dispatcher' %}style="display:none;"{% endif %}>
+                                <td><a>Sam Dataset / Split Data</a></td>
+                                <td><input type="text" id="campaign_defaults_sam_dataset_or_split_data" value="{{cd['defaults']['sam_dataset_or_split_data']}}"></td>
+                            </tr>
+                            <tr class="dd_group" {% if cd['defaults']['data_handling_service'] == 'sam' %}style="display:none;"{% endif %}>
+                                <td><a>Data Dispatcher Project ID Override</a></td>
+                                <td><input type="text" id="campaign_defaults_data_dispatcher_project_id" value="{{cd['defaults']['data_dispatcher_project_id']}}"></td>
+                            </tr>
+                            <tr class="dd_group" {% if cd['defaults']['data_handling_service'] == 'sam' %}style="display:none;"{% endif %}>
+                                <td><a>Data Dispatcher Dataset Query</a></td>
+                                <td><input type="text" id="campaign_defaults_data_dispatcher_dataset_query" value="{{cd['defaults']['data_dispatcher_dataset_query']}}"></td>
+                            </tr>
+                            <tr>
+                                <td><a>CS Split Type</a></td>
+                                <td><input type="text" id="campaign_defaults_cs_split_type" value="{{cd['defaults']['cs_split_type']}}" disabled/></td>
+                                <td><button type="text" id="campaign_defaults_cs_split_type_edit">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td><a>Test Split Type</a></td>
+                                <td><input type="text" id="campaign_defaults_test_split_type" value="{{cd['defaults']['test_split_type']}}" disabled/></td>
+                                <td><button type="text" id="campaign_defaults_test_split_type_edit">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td><a>Default Clear Cronjob</a></td>
+                                <td><input type="checkbox" id="campaign_defaults_default_clear_cronjob" checked="{{cd['defaults']['default_clear_cronjob']}}"/></td>
+                            </tr>
+                            <tr>
+                                <td><a>Completion Type</a></td>
+                                <td>
+                                    <select type="text" id="campaign_defaults_completion_type_dropdown">
+                                        <option value="complete" {% if cd['defaults']['completion_type'] == 'complete' %}selected{% endif %} >Complete</option>
+                                        {% if cd['defaults']['data_handling_service'] == 'sam' %}
+                                            <option value="located" {% if cd['defaults']['completion_type'] == 'located' %}selected{% endif %}>Located</option>
+                                        {% endif %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><a>Completion %</a></td>
+                                <td><input type="text" id="campaign_defaults_completion_pct" value="{{cd['defaults']['completion_pct']}}"/></td>
+                            </tr>
+                            <tr>
+                                <td><a>Param Overrides</a></td>
+                                <td><input type="text" id="campaign_defaults_param_overrides" value='{{cd["defaults"]["param_overrides"] |safe}}' disabled/></td>
+                                <td><button type="text" id="campaign_defaults_param_overrides_edit">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td><a>Test Param Overrides</a></td>
+                                <td><input type="text" id="campaign_defaults_test_param_overrides" value='{{cd["defaults"]["test_param_overrides"]}}' disabled/></td>
+                                <td><button type="text" id="campaign_defaults_test_param_overrides_edit">Edit</button></td>
+                            </tr>
+                            <tr>
+                                <td><a>Merge Overrides</a></td>
+                                <td><input type="checkbox" id="campaign_defaults_merge_overrides" checked="{{cd['defaults']['merge_overrides']}}"/></td>
+                            </tr>
+                            <tr>
+                                <td><a>Login Setup</a></td>
+                                <td>
+                                    <select id="campaign_defaults_login_setup_dropdown"></select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><a>Job Type</a></td>
+                                <td>
+                                    <select id="campaign_defaults_job_type_dropdown">
+                                        {% for name, job_type in jt.items() %}
+                                            {% if name == cd['defaults']['job_type'] %}
+                                                <option value="{{job_type.job_type_id}}" selected>{{name}}</option>
+                                            {% else %}
+                                                <option value="{{job_type.job_type_id}}">{{name}}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><a>Stage Type</a></td>
+                                <td><input type="text" id="campaign_defaults_stage_type" value="{{cd['defaults']['stage_type']}}"/></td>
+                            </tr>
+                            <tr>
+                                <td><a>Output Ancestor Depth</a></td>
+                                <td><input type="text" id="campaign_defaults_output_ancestor_depth" value="{{cd['defaults']['output_ancestor_depth']}}"/></td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr></tr>
+                            <tr>
+                                <td><button>Reset</button></td>
+                                <td></td>
+                                <td><button>OK</button></td>
+                                <td><button onclick="closeModal()">Cancel</button></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // JavaScript functions to open and close the modal
+    function openModal() {
+        var modal = document.getElementById('campaign_defaults_modal');
+        modal.style.display = 'block';
+
+        var cardHeader = document.getElementById("draggableArea")
+        var draggableElement = document.getElementById('draggableModal');
+        draggableElement.style.position = "absolute";
+        var offsetX, offsetY, isDragging = false;
+
+        // Event listener for mouse down to start dragging
+        cardHeader.addEventListener('mousedown', function(e) {
+            isDragging = true;
+            var rect = draggableElement.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            cardHeader.style.cursor = 'grabbing';
+        });
+
+        // Event listener for mouse move to update element position
+        document.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            var newLeft = e.clientX - offsetX;
+            var newTop = e.clientY - offsetY;
+
+            // Set the new element position
+            draggableElement.style.left = newLeft + 'px';
+            draggableElement.style.top = newTop + 'px';
+        });
+
+        // Event listener for mouse up to stop dragging
+        document.addEventListener('mouseup', function(e) {
+            isDragging = false;
+            cardHeader.style.cursor = 'grab';
+        });
+    }
+
+    function closeModal() {
+        var modal = document.getElementById('campaign_defaults_modal');
+        modal.style.display = 'none';
+    }
+</script>

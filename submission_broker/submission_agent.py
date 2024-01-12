@@ -714,7 +714,7 @@ class Agent:
         
         j = 0
         for entry in submissions_dict.get("data").values():
-            if "id" in entry:
+            if entry and "id" in entry:
                 job_id = self.format_jobid(entry.get("id")) if ".0@" not in entry.get("id") else entry["id"]
                 job_query_list.append("j%d:%s" % (j, self.cfg.get("submission_agent", "append_job") % job_id))
                 job_index[entry.get("pomsTaskID")] = "j%d" % j

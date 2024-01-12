@@ -818,32 +818,43 @@ class SubmissionsPOMS:
                 ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
             ]
         elif data_handling_service == "data_dispatcher":
+            dd_submissions = ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                ).join(CampaignStage, CampaignStage.campaign_stage_id == DataDispatcherSubmission.campaign_stage_id)
+            
             if submission.data_dispatcher_project_idx:
-                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx).all()
+                dd_submissions = dd_submissions.filter(DataDispatcherSubmission.archive == False, 
+                                                       DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx
+                                    ).all()
             else:
-                dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
+                dd_submissions = dd_submissions.filter(DataDispatcherSubmission.archive == False,
                         DataDispatcherSubmission.experiment == cs.experiment,
                         DataDispatcherSubmission.submission_id == submission.submission_id
                     ).all()
-            details = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions).get(submission.submission_id, None)
+            details = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions).get(submission.submission_id, {})
             i = 0
             if "project_id" in details:
                 listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_id", 0))
             else:
                 listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
             statuses = [
-                ["Total Files in Dataset: ",details["statistics"].get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
-                ["Submission % Completed: ", details["statistics"].get("pct_complete", "0%"), listfiles],
-                ["Available output: ",details["statistics"].get("children", 0), listfiles + "&querying=output&mc_query=%s" % details.get("children", None)],
-                ["Parents: ",details["statistics"].get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % details.get("parents", None)],
-                ["Submitted: ",details["statistics"].get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % details.get("submitted", None)],
-                ["Not Submitted: ",details["statistics"].get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
-                ["Unknown: ", details["statistics"].get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % details.get("unknown", None)],
-                ["Done: ", details["statistics"].get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
-                ["Failed: ", details["statistics"].get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % details.get("failed", None)],
-                ["Children: ", details["statistics"].get("children", 0), listfiles  + "&querying=children&mc_query=%s" % details.get("children", None)],
-                ["Reserved: ", details["statistics"].get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
-            ]
+                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
+                ["Submission % Completed: ", details.get("statistics",{}).get("pct_complete", "0%"), listfiles],
+                ["Available output: ",details.get("statistics",{}).get("children", 0), listfiles + "&querying=output&mc_query=%s" % details.get("children", None)],
+                ["Parents: ",details.get("statistics",{}).get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % details.get("parents", None)],
+                ["Submitted: ",details.get("statistics",{}).get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % details.get("submitted", None)],
+                ["Not Submitted: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
+                ["Unknown: ", details.get("statistics",{}).get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % details.get("unknown", None)],
+                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
+                ["Failed: ", details.get("statistics",{}).get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % details.get("failed", None)],
+                ["Children: ", details.get("statistics",{}).get("children", 0), listfiles  + "&querying=children&mc_query=%s" % details.get("children", None)],
+                ["Reserved: ", details.get("statistics",{}).get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
+            ] 
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
         if campaign.data_handling_service == "data_dispatcher":
@@ -1649,7 +1660,7 @@ class SubmissionsPOMS:
                 vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
-        if role == "analysis" and lt.launch_host == ctx.web_config.get("POMS", "POMS_HOST"):
+        if role == "analysis" and lt.launch_host == ctx.web_config.get("POMS", "POMS_HOST").replace('"',''):
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
@@ -1765,7 +1776,7 @@ class SubmissionsPOMS:
         elif "fermicloudmwm" in self.poms_service.hostname:
             poms_test = "int"
         elif "fermicloud210" in self.poms_service.hostname or "fermicloud821" in self.poms_service.hostname:
-            poms_test = "dev"
+            poms_test = "1"
         else:
             poms_test = "1"
 
@@ -1821,13 +1832,14 @@ class SubmissionsPOMS:
         tok_permissions = []
         scp_command = []
         if role == "analysis" or ctx.experiment == "samdev":
-            if lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST"):
+            if str(lt.launch_host) != self.poms_service.hostname:
                 tok_permissions.append("chmod 0600 %s;" % (vaultfile))
+                scp_command.append(f"{lt.launch_host} : {ctx.web_config.get('POMS', 'POMS_HOST')} ")
                 scp_command.append("scp %s %s@%s:/tmp" % (vaultfile, lt.launch_account, lt.launch_host))
                 scp_command.append("scp %s %s@%s:/tmp" % (proxyfile, lt.launch_account, lt.launch_host))
                 vaultfile = "/tmp/%s" % vaultfilename
                 proxyfile = "/tmp/x509up_voms_%s_Analysis_%s" % (exp, experimenter_login)
-            
+                
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if role == "production" and ctx.experiment == "samdev": 
@@ -1849,6 +1861,7 @@ class SubmissionsPOMS:
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
+            f"chmod 0600 {vaultfile}; ls -l {vaultfile};",
             "export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/puppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
         ]
@@ -1990,7 +2003,7 @@ class SubmissionsPOMS:
             #  * by the analysis user uploading their vault token...
             #
             #
-            "echo 'Vault file permissions:'",
+            "echo \"Vault file permissions:\"",
             "ls -l %s" % vaultfile,
             "export X509_USER_PROXY=%s;" % proxyfile,
             # proxy file has to belong to us, apparently, so...
@@ -2014,9 +2027,10 @@ class SubmissionsPOMS:
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
             # , -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; 
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
+            'UPS_OVERRIDE="" setup -j poms_client v4_5_2 -z /grid/fermiapp/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
+            "export PATH=/home/ltrestka/dd_testing/poms_jobsub_wrapper/bin:$PATH;"
             # POMS4 'properly named' items for poms_jobsub_wrapper
             
             "export POMS4_HOST=%s;" % self.poms_service.hostname ,
@@ -2036,8 +2050,13 @@ class SubmissionsPOMS:
             "export POMS_LAUNCHER=%s;" % launcher_experimenter.username,
             "export POMS_TEST=%s;" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
+            "export CONDOR_VAULT_STORER_ID=`uuidgen -r`;",
+            "export USER=%s;" % ctx.username,
+            "export CONDOR_VAULT_STORER_USER=$USER@fnal.gov",
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
+            f"cp {vaultfile} /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;",
+            "chmod 400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;"
         ])
         if do_data_dispatcher and data_dispatcher_logic:
             cmdl.extend(data_dispatcher_logic)
@@ -2047,6 +2066,7 @@ class SubmissionsPOMS:
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
             "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+            "rm -v -f /tmp/vt_$CONDOR_VAULT_STORER_ID /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;"
             "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
