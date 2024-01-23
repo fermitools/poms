@@ -179,10 +179,27 @@ class FilesStatus:
                 datarows.append(row)
                 
         elif data_handling_service == "data_dispatcher":
-            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
-                    DataDispatcherSubmission.experiment == cs.experiment,
-                    DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
-                ).all()
+            #dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
+            #        DataDispatcherSubmission.experiment == cs.experiment,
+            #        DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
+            #    ).all()
+            dd_submissions =  (ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.project_id.label("project_name"),
+                    DataDispatcherSubmission.created.label("created"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    DataDispatcherSubmission.jobsub_job_id.label("jobsub_job_id"),
+                    CampaignStage.name.label("campaign_stage_name"), 
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                )
+                .join(DataDispatcherSubmission.campaign_stage_obj)
+                .join(DataDispatcherSubmission.submission_obj)
+                .filter(DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl]))
+                .all())
+            
             submission_info = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
             
             columns = [
@@ -210,7 +227,7 @@ class FilesStatus:
             datarows = deque()
             for s in dd_submissions:
                 logit.log("task %d" % s.submission_id)
-                task_jobsub_job_id = s.jobsub_job_id
+                task_jobsub_job_id = s.jobsub_job_id or None
                 if task_jobsub_job_id is None:
                     task_jobsub_job_id = "s%s" % s.submission_id
                 details = submission_info.get(s.submission_id, None)
@@ -221,7 +238,7 @@ class FilesStatus:
                 if details:
                     row = [
                         [
-                            s.campaign_stage_obj.name,
+                            s.campaign_stage_name,
                             "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
                         ],
                         [ 

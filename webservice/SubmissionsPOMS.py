@@ -2022,12 +2022,16 @@ class SubmissionsPOMS:
         if not tokens_defined_in_login_setup and do_tokens:
             cmdl.extend(token_logic)
         
+        inst = {
+            "fermicloud821.fnal.gov": "dev",
+            "pomsgpvm01.fnal.gov":"prod"
+        }
         
             
         cmdl.extend([
             'setup jobsub_client v_lite;' if do_tokens else "",
             # , -j poms_client -g poms31 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_18; 
-            'UPS_OVERRIDE="" setup -j poms_client v4_5_2 -z /grid/fermiapp/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
+            'UPS_OVERRIDE="" setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db, -j poms_client v4_5_2 -z /grid/fermiapp/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
             else "setup poms_jobsub_wrapper -g poms41 -z /grid/fermiapp/products/common/db;",
             "ups active;",
             "export PATH=/home/ltrestka/dd_testing/poms_jobsub_wrapper/bin:$PATH;"
@@ -2043,6 +2047,7 @@ class SubmissionsPOMS:
             "export POMS4_CAMPAIGN_ID=%s;" % cid,
             "export POMS4_TEST_LAUNCH=%s;" % test_launch_flag,
             "export POMS_ENV=%s;" % self.poms_service.hostname,
+            "export POMS_INST=%s" % inst.get(self.poms_service.hostname, "prod"),
             "export POMS_CAMPAIGN_ID=%s;" % csid,
             'export POMS_CAMPAIGN_NAME="%s";' % ccname,
             "export POMS_PARENT_TASK_ID=%s;" % (parent_submission_id if parent_submission_id else ""),
@@ -2050,12 +2055,12 @@ class SubmissionsPOMS:
             "export POMS_LAUNCHER=%s;" % launcher_experimenter.username,
             "export POMS_TEST=%s;" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
-            "export CONDOR_VAULT_STORER_ID=`uuidgen -r`;",
+            "export CONDOR_VAULT_STORER_ID=%s;" % uu,
             "export USER=%s;" % ctx.username,
             "export CONDOR_VAULT_STORER_USER=$USER@fnal.gov",
             "export JOBSUB_GROUP=%s;" % group,
             "export GROUP=%s;" % group,
-            f"cp {vaultfile} /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;",
+            f"cp {vaultfile} /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;" ,
             "chmod 400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;"
         ])
         if do_data_dispatcher and data_dispatcher_logic:
