@@ -33,7 +33,7 @@ POMS is interfaced to the following systems:
 
 The production instance of POMS is at: [https://poms.fnal.gov](https://poms.fnal.gov/)
 
-If new to computing at Fermilab, please read our internal FIFE wiki page: ["Welcome New Computing Users"](**https://cdcvs.fnal.gov/redmine/projects/fife/wiki/Welcome-New-Computing-Users**)
+If new to computing at Fermilab, please read our internal FIFE wiki page: ["Welcome New Computing Users"](https://cdcvs.fnal.gov/redmine/projects/fife/wiki/Welcome-New-Computing-Users)
 
 Users' mailing list : poms_announce@fnal.gov
 
