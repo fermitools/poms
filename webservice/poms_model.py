@@ -42,10 +42,14 @@ class Campaign(Base):
     data_handling_service=Column(Text, nullable=False, server_default=text("sam"))
     active = Column(Boolean, nullable=False, server_default=text("true"))
     defaults = Column(JSON)
+    created = Column(DateTime(True), nullable=True,  server_default=text("now()"))
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
+    updated = Column(DateTime(True), nullable=True,  server_default=text("now()"))
+    updater = Column(ForeignKey("experimenters.experimenter_id"), nullable=True, index=True)
     campaign_type = Column(Text, nullable=True)
     campaign_keywords = Column(JSON)
+    
 
     tags = relationship(Tag, secondary="campaigns_tags", lazy="dynamic")
     stages = relationship("CampaignStage", back_populates="campaign_obj", lazy="dynamic")
@@ -95,7 +99,13 @@ class CampaignStage(Base):
     data_dispatcher_dataset_query = Column(Text, nullable=True)
     data_dispatcher_project_id = Column(Integer, nullable=True)
     data_dispatcher_dataset_only = Column(Boolean, server_default=text("false"), nullable=False)
-    
+    data_dispatcher_project_virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    data_dispatcher_load_limit = Column(Integer, nullable=True)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_idle_timeout = Column(Integer,  nullable=True)
+    data_dispatcher_worker_timeout = Column(Integer, nullable=True)
+    data_dispatcher_settings = Column(JSON, nullable=True)
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="CampaignStage.creator == Experimenter.experimenter_id")
@@ -163,6 +173,11 @@ class DataDispatcherSubmission(Base):
     status = Column(Text)
     splits_reset = Column(Boolean,nullable=False, default=False) # tells poms not to use files from these splits
     archive = Column(Boolean,nullable=False, default=False) # dont show in poms
+    
+    virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    load_limit = Column(Integer, nullable=True)
+    recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
     
     submission_obj = relationship("Submission", foreign_keys=submission_id)
     campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
@@ -302,6 +317,8 @@ class Submission(Base):
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     status_history = relationship("SubmissionHistory", primaryjoin="Submission.submission_id == SubmissionHistory.submission_id")
     pct_complete = Column(Float, nullable=False,default=0)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
     data_dispatcher_submission_obj = relationship("DataDispatcherSubmission", foreign_keys=data_dispatcher_project_idx)
     
 
@@ -350,6 +367,16 @@ class CampaignStageSnapshot(Base):
     test_split_type = Column(Text, nullable=False, server_default=text(""))
     cs_split_dimensions = Column(Text)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
+    data_dispatcher_dataset_query = Column(Text, nullable=True)
+    data_dispatcher_project_id = Column(Integer, nullable=True)
+    data_dispatcher_dataset_only = Column(Boolean, server_default=text("false"), nullable=False)
+    data_dispatcher_project_virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    data_dispatcher_load_limit = Column(Integer, nullable=True)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_idle_timeout = Column(Integer,  nullable=True)
+    data_dispatcher_worker_timeout = Column(Integer, nullable=True)
+    data_dispatcher_settings = Column(JSON, nullable=True)
     # completion_pct = Column(Text, nullable=False, server_default="95")
     completion_pct = Column(Integer, nullable=False, server_default="95")
     default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)

@@ -142,6 +142,7 @@ class SATool(cherrypy.Tool):
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
         cherrypy.request.dmr_service = None
+        logit.log("Releasing session")
         self.session.remove()
 
 

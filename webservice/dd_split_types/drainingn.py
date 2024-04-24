@@ -1,4 +1,6 @@
 import poms.webservice.logit as logit
+import poms.webservice.DMRService as shrek
+import cherrypy
 import time
 import uuid
 from poms.webservice.poms_model import DataDispatcherSubmission
@@ -15,10 +17,11 @@ class drainingn:
     """
     def __init__(self, ctx, cs, test=False):
         self.test = test
-        self.db = ctx.db
         self.cs = cs
+        self.db = ctx.db
         self.cs.data_dispatcher_dataset_only = False
-        self.dmr_service = ctx.dmr_service
+        self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService(cherrypy.session.get("Shrek", {}))
+        self.dmr_service.initialize_session(ctx)
         self.n = int(cs.cs_split_type[10:].strip(")")) if not self.test else int(cs.test_split_type[10:].strip(")"))
         if self.test:
             self.last_split = self.cs.last_split_test
@@ -34,7 +37,7 @@ class drainingn:
             self.last_split = 0
             project_name = ("TEST | " if self.test else "") + "%s | draining(%d) | First Run" % (self.cs.name, self.n)
             query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-            all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+            all_files = list(cherrypy.session["Shrek"]["mc_client"].query(query, with_metadata=True))
         else:
             previous_subs = [submission.project_id for submission in self.db.query(DataDispatcherSubmission).filter(
                 DataDispatcherSubmission.experiment == self.cs.experiment, 
@@ -50,7 +53,7 @@ class drainingn:
                 query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(list(set(dont_use))), self.n)
             else:
                 query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-        all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+        all_files = list(cherrypy.session["Shrek"]["mc_client"].query(query, with_metadata=True))
         
         if len(all_files) == 0:
             raise StopIteration
@@ -71,7 +74,7 @@ class drainingn:
         return dd_project
 
     def len(self):
-        return self.ctx.dmr_service.metacat_client.query(self.cs.data_dispatcher_dataset_query, summary="count").get("count",0) / self.n + 1
+        return cherrypy.session["Shrek"]["mc_client"].query(self.cs.data_dispatcher_dataset_query, summary="count").get("count",0) / self.n + 1
 
     def edit_popup(self):
         return "null"

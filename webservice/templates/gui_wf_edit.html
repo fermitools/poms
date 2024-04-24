@@ -3,6 +3,7 @@
 
 {%block title%}
 <title>POMS Campaign Editor</title>
+
 <script src="{{pomspath}}/static/js/split_type_picker.js"></script>
 {% if data_handling_service == "data_dispatcher" %}
 <script src="{{pomspath}}/split_type_javascript?data_dispatcher=true"></script>
@@ -12,6 +13,7 @@
 
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
+
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
@@ -22,6 +24,7 @@
 {%block bodytags%} onload="main()" {%endblock%}
 
 {%block header%}
+<input type="text" id="data_handling_service" value="{{data_handling_service}}" hidden/>
 <h1 class="ui header">
     Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
     <!--
@@ -129,6 +132,9 @@
         <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
             Done <!-- <i class="checkmark icon"></i> -->
         </div>
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
     </div>
 </div>
 
@@ -160,12 +166,14 @@
         </div>
     </div>
 </div>
-
+<script src="{{pomspath}}/static/js/data_handling_service_config.js"></script>
 <script type="text/javascript">
 
 function main() {
+    
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
+   
    console.log(["args:", args, "base:", base])
    if (args['campaign'] != undefined) {
        var url;
@@ -181,6 +189,7 @@ function main() {
           url: url
        }).done( function(data) {
            var ge = new gui_editor("outer_gui_editor_frame");
+           ge.set_data_handling_config("data_dispatcher");
            var args = mwm_utils.getSearchParams();
             if ('clone' in args && 'Clone' == args['clone']) {
                 const from = decodeURIComponent(args['from'].replace(/\+/g, ' '));

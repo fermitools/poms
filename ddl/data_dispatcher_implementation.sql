@@ -68,3 +68,35 @@ grant usage on all sequences in schema public to pomsdbs;
 alter table campaign_stage_snapshots add column test_split_type text default '';
 alter table campaign_stages add column last_split_test int default null;
 alter table campaign_stage_snapshots add column last_split_test int default null;
+
+
+alter table campaign_stages add column data_dispatcher_project_virtual boolean default null;
+alter table campaign_stages add column data_dispatcher_stage_methodology text default null;
+alter table campaign_stages add column data_dispatcher_recovery_mode text default null;
+alter table campaign_stages add column data_dispatcher_idle_timeout int default null;
+alter table campaign_stages add column data_dispatcher_worker_timeout int default null;
+alter table campaign_stages add column data_dispatcher_load_limit int default null;
+alter table campaign_stage_snapshots add column data_dispatcher_project_virtual boolean default null;
+alter table campaign_stage_snapshots add column data_dispatcher_stage_methodology text default null;
+alter table campaign_stage_snapshots add column data_dispatcher_recovery_mode text default null;
+alter table campaign_stage_snapshots add column data_dispatcher_idle_timeout int default null;
+alter table campaign_stage_snapshots add column data_dispatcher_worker_timeout int default null;
+alter table campaign_stage_snapshots add column data_dispatcher_load_limit int default null;
+
+alter table submissions add column data_dispatcher_stage_methodology text default null;
+alter table submissions add column data_dispatcher_recovery_mode text default null;
+
+alter table data_dispatcher_submissions add column virtual boolean default null;
+alter table data_dispatcher_submissions add column stage_methodology text default null;
+alter table data_dispatcher_submissions add column recovery_mode text default null;
+alter table data_dispatcher_submissions add column load_limit int default null;
+
+alter table campaign_stages add column data_dispatcher_settings json default null;
+alter table campaign_stage_snapshots add column data_dispatcher_settings json default null;
+alter table campaigns ADD COLUMN created TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+
+insert into recovery_types (recovery_type_id, name, description) values(5,'state_failed', 'Reset files that failed during processing, and resubmit.');
+insert into recovery_types (recovery_type_id, name, description) values(6, 'state_not_done', 'Reset files with a reserved or failed state, and resubmit.');
+insert into recovery_types (recovery_type_id, name, description) values(7,'reprocess_orphans', 'Reset files that have completed with a "done" state, but did not produce children.');
+insert into recovery_types (recovery_type_id, name, description) values(8,'reprocess_all', 'Reset and resubmit the entire project.');
+

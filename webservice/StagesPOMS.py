@@ -22,6 +22,7 @@ import re
 
 import cherrypy
 from crontab import CronTab
+import poms.webservice.DMRService as shrek
 from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
@@ -170,6 +171,7 @@ class StagesPOMS:
             logit.log("campaign_stage_edit: add or edit case")
             name = kwargs.pop("ae_stage_name")
             data_handling_service = kwargs.pop("ae_data_handling_service", "sam")
+            
             if isinstance(name, str):
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
@@ -178,10 +180,16 @@ class StagesPOMS:
             default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
             vo_role = kwargs.pop("ae_vo_role", ctx.role )
             software_version = kwargs.pop("ae_software_version", None)
-            dataset = kwargs.pop("ae_dataset", "None")
+            dataset = kwargs.pop("ae_dataset", None)
             campaign_type = kwargs.pop("ae_campaign_type", "test")
             dd_dataset_query = kwargs.pop("ae_dd_dataset_query", None) 
-            dd_project_id_override = kwargs.pop("ae_dd_project_id", None) 
+            dd_project_id_override = kwargs.pop("ae_dd_project_id", None)
+            dd_project_stage_methodology = kwargs.pop("ae_dd_stage_methodology", "standard") 
+            dd_project_recovery_mode = kwargs.pop("ae_dd_recovery_mode", "standard") 
+            dd_project_virtual = kwargs.pop("ae_dd_virtual", False) 
+            dd_project_load_limit = kwargs.pop("ae_dd_load_limit", None)
+            dd_project_idle_timeout = kwargs.pop("ae_dd_idle_timeout", 259200) 
+            dd_project_worker_timeout = kwargs.pop("ae_dd_worker_timeout", None) 
 
             completion_type = kwargs.pop("ae_completion_type", "located" if data_handling_service == "sam" else "complete")
             completion_pct = kwargs.pop("ae_completion_pct")
@@ -286,6 +294,22 @@ class StagesPOMS:
                             dataset=dataset,
                             data_dispatcher_dataset_query = dd_dataset_query,
                             data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None,
+                            data_dispatcher_project_virtual = dd_project_virtual,
+                            data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                            data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                            data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                            data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                            data_dispatcher_load_limit = dd_project_load_limit,
+                            data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit,
+                            },
                             test_param_overrides=test_param_overrides,
                             param_overrides=param_overrides,
                             login_setup_id=login_setup_id,
@@ -321,6 +345,22 @@ class StagesPOMS:
                         cs.test_param_overrides = test_param_overrides
                         cs.data_dispatcher_dataset_query = dd_dataset_query
                         cs.data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None
+                        cs.data_dispatcher_project_virtual = dd_project_virtual,
+                        cs.data_dispatcher_load_limit = dd_project_load_limit,
+                        cs.data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                        cs.data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                        cs.data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                        cs.data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                        cs.data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
                         cs.job_type_id = job_type_id
                         cs.login_setup_id = login_setup_id
                         cs.updated = datetime.now(utc)
@@ -344,6 +384,22 @@ class StagesPOMS:
                             "test_param_overrides": test_param_overrides,
                             "data_dispatcher_dataset_query": dd_dataset_query,
                             "data_dispatcher_project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                            "data_dispatcher_project_virtual": dd_project_virtual,
+                            "data_dispatcher_load_limit": dd_project_load_limit,
+                            "data_dispatcher_stage_methodology": dd_project_stage_methodology,
+                            "data_dispatcher_recovery_mode":dd_project_recovery_mode,
+                            "data_dispatcher_idle_timeout": dd_project_idle_timeout,
+                            "data_dispatcher_worker_timeout": dd_project_worker_timeout,
+                            "data_dispatcher_settings": {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
                             "job_type_id": job_type_id,
                             "login_setup_id": login_setup_id,
                             "updated": datetime.now(utc),
@@ -1001,7 +1057,7 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(SubmissionHistory.submission_id)
+            .order_by(desc(SubmissionHistory.submission_id))
         ).all()
         
         sam_subs = dict({ sub.Submission.submission_id : sub.Submission for sub in tuples })
@@ -1099,7 +1155,7 @@ class StagesPOMS:
                 handler = "SAM"
                 output = sam_output_files[i]
                 output_length = sam_output_list[i]
-            elif sid in submission_ids_dd:
+            elif sid in submission_ids_dd and "query" in dd_output[sid]:
                 handler = "Data Dispatcher"
                 output = dd_output[sid]["query"]
                 output_length = dd_output[sid]["length"]
@@ -1191,9 +1247,11 @@ class StagesPOMS:
         modname = split_type[0:p1]
         
         splitter = None
+        
         if camp.campaign_obj.data_handling_service == "data_dispatcher":
             mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
             split_class = getattr(mod, modname)
+            assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
             splitter = split_class(ctx, camp, use_test)
         else:
             mod = importlib.import_module("poms.webservice.split_types." + modname)
@@ -1202,6 +1260,7 @@ class StagesPOMS:
         
         try:
             if do_data_dispatcher:
+                assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
                 res = splitter.next()
             else:
                 res = splitter.next()
@@ -1212,7 +1271,13 @@ class StagesPOMS:
             raise AssertionError("No more splits in this campaign.")
 
         return res
-
+    
+    def init_shrek_if_needed(self, ctx):
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session ["Shrek"]:
+            dmr_service = shrek.DMRService()
+            dmr_service.initialize_session(ctx)
+        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session ["Shrek"])
+    
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
         """

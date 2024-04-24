@@ -5,40 +5,25 @@ and report it into POMS
 """
 
 import logging
-import sys
 import os
 import time
 from http.client import HTTPConnection
 import requests
-import re
 import configparser
 import json
 import argparse
+import uuid
+
 from datetime import datetime
+
+from local_queue import SubmissionQueue
+
+from helper_functions import *
+
 
 HTTPConnection.debuglevel = 1
 
-LOGIT = logging.getLogger()
 
-def get_status(entry):
-    """
-        given a dictionary from the Landscape service,
-        return the status for our submission
-    """
-    if entry["done"] and entry["failed"] * 2 > entry["completed"]:
-        return "Failed"
-    # Only consider a submission as cancelled if every job within it is cancelled, or if user marks it as cancelled when killing it.
-    if entry["done"] and entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
-        return "Cancelled"
-    if entry["done"]:
-        return "Completed"
-    if entry["held"] > 0:
-        return "Held"
-    if entry["running"] == 0 and entry["idle"] != 0:
-        return "Idle"
-    if entry["running"] > 0:
-        return "Running"
-    return "Unknown"
 
 
 class Agent:
@@ -57,9 +42,9 @@ class Agent:
         """
         self.cfg = configparser.ConfigParser()
         self.cfg.read(config)
-        
         self.poms_uri = poms_uri if poms_uri else self.cfg.get("submission_agent", "poms_uri")
         self.submission_uri = submission_uri if submission_uri else self.cfg.get("submission_agent", "submission_uri")
+        
         # biggest time window we should ask LENS for
         self.maxtimedelta = 3600
         self.known = {}
@@ -72,16 +57,14 @@ class Agent:
         self.known["jobsub_job_id"] = {}
         self.known["dd_task_id"] = {}
         self.known["dd_project_id"] = {}
-        self.known["not_on_server"] = {
-            "submissions": {},
-            "jobs": {}
-        }
-
+        
+        self.queue = SubmissionQueue(self.cfg, str(uuid.uuid4()))
         self.psess = requests.Session()
         self.ssess = requests.Session()
         self.headers = {
             self.cfg.get("submission_agent", "poms_user_header", fallback='X-Shib-Userid'):
-            self.cfg.get("submission_agent", "poms_user", fallback='poms')
+            self.cfg.get("submission_agent", "poms_user", fallback='poms'),
+            "X-Poms-Agent": self.queue.agent_header
         }
         self.psess.headers.update(self.headers)
         self.submission_headers = {
@@ -93,7 +76,6 @@ class Agent:
             "Origin": self.cfg.get("submission_agent", "lens_server"),
         }
         self.ssess.headers.update(self.submission_headers)
-
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
         self.timeouts = (300, 300)
@@ -105,12 +87,22 @@ class Agent:
         self.elist.sort()
         htr.close()
         self.lastconn = {}
+        
         self.dd_status_map = {
             "Submitted Pending Start":"Idle" ,
             "Completed with failures": "Completed" ,
             "Failed to Launch":"LaunchFailed",
             "Cancelled":"Cancelled",
         }
+        self.queued_submissions = None
+        self.running_in_queue = None
+        self.job_to_sub_index = None
+        self.sub_to_job_index = None
+        self.query_results = None
+        self.completed_submissions = None 
+        self.ignored = None
+        self.queue.set_session(self.psess, self.elist)
+       
         
         
     def update_submissions(self, submissions):
@@ -118,56 +110,59 @@ class Agent:
         """
             actually report information on a submission to POMS
         """
-        LOGIT.info("Submission Agent | update_submissions | Attempting to update submissions: %s" % list(submissions.keys()))
-        LOGIT.info("Submission Agent | update_submissions | Values: %s" % list(submissions.values()))
-        LOGIT.info("Submission Agent | update_submissions | Begin call")
+        record_queue_log("Attempting to update submissions: %s" % list(submissions.keys()))
+        record_queue_log("Values: %s" % list(submissions.values()))
+        record_queue_log("Begin call")
         start = datetime.now()
         try:
             sess = requests.session()
             htr = sess.post(
-                url="%s/update_submissions" % self.poms_uri, 
-                data={"submission_updates": json.dumps(submissions)},
+                url="%s/update_submissions" % (self.poms_uri), 
+                data={
+                        "submission_updates": json.dumps(submissions)
+                    },
                 headers=self.headers,
                 timeout=self.timeouts,
                 verify=False,
             )
 
         except requests.exceptions.ConnectionError:
-            LOGIT.exception("Connection Reset! NOT Retrying once...")
+            record_queue_log("Connection Reset! NOT Retrying once...", level="exception")
 
             
         response = htr.json()
         elapsed_time = datetime.now() - start
-        LOGIT.info("Submission Agent | update_submissions | Recieved response from poms | Status: %s | elapsed time: %s.%s seconds" % (response.get("status", "Failed"), elapsed_time.seconds, elapsed_time.microseconds))
+        record_queue_log("Recieved response from poms", {"status": response.get("status", "Failed"), "request_duration": f"{elapsed_time.seconds}.{elapsed_time.microseconds} seconds"})
         if response and response.get("status") == "Success":
             statuses = response.get("response")
             success = []
+            print("Statuses: %s" % statuses )
             for submission_id, is_on_server_server in statuses.items():
                 if not is_on_server_server:
                     jobid = submissions.get(int(submission_id)).get("jobsub_job_id", None)
-                    if submission_id not in self.known["not_on_server"]["submissions"]:
-                        self.known["not_on_server"]["submissions"][submission_id] = True
-                    if jobid and jobid not in self.known["not_on_server"]["jobs"]:
-                        self.known["not_on_server"]["jobs"][jobid] = True
+                    if str(submission_id) not in self.ignored["submissions"]:
+                        self.ignored["submissions"].add(submission_id)
+                    if jobid and jobid not in self.ignored["jobs"]:
+                        self.ignored["jobs"].add(jobid)
                         
                 else:
                     success.append(submission_id)
             
-            LOGIT.info("Submission Agent | update_submissions | Submissions updated in this run: %s | Submissions: %s" % (len(success), success))
-
-            LOGIT.info("Submission Agent | update_submissions | Submissions not found on server: %s" % (len(submissions) - len(success)))
-                    
-            if len(self.known["not_on_server"]["submissions"]) > 0:
-                LOGIT.info("Submission Agent | update_submissions | Ignoring %d submissions | submission_ids: %s" % (len(self.known["not_on_server"]["submissions"]), list(self.known["not_on_server"]["submissions"].keys())))
-            if len(self.known["not_on_server"]["jobs"]) > 0:
-                LOGIT.info("Submission Agent | update_submissions | Ignoring %d jobs | job_ids: %s" % (len(self.known["not_on_server"]["jobs"]), list(self.known["not_on_server"]["jobs"].keys())))
+            record_queue_log("Updated %s %s" % (len(success), "submission" if len(success) == 1 else "submissions"), updated=success, not_found=len(submissions) - len(success))
+            record_queue_log("Not found on server: %s" % (len(submissions) - len(success)))
+                
+            if len(self.ignored["submissions"]) > 0 or len(self.ignored["jobs"]) > 0:
+                record_queue_log("Ignoring %d submission(s) & %s job_id(s)" % (len(self.ignored["submissions"]), len(self.ignored["jobs"])))
+                
+                
+            self.queue.store_ignored(self.ignored)
         htr.close()
 
     def update_submission(self, submission_id, jobsub_job_id, pct_complete=None, project=None, status=None):
         """
             actually report information on a submission to POMS
         """
-        LOGIT.info(
+        record_queue_log(
             "update_submission: %s",
             repr(
                 {
@@ -196,24 +191,11 @@ class Agent:
             )
 
         except requests.exceptions.ConnectionError:
-            LOGIT.exception("Connection Reset! NOT Retrying once...")
-            # -- *not* retrying, as it seems these errors are generally
-            #    spurious
-            # htr = self.psess.post("%s/update_submission" % self.poms_uri,
-            #                      {
-            #                          'submission_id': submission_id,
-            #                          'jobsub_job_id': jobsub_job_id,
-            #                          'project': project,
-            #                          'status': status,
-            #                          'pct_complete': pct_complete
-            #                      },
-            #                      timeout=self.timeouts,
-            #                      verify=False)
+            record_queue_log("Connection Reset! NOT Retrying once...", level="exception")
 
         if htr.text != "Ok.":
-            LOGIT.error("update_submission: Failed.")
-            LOGIT.error(htr.text)
-
+            record_queue_log("Failed: %s" % htr.text, level="error")
+            
         htr.close()
 
     def get_individual_submission(self, jobsubjobid):
@@ -231,7 +213,7 @@ class Agent:
             timeout=self.timeouts,
         )
         ddict = postresult.json()
-        LOGIT.info("individual submission %s data: %s", jobsubjobid, repr(ddict))
+        record_queue_log("Individual Submission Response: %s" % repr(ddict), job_id=jobsubjobid)
         postresult.close()
 
         if ddict.get("errors", None) != None:
@@ -252,7 +234,7 @@ class Agent:
 
         res = self.known["project"].get(entry["pomsTaskID"], None)
         if res:
-            LOGIT.info("already knew project for %s: %s", entry["pomsTaskID"], res)
+            record_queue_log("Project already being tracked: %s" % res, task_id=entry["pomsTaskID"])
             return res
 
         # otherwise look it up... in the submission info
@@ -264,7 +246,7 @@ class Agent:
         )
         ddict = postresult.json()
         ddict = ddict["data"]["submission"]
-        LOGIT.info("data: %s", repr(ddict))
+        record_queue_log("Received Data", **ddict)
         postresult.close()
         
          # it looks like we should do this, to update our cache, *but* we
@@ -283,22 +265,22 @@ class Agent:
         if entry.get("args", None):
             pos1 = entry["args"].find("--sam_project")
             if pos1 > 0:
-                LOGIT.info("saw --sam_project in args")
+                record_queue_log("saw --sam_project in args")
                 pos2 = entry["args"].find(" ", pos1 + 15)
                 project = entry["args"][pos1 + 14 : pos2]
-                LOGIT.info("got: %s", project)
+                record_queue_log("got: %s" % project)
             pos1 = entry["args"].find("--project_name")
             if pos1 > 0:
-                LOGIT.info("saw --project_name in args")
+                record_queue_log("saw --project_name in args")
                 pos2 = entry["args"].find(" ", pos1 + 15)
                 project = entry["args"][pos1 + 15 : pos2]
-                LOGIT.info("got: %s", project)
+                record_queue_log("got: %s" % project)
         if not project and entry.get("SAM_PROJECT_NAME", None):
             project = entry["SAM_PROJECT_NAME"]
         if not project and entry.get("SAM_PROJECT", None):
             project = entry["SAM_PROJECT"]
         if project:
-            LOGIT.info("found project for %s: %s", entry["pomsTaskID"], project)
+            record_queue_log("found sam project: %s" % project, task_id=entry["pomsTaskID"])
             return project
         return project
             
@@ -317,9 +299,9 @@ class Agent:
 
         self.known["jobsub_job_id"][entry["pomsTaskID"]] = entry["id"]
         
-        ntot = (int(entry["running"]) + int(entry["idle"]) + 
+        ntot = int(entry.get("njobs", (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 
-                int(entry["failed"]) + int(entry["cancelled"]))
+                int(entry["failed"]) + int(entry["cancelled"]))))
 
         if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
             self.known["maxjobs"][entry["pomsTaskID"]] = ntot
@@ -377,7 +359,7 @@ class Agent:
     def maybe_report_data_dispatcher(self, entry, key, val):
         
         dd_status, report_status, val = self.get_dd_status(entry, val)
-        
+        report_status = get_status(entry)
         submission_update = {
                 "submission_id": entry["pomsTaskID"],
                 "jobsub_job_id":entry["id"],
@@ -424,7 +406,7 @@ class Agent:
                 del self.lastconn[group]
 
         if since:
-            LOGIT.info("check_submissions: since %s", since)
+            record_queue_log("checking submissions since: %s" % since)
             since = ', from: \\"%s\\", to:\\"now\\"' % since
         elif self.lastconn.get(group, None):
             since = ', from: \\"%s\\", to:\\"now\\"' % time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(self.lastconn[group] - 2*self.poll_interval))
@@ -435,7 +417,7 @@ class Agent:
             group = "fermilab"
         try:
             # keep track of when we started
-            start = time.time()
+            start = datetime.now(utc)
             htr = self.ssess.post(
                 self.submission_uri,
                 data=self.cfg.get("submission_agent", "running_query") % (group, since),
@@ -445,27 +427,43 @@ class Agent:
             ddict = ddict.get("data",{}).get("submissions",[])
             htr.close()
             # only remember it if we succeed...
-            self.lastconn[group] = start
+            start_time = start.time()
+            start_time = time.struct_time((0, start_time.hour, start_time.minute, start_time.second, 0, 0, 0, 0, -1))
+            start_time = time.mktime(start_time)
+            self.lastconn[group] = start_time
+            
+            elapsed = datetime.now(utc) - start
+            record_queue_log(f"Found {len(ddict)} Submissions since {since}", group=group, request_duration=f"{elapsed.seconds}.{elapsed.microseconds} seconds")
         except requests.exceptions.RequestException as r:
-            LOGIT.info("connection error for group %s: %s", group, r)
+            record_queue_log("Connection error for group %s: %s" % (group, r), level="exception")
             ddict = {}
             pass
 
         if ddict:
             return [submission for submission in ddict 
-                    if str(submission.get("pomsTaskID")) not in self.known["not_on_server"]["submissions"] 
-                    and self.format_jobid(submission.get("id")) not in self.known["not_on_server"]["jobs"]]
+                    if str(submission.get("pomsTaskID")) not in self.ignored["submissions"] 
+                    and self.format_jobid(submission.get("id")) not in self.ignored["jobs"]]
         else:
             return []
 
     def get_running_submissions_POMS(self, group):
+        start = datetime.now(utc)
+        record_queue_log("Begin Request", group=group)
         url = self.cfg.get("submission_agent", "poms_running_query")
         try:
             htr = self.psess.get(url)
             flist = htr.json()
-            print("poms running_submissions: ", repr(flist))
-            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3]} for x in flist if x[2] == group]
-            print("poms running_submissions for " , group,  ": ", repr(ddict))
+            elapsed = datetime.now(utc) - start
+            record_queue_log("Response: %s" % flist, group=group, request_duration=f"{elapsed.seconds}.{elapsed.microseconds} seconds")
+            ddict = [ {'pomsTaskID': x[0], "group": x[2], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3], "queued_at": str(datetime.now(utc))} for x in flist if x[2] == group]
+            queue_items = []
+            for item in ddict:
+                if item["pomsTaskID"] not in self.completed_submissions:
+                    queue_items.append(item)
+            if queue_items:
+                self.queue.save_queue_data({"queued": queue_items})
+                for item in queue_items:
+                    record_queue_log("Queued Submission", **item)
             htr.close()
             return ddict
         except:
@@ -473,92 +471,179 @@ class Agent:
             return {}
         
     def get_all_running_submissions_POMS(self, exp_list):
+        start = datetime.now(utc)
+        record_queue_log("Begin Request", group="all")
         url = self.cfg.get("submission_agent", "poms_running_query")
         try:
             htr = self.psess.get(url)
             flist = htr.json()
-            print("poms running_submissions: ", repr(flist))
-            ddict = [ {'pomsTaskID': x[0], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3]} for x in flist if x[2] in exp_list]
-            print("poms running_submissions for all experiments: %s" % repr(ddict))
+            "Response: %s" % flist
+            elapsed = datetime.now(utc) - start
+            record_queue_log("Response: %s" % flist, group=exp_list, request_duration=f"{elapsed.seconds}.{elapsed.microseconds} seconds")
+            ddict = [ {'pomsTaskID': x[0],  "group": x[2], 'id': x[1], "POMS_DATA_DISPATCHER_TASK_ID": x[3],  "queued_at": str(datetime.now(utc))} for x in flist if x[2] in exp_list]
+            queue_items = []
+            for item in ddict:
+                if item["pomsTaskID"] not in self.completed_submissions:
+                    queue_items.append(item)
+            if queue_items:
+                self.queue.save_queue_data({"queued": queue_items})
+                for item in queue_items:
+                    record_queue_log("Queued Submission", **item)
             htr.close()
             return [submission for submission in ddict 
-                    if str(submission.get("pomsTaskID")) not in self.known["not_on_server"]["submissions"] 
-                    and submission.get("id") not in self.known["not_on_server"]["jobs"]]
+                    if str(submission.get("pomsTaskID")) not in self.ignored["submissions"] 
+                    and submission.get("id") not in self.ignored["jobs"]]
         except:
             logging.exception("running_submissons_POMS")
             return {}
     
     def get_dd_task_statuses(self, dd_task_ids):
+        record_queue_log("Data Dispatcher Project Status | Begin")
         start = datetime.now()
-        if type(dd_task_ids) == int or type(dd_task_ids) == str:
-            dd_task_ids = [int(dd_task_ids)]
+        parsed_ids = []
+        for task_id in dd_task_ids:
+            if isinstance(task_id, str):
+                task_id = int(task_id)
+            if task_id != None:
+                parsed_ids.append(task_id)
+                
         url = self.cfg.get("submission_agent", "poms_dd_complete_query_all") % ",".join(dd_task_ids)
         try:
-            LOGIT.info("getting poms data dispatcher project statuses for projects: %s", dd_task_ids)
+            record_queue_log("Fetching Projects: %s" % dd_task_ids)
             htr = self.psess.get(url)
             dd_statuses = htr.json()
             elapsed_time = datetime.now() - start
-            LOGIT.info("got poms data dispatcher project statuses for dd_submissions: %s | Elapsed Time: %s.%s seconds" % (repr(dd_statuses), elapsed_time.seconds, elapsed_time.microseconds))
+            record_queue_log("Response Received", request_duration=f"{elapsed_time.seconds}.{elapsed_time.microseconds} seconds", statuses=dd_statuses)
             htr.close()
             return dd_statuses
-        except:
-            logging.exception("get_dd_task_statuses")
+        except Exception as e:
+            record_queue_log(e, "Data Dispatcher Project Status", level="exception", statuses=dd_statuses)
             return {}
         
 
+    def get_job_id_formats(self, job_id):
+        job_id_no_schedd = job_id.replace(".0@", "@") if job_id else None
+        job_id_with_schedd = job_id_no_schedd.replace("@", ".0@") if job_id_no_schedd else None
+        return job_id_no_schedd, job_id_with_schedd
+    
+    def validate_entry(self, entry):
+        task_id = entry.get("pomsTaskID", None)
+        task_id = int(task_id) if task_id else None
+        jobId = entry.get("id", None)
+        jobId = self.format_jobid(jobId) if jobId else None
+        
+        if task_id and not jobId:
+            jobId = self.sub_to_job_index.get(str(task_id), None)
+        elif jobId and not task_id: 
+            task_id = self.job_to_sub_index.get(jobId, None)
+            task_id = int(task_id) if task_id else None
+        
+        if task_id:
+            if str(task_id) in self.completed_submissions or str(task_id) in self.ignored["submissions"]:
+                if jobId and jobId not in self.ignored["jobs"]:
+                    self.ignored["jobs"].add(jobId)
+                return False, None, None
+        
+        if jobId and jobId in self.ignored["jobs"]:
+            if task_id and str(task_id) not in self.ignored["submissions"]:
+                self.ignored["submissions"].add(str(task_id))
+            return False, None, None
+        
+        return True, task_id, jobId
+                
     def check_submissions(self, group=None, full_list=None, since=""):
         """
             get submission info from Landscape for a given group
             update various known bits of info
         """
-
-        LOGIT.info("check_submissions: %s", group if group else full_list)
+        if group:
+            record_queue_log("Begin", group= group)
+        else:
+            record_queue_log("Begin", groups= full_list)
 
         thispass = set()
         all_submissions_pre = {}
         sublist = []
         all_task_ids = {}
-        jid_sub_id = 1
+        
+        if isinstance(self.ignored["jobs"], list):
+            self.ignored["jobs"] = set(self.ignored["jobs"])
+        if isinstance(self.ignored["submissions"], list):
+            self.ignored["submissions"] = set(self.ignored["submissions"])
+        
         if full_list:
+            for entry in self.queued_submissions:
+                valid, task_id, jobId = self.validate_entry(entry)
+                if not valid:
+                    continue
+                if task_id and jobId:
+                    entry["id"] = jobId
+                    all_task_ids[task_id] = jobId
+                    self.sub_to_job_index[str(task_id)] = jobId
+                    self.job_to_sub_index[jobId] = str(task_id)
+                elif task_id:
+                    all_submissions_pre[task_id] = entry
+                else:
+                    # Can't track it without a task_id
+                    self.ignored["jobs"].add(jobId)
+
             for exp in full_list:
-                all_submissions_pre.update({entry.get("pomsTaskID"):entry for entry in self.get_running_submissions_LENS(exp, since)})
-            for entry in self.get_all_running_submissions_POMS(full_list):
-                if entry.get("pomsTaskID") not in all_submissions_pre:
-                    all_submissions_pre[entry.get("pomsTaskID")] = entry
-            all_submissions=list(all_submissions_pre.values())
+                lens_submissions = self.get_running_submissions_LENS(exp, since)
+                for entry in lens_submissions:
+                    valid, task_id, jobId = self.validate_entry(entry)
+                    if not valid:
+                        continue
+                    if not task_id:
+                         # Can't track it without a task_id
+                        self.ignored["jobs"].add(jobId)
+                        continue
+                    if task_id and jobId:
+                        if task_id in all_task_ids:
+                            # already have this one
+                            continue
+                        elif task_id in all_submissions_pre:
+                            # This task was missing a job_id
+                            all_task_ids[task_id] = jobId
+                            self.job_to_sub_index[jobId] = str(task_id)
+                            del all_submissions_pre[task_id]
+                            
+                    else:
+                        # we'll try to get the job_id with a separate query
+                        all_task_ids[task_id] = None
+            
+            record_queue_log("Run statistics | Known tasks: %s, Unknown taks: %s" % (len(all_task_ids), len(all_submissions_pre)))
             del all_submissions_pre
-            for x in all_submissions:
-                if not x.get("pomsTaskID", None) and x.get("id", None):
-                    if self.format_jobid(x.get("id")) not in self.known["not_on_server"]["jobs"]:
-                        self.known["not_on_server"]["jobs"][self.format_jobid(x.get("id"))]=True
-                        all_task_ids[jid_sub_id * -1] = self.format_jobid(x.get("id"))
-                        jid_sub_id += 1
-                elif x.get("pomsTaskID", None):
-                  all_task_ids[x.get("pomsTaskID")] = self.format_jobid(x.get("id"))
-            LOGIT.info("\nAll task ids: %s" % all_task_ids)
         elif group:
             sublist = self.get_running_submissions_LENS(group, since)
             sublist.extend(self.get_running_submissions_POMS(group))
-            LOGIT.info("%s data: %s", group, repr(sublist))
+            record_queue_log("%s data: %s" % (group, sublist))
             sublist.sort(key=(lambda x: x.get("pomsTaskID", "")))
-            all_task_ids = {x.get("pomsTaskID"):x.get("id", None) for x in sublist if x.get("pomsTaskID", None)}
-        
+            
+            all_task_ids = {
+                x.get("pomsTaskID"): x.get("id", None) 
+                for x in sublist 
+                if "pomsTaskID" in x
+                and str(x["pomsTaskID"]) not in self.ignored["submissions"]
+                and x.get("id", None) not in self.ignored["jobs"]
+            }
+
         start = datetime.now()
-        LOGIT.info("Attempting to get data on all running jobs")
+        record_queue_log("Attempting to get data on all running jobs")
         
         if full_list and all_task_ids:
             submissions = self.get_all_submissions(all_task_ids)
             elapsed_time = datetime.now() - start
-            LOGIT.info("Got data on all running jobs | elapsed time: %s.%s seconds" % (elapsed_time.seconds, elapsed_time.microseconds))
+            record_queue_log("Got data on all running jobs | elapsed time: %s.%s seconds" % (elapsed_time.seconds, elapsed_time.microseconds))
             submissions_to_update = {}
             dd_task_entries_to_check = {}
-            for entry in submissions.values():
-                
+            for entry in submissions.values() if submissions else []:
                 if type(entry) != dict:
                     continue
                 
                 pomsTaskID = entry.get('pomsTaskID')
-                LOGIT.info("Found job for submission_id: %d | job_id: %s" % (pomsTaskID, entry.get("id")))
+                if isinstance(pomsTaskID, str):
+                    pomsTaskID = int(pomsTaskID)
+                record_queue_log("Found job for submission_id: %d | job_id: %s" % (pomsTaskID, entry.get("id")))
                 thispass.add(pomsTaskID)
                 
                     
@@ -572,8 +657,10 @@ class Agent:
                     if update_submission:
                         submissions_to_update[pomsTaskID] = update_submission
                 else:
-                    LOGIT.info("Queued dd_task_id: %s for update" % entry["POMS_DATA_DISPATCHER_TASK_ID"])
+                    record_queue_log("Queued dd_task_id: %s for update" % entry["POMS_DATA_DISPATCHER_TASK_ID"])
                     dd_task_entries_to_check[entry["POMS_DATA_DISPATCHER_TASK_ID"]] = entry
+                    
+            
                     
             if len(dd_task_entries_to_check) > 0:
                 dd_task_ids = list(dd_task_entries_to_check.keys())
@@ -582,48 +669,40 @@ class Agent:
                     if key == "dd_submissions":
                         continue
                     entry_to_check = dd_task_entries_to_check.get(key)
-                    LOGIT.info("checking entry: %s" % entry_to_check)
+                    record_queue_log("checking entry: %s" % entry_to_check)
                     update_submission = self.maybe_report_data_dispatcher(entry_to_check, key, val)
                     if update_submission:
                         submissions_to_update[update_submission['submission_id']] = update_submission
-                
+                        
             if len(submissions_to_update) > 0:
                 self.update_submissions(submissions_to_update)
+            
+            
+            record_queue_log("Checking queued items for updates")
+            for sub_id, entry in  submissions_to_update.items():
+                if "status" in entry and entry["status"] in ["Completed", "Completed with failures",  "Located", "Cancelled", "Failed", "Failed to Launch"]:
+                    if sub_id in self.query_results:
+                        record_queue_log("Finished processing submission_id: %s | Final Status: %s" % (sub_id, entry["status"]))
+                        self.completed_submissions[sub_id] = dict(self.query_results[sub_id])
+                        self.completed_submissions[sub_id]["final_status"] = entry["status"]
+                        self.queue.update_results = True
+                            
+                elif "status" in entry and sub_id in self.query_results:
+                    record_queue_log("Status change detected for submission_id: %s | Status: %s" % (sub_id, entry["status"]))
+                    self.query_results[sub_id]["status"] = entry["status"]
+                    
+            if self.queue.update_results:
+                record_queue_log("Updating Results")
+                self.queue.store_results(self.completed_submissions)
+            
+            
+            record_queue_log("No queued items to update")
+            return
     
         else:
-            LOGIT.info("Submission Agent | check_submissions | Nothing to check")
+            record_queue_log("check_submissions | Nothing to check")
                 
         
-        #for entry in sublist:
-#
-        #    # skip if we don't have a pomsTaskID...
-        #    if not entry.get("pomsTaskID", None):
-        #        continue
-#
-        #    # don't get confused by duplicate listings
-        #    if entry.get("pomsTaskID") in thispass:
-        #        continue
-#
-        #    thispass.add(entry.get("pomsTaskID"))
-#
-        #    id = entry.get('id')
-        #    pomsTaskID = entry.get('pomsTaskID')
-#
-        #    if self.known["status"].get(id,None) == "Completed":
-        #        continue
-#
-        #    fullentry = self.get_individual_submission(id)
-#
-        #    if fullentry and 'data' in fullentry:
-        #         fullentry = fullentry['data'] 
-#
-        #    self.maybe_report(fullentry)
-#
-        #    if fullentry and fullentry["done"]:
-        #        self.update_submission(pomsTaskID, jobsub_job_id=id, status=get_status(fullentry))
-#
-        #self.last_seen[group] = thispass
-                
     def get_dd_status(self, entry, dd_pct):
         
         if type(dd_pct) == str:
@@ -644,6 +723,8 @@ class Agent:
                 dd_pct = 0
                 
         if entry["done"]:
+            if dd_pct == 100:
+                return "Completed", "Completed", dd_pct
             if entry["error"] or dd_pct < 80:
                 return "Completed with failures", self.dd_status_map.get("Completed with failures"), dd_pct
             if entry["cancelled"] > 1 and (entry["running"] + entry["idle"] + entry["held"] +  entry["failed"] + entry["completed"]) == 0:
@@ -653,14 +734,13 @@ class Agent:
             if entry["id"] or self.known["jobsub_job_id"][entry["pomsTaskID"]]:
                 if entry["held"] > 0:
                     return "Held", "Held", dd_pct
-                if entry["idle"]:
+                if "submitTime" in entry and entry["running"] == 0:
                     return "Idle", "Idle", dd_pct
-                if dd_pct > 0 and dd_pct < 100:
+                if (dd_pct > 0 and dd_pct < 100) or (ncomp > 0 and not entry["idle"]) or entry["running"] > 0:
                     return "Running", "Running", dd_pct
                 if dd_pct == 0:
                     return "Submitted Pending Start", self.dd_status_map.get("Submitted Pending Start"), dd_pct
-                if dd_pct == 100:
-                    return "Completed", "Completed", dd_pct
+                
             else:
                 unknown_job = self.known["unknown_jobs"].get(entry["pomsTaskID"], 0)
                 if unknown_job < 5:
@@ -688,38 +768,70 @@ class Agent:
         job_index = {}
         
         s = 0
+        j = 0
+        
+        
+        for task_id, job_query in self.running_in_queue.items():
+            if task_id not in self.completed_submissions:
+                job_query_list.append("j%d:%s" % (j, job_query))
+                job_index[task_id] = "j%d" % j
+                j+=1
+        
+        # Insert our existing queries for jobs in progress
         for task_id, job_id in task_jobs.items():
-            if task_id > 0:
+            if job_id and str(task_id) not in self.running_in_queue:
+                lens_jobsub_query = self.cfg.get("submission_agent", "append_submission_jid") % job_id
+                job_query_list.append("j%d:%s" % (j, lens_jobsub_query))
+                job_index[task_id] = "j%d" % j
+                self.running_in_queue[str(task_id)] = lens_jobsub_query
+                j+=1
+            elif task_id > 0 and not job_id:
                 submission_query_list.append("s%d:%s" % (s, self.cfg.get("submission_agent", "append_submission_sid") % task_id))
                 submission_index["s%d" % s] = task_id
-                s += 1
+                s+=1
+        
+        # Fetch submission queries data from lens
+        if submission_query_list:
+            submissions_query = self.cfg.get("submission_agent", "all_jobs_query_base") % ",".join(submission_query_list)
+            submissions_results = self.ssess.post(
+                self.submission_uri,
+                data=submissions_query,
+                timeout=self.timeouts,
+            )
+            submissions_dict = submissions_results.json()
+            submissions_results.close()
             
+            if "errors" in submissions_dict and submissions_dict["errors"]:
+                for error in submissions_dict["errors"]:
+                    if "path" in error and "message" in error and  "no submission found with the given pomsTaskId" in error["message"]:
+                        for index in error["path"]:
+                            if index in submission_index:
+                                task_id = submission_index[index]
+                                self.ignored["submissions"].add(str(submission_index[index]))
+                                record_queue_log("Submission %s not found in POMS, ignoring." % submission_index[index])
+                
+
+            record_queue_log("All Submissions Query returned %d results" % len(submissions_dict.get("data", {})))
+        else:
+            submissions_dict = {}
+            record_queue_log("No submissions to query for.")
+
         
-        submissions_query = self.cfg.get("submission_agent", "all_jobs_query_base") % ",".join(submission_query_list)
-        submissions_results = self.ssess.post(
-            self.submission_uri,
-            data=submissions_query,
-            timeout=self.timeouts,
-        )
-        submissions_dict = submissions_results.json()
-        submissions_results.close()
         
         
-        if submissions_dict.get("errors", None) != None:
-            LOGIT.info("All Submissions Response yielded some errors: %s" % submissions_dict.get("errors"))
-        
-        if not submissions_dict.get("data"):
-            LOGIT.info("All Submissions Response yielded no results")
-            return None
-        
-        j = 0
-        for entry in submissions_dict.get("data").values():
-            if entry and "id" in entry:
-                job_id = self.format_jobid(entry.get("id")) if ".0@" not in entry.get("id") else entry["id"]
-                job_query_list.append("j%d:%s" % (j, self.cfg.get("submission_agent", "append_job") % job_id))
+        # Now generate the lens queries for the rest of the known job ids
+        for entry in submissions_dict.get("data", {}).values():
+            valid, task_id, jobId = self.validate_entry(entry)
+            if not valid or not jobId:
+                continue
+            if (task_id and jobId) or jobId in self.job_to_sub_index:
+                job_query_list.append("j%d:%s" % (j, self.cfg.get("submission_agent", "append_job") % jobId))
                 job_index[entry.get("pomsTaskID")] = "j%d" % j
                 j+=1
-                    
+                if str(task_id) not in self.running_in_queue:
+                    self.running_in_queue[str(task_id)] = lens_jobsub_query
+                
+        # Fetch jobs queries data from lens    
         jobs_query = self.cfg.get("submission_agent", "all_jobs_query_base") % ",".join(job_query_list)
         jobs_results = self.ssess.post(
             self.submission_uri,
@@ -730,19 +842,44 @@ class Agent:
         jobs_results.close()
         
         if jobs_dict.get("errors", None) != None:
-            LOGIT.info("All Jobs Response yielded some errors: %s" % jobs_dict.get("errors"))
+            record_queue_log("Ferry request yielded some errors: %s" % jobs_dict.get("errors"))
             
         if not jobs_dict.get("data"):
-            LOGIT.info("All Jobs Response yielded no results")
+            record_queue_log("Ferry request yielded no results")
             return None
 
-        entries = {s["pomsTaskID"]:s for s in submissions_dict["data"].values()}
-        jobs = {j["pomsTaskID"]:j for j in jobs_dict["data"].values()}
+        entries = {
+            s["pomsTaskID"]:s 
+            for s in submissions_dict.get("data", {}).values() 
+            if s and  "pomsTaskID" in s
+            and s["pomsTaskID"] not in self.ignored["submissions"]
+        }
+        jobs = {
+            j["pomsTaskID"]:j 
+            for j in jobs_dict["data"].values() 
+            if j and "pomsTaskID" in j
+            and j["pomsTaskID"] not in self.ignored["submissions"]
+            }
         
+        for item in jobs.values():
+            if "id" not in item:
+                continue
+            job_id = self.format_jobid(item["id"])
+            key = item.get("pomsTaskID", None)
+            if not key or key not in self.running_in_queue:
+                key = self.job_to_sub_index.get(job_id, None)
+                if not key:
+                    continue
+                item["pomsTaskID"] = key
+                self.query_results[key] = item
+                    
+            
         for key in jobs.keys():
             if key in entries:
                 entries.update(jobs[key])
-                
+            
+        entries.update(self.query_results)
+        
         return entries
 
     def poll(self, since=""):
@@ -751,27 +888,38 @@ class Agent:
         """
         while 1:
             try:
-                LOGIT.info("Submission Agent | Beginning run")
-                self.check_submissions(full_list=self.elist, since=since)
-                #for exp in self.elist:
-                #    self.check_submissions(exp, since=since)
-            except:
-                LOGIT.exception("Exception in check_submissions")
-            LOGIT.info("Submission Agent | Finished run, next run starts in: %s seconds" % self.poll_interval)
-            i = 0
-            while i < self.poll_interval:
-                time_left = (int(self.poll_interval) - int(i))
-                if i > 0:
-                    LOGIT.info("Next run starts in: %s seconds" % (int(self.poll_interval) - int(i)))
-                if time_left <= 10:
-                    time.sleep(1)
-                    i += 1
-                elif time_left <= 60:
-                    time.sleep(10)
-                    i += 10
-                else:
-                    time.sleep((int(self.poll_interval)/2))
-                    i += int(self.poll_interval/2)
+                (   
+                    run_number, run_start,
+                    self.queued_submissions, 
+                    self.running_in_queue, 
+                    self.job_to_sub_index, 
+                    self.sub_to_job_index, 
+                    self.query_results, 
+                    self.completed_submissions, 
+                    self.ignored
+                ) = self.queue.begin_run()
+                set_run_number(run_number)
+                set_run_start(run_start)
+                
+                _ = self.check_submissions(full_list=self.elist, since=since)
+                
+                self.queue.save_queue_data({
+                    "indexes": {
+                        "j_to_s": self.sub_to_job_index,
+                        "s_to_j": self.job_to_sub_index
+                    },
+                    "processing": self.running_in_queue,
+                    "query_results": self.query_results
+                })
+                
+                self.queue.post_run_cleanup()
+                
+                next_run_timestamp, next_run_friendly = calculate_next_run(self.poll_interval)
+                record_queue_log("Run Complete | Next Run Begins in %s" % next_run_friendly, complete=True, next_run=next_run_timestamp)
+            except Exception as e:
+                record_queue_log(e, level="exception")
+            
+            time.sleep(self.poll_interval)
             since = ""
 
 
@@ -798,7 +946,8 @@ def main():
     config = args.config
     if not config:
         config = os.environ.get("WEB_CONFIG", "/home/poms/poms/submission_broker/submission_agent.cfg")
-    LOGIT.info("Submission Agent | Begin | Config: %s" % config)
+    
+    record_queue_log("init | Config: %s" % config)
     if args.test:
         agent = Agent(poms_uri="http://127.0.0.1:8080", submission_uri=os.environ["SUBMISSION_INFO"], config=config)
         for exp in agent.elist:

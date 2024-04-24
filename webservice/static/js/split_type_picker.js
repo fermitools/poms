@@ -26,8 +26,11 @@ split_type_picker.fix_custom_edit = function (split_type_id) {
     if (!e) {
         return
     }
-    console.log("fix_custom_edit: value: " + e.value)
-    if (e != null && split_type_edit_map && split_type_edit_map[e.value]) {
+    if (e && e.value === "None"){
+        e.value = null;
+    }
+    console.log("fix_custom_edit: id: "+ split_type_id + " |  value: " + e.value)
+    if (e != null && e.value != null && split_type_edit_map !== 'undefined' && split_type_edit_map[e.value]) {
         how = 'inline';
     } else {
         how = 'none';

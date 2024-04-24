@@ -1060,21 +1060,34 @@ gui_editor.prototype.draw_state = function () {
     stagelist = [];
     this.jobtypelist = [];
     this.dataHandlingTempList = [];
+    this.campaign_dd_settings = {};
     launchtemplist = [];
-
+    console.log(JSON.stringify(this.state));
     for (k in this.state) {
         const p = k.split(' ')[0]; // Prefix
         const n = k.slice(p.length + 1); // Name
         if (p === 'campaign_stage') {
             stagelist.push(n);
+            console.log("pushed: " + n);
+            if (this.state["campaign_defaults"] !== undefined && this.state["campaign_defaults"]["data_handling_service"] === "data_dispatcher"){
+                this.mode["data_dispatcher_settings"] = this.state[k]['data_dispatcher_settings'];
+                this.campaign_dd_settings[k] = this.state[k]['data_dispatcher_settings'];
+            }
         } else if (p === 'job_type') {
             this.jobtypelist.push(n);
         } else if (p === 'login_setup') {
             launchtemplist.push(n);
         }
         else if (p === 'data_handling_service') {
-            dataHandlingTempList.push(n);
+            console.log("DH service: " + n);
+            this.dataHandlingTempList.push(n);
         }
+        else if (p === 'sam_defaults') {
+            if (this.state["campaign_defaults"] !== undefined && this.state["campaign_defaults"]["data_handling_service"] === "sam"){
+                this.mode["sam_settings"] = JSON.stringify(this.state[p]);
+            }
+        }
+
     }
 
     //this.tsort(stagelist);
@@ -1119,6 +1132,10 @@ gui_editor.prototype.draw_state = function () {
         prevstage = stagelist[i];
         first = false;
         // b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.state[k]), this.div, x, y, this);   // VP
+        
+        if(this.campaign_dd_settings[k]){
+            this.mode.data_dispatcher_settings = this.campaign_dd_settings[k];
+        }
         b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.mode), this.div, x, y, this);
         this.stageboxes.push(b);
     }
@@ -1704,11 +1721,23 @@ gui_editor.prototype.data_handling_service = function (sval, eid, placeholder) {
     let res = ["sam", "data_dispatcher"].reduce(
         function (acc, val) {
             const sel = (val == sval) ? ' selected' : '';
-            return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+            return val;// acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
         }, eid.startsWith("_inpcampaign")  ? "" : "");
     // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
-    return (eid.startsWith("_inpcampaign") && !eid.startsWith("_inpcampaign_stage")) ? `<select id="${eid}" name="data_handling_service" required>\n${res}</select>\n` : null;
+    return (eid.startsWith("_inpcampaign") && !eid.startsWith("_inpcampaign_stage")) ? `<input id="${eid}" style="color: #777; background-color: lightcyan;" disabled title="Use Editor" value="${placeholder}" name="data_handling_service"/>` : null;
 }
+
+gui_editor.prototype.data_dispatcher_settings = function (sval, eid, placeholder) {
+    let res = ["sam", "data_dispatcher"].reduce(
+        function (acc, val) {
+            const sel = (val == sval) ? ' selected' : '';
+            return val;// acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
+        }, eid.startsWith("_inpcampaign")  ? "" : "");
+    // `<option value="${placeholder}" disabled selected hidden>${placeholder}</option>\n`);
+    return ( eid.startsWith("_inpcampaign_stage")) ? `<input id="${eid}" style="color: #777; background-color: lightcyan;" disabled title="Use Editor" value="${res}" name="data_dispatcher_settings"/>` : null;
+}
+
+
 
 gui_editor.prototype.state_select = function (sval, eid, placeholder) {
     let res = ["active", "inactive"].reduce(
@@ -1789,11 +1818,12 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
     //    res.push(`<button title="Delete" class="rightbutton" type="button" onclick="gui_editor.delete_me('${name}')"><span class="deletebutton"></span></button><p>`);
     //}
     res.push('</h3>');
+
     for (const k of klist) {
         // k = klist[i];
-        const ro = (k.includes("param") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || k == "test_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
-        if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
-            continue;
+        const ro = (k.includes("param") || k.includes("sam_settings") || k.includes("keywords") || k == "recoveries" || k == "cs_split_type" || k.includes('data_dispatcher_settings') || k == "test_split_type" || ((k == "host" || k == "account") && this.gui.state['campaign']['poms_role'] == "analysis")) ? "disabled" : "";
+        //if (k.startsWith('campaign_stage')) // Hack to hide this from dependency form
+          //  continue;
             
         if (vdict[k] == null) {
             val = "";
@@ -1811,8 +1841,11 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
         if(!name.includes("campaign ") && k.includes('data_handling_service')){
             continue;
         }
+        else if(!name.includes("campaign_") && (k.includes('data_dispatcher_settings') || k.includes("sam_settings"))){
+            continue;
+        }
         else{
-            res.push(`<label>${k}</label>`);
+            res.push(`<label name="${k}">${k}</label>`);
         }
         if (k.includes("job_type")) {
             res.push(this.gui.jobtype_select(val, `${this.get_input_tag(k)}`, placeholder));
@@ -1822,23 +1855,32 @@ function generic_box(name, vdict, klist, top, x, y, gui) {
             res.push(this.gui.completion_type_select(val, `${this.get_input_tag(k)}`, placeholder));
         } else if (k.includes("state")) {
             res.push(this.gui.state_select(val, `${this.get_input_tag(k)}`, placeholder));
-        } else if (name.includes("campaign ") && k.includes('data_handling_service')){
+        } else if (name.includes("campaign ") && (k.includes('data_handling_service'))){
             res.push(this.gui.data_handling_service(val, `${this.get_input_tag(k)}`, placeholder));
+            this.gui.data_handling_service_name = val;
         }
-         else {
+         else if (name.includes("campaign ") && (k.includes('data_dispatcher_settings') || k.includes("sam_settings"))){
+            continue;
+        }
+        else{
             res.push(`<input id="${this.get_input_tag(k)}" name="${k}" value="${this.escape_quotes(val)}" placeholder="${this.escape_quotes(placeholder)}" ${ro}>`);
         }
+        
         if (k.includes('param')) {
             res.push(`<button type="button" onclick="json_field_editor.start(this.previousElementSibling.id)">Edit</button>`);
         } else if ( k.includes('keywords')) {
             res.push(`<button type="button" onclick="json_field_editor.dictstart(this.previousElementSibling.id)">Edit</button>`);
         }
-        if (k == 'data_dispatcher_dataset_query') {
-            res.push(`<button type="button" class="split_type_picker_custom_edit dd_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        if (name.includes("campaign_") && (k.includes('data_dispatcher_settings') || k.includes("sam_settings"))) {
+            console.log("Data: " + val);
+            res.push(`<button type="button" onclick='gui_editor.open_data_handling_service_stage_editor(this.previousElementSibling.id, ${val})'>Edit</button>`);
         }
-        if (k == 'sam_dataset_or_split_data') {
-            res.push(`<button type="button" class="split_type_picker_custom_edit sam_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        if (name.includes("campaign ") && k.includes('data_handling_service')) {
+            res.push(`<button type="button" onclick="gui_editor.open_data_handling_service_editor(this.previousElementSibling.id)">Edit</button>`);
         }
+        //if (k == 'dataset_or_split_data') {
+        //    res.push(`<button type="button" class="split_type_picker_custom_edit sam_edit_btn" onclick="split_type_picker.custom_edit(this.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.nextElementSibling.id, this.previousElementSibling.id)">Edit</button>`);
+        //}
        
         if (k == 'cs_split_type' || k == 'test_split_type' ) {
             res.push(`<button type="button" class="split_type_picker_button" onclick="split_type_picker.start(this.previousElementSibling.id)">Edit</button>`);
@@ -1939,7 +1981,12 @@ generic_box.prototype.save_values = function () {
  */
 generic_box.prototype.escape_quotes = function (s) {
     if (s != undefined) {
-        return s.replace(/"/g, '&quot;');
+        if (typeof(s) == 'string'){
+            return s.replace(/"/g, '&quot;');
+        }
+        else if (typeof(s) == 'object'){
+            return JSON.stringify(s).replace(/"/g, '&quot;');
+        }
     } else {
         return s;
     }
@@ -1968,6 +2015,65 @@ function stage_box(name, vdict, klist, top, x, y, gui) {
     this.box.innerHTML = `${name}<br> <button type="button" onclick="gui_editor.toggle_form('fields_${name}')" id="wake_fields_${name}"><span class="wakefields"></span></button>`;
 }
 stage_box.prototype = new generic_box();
+
+gui_editor.prototype.set_data_handling_config = function(type="campaign", id=null){
+    //gui_editor.prototype.data_handling_config = new data_handling_config(type);
+    //gui_editor.prototype.data_handling_config.render();
+}
+
+let data_handling_service_editor = null;
+
+gui_editor.open_data_handling_service_editor = async function(id){
+    var name = getURLParameter('campaign');
+    const cid = getURLParameter('campaign_id');
+    const parent_id = id;
+    let existing = document.getElementById(`data_handling_service_editor_campaign`);
+    if (existing){
+        existing.remove();
+    }
+    let data =  await new wf_uploader().make_poms_call('get_data_handling_service', {
+        'name': `${name}`,
+        "campaign_id": cid,
+    });
+    if (data){
+        data_handling_service_editor = new data_handling_config()
+        data_handling_service_editor.init("campaign", name, cid, data, parent_id);
+        data_handling_service_editor.render();
+        var formElement = data_handling_service_editor.form;
+        let e = document.getElementById(id);
+        e.parentNode.appendChild(formElement);
+    }
+}
+
+gui_editor.open_data_handling_service_stage_editor = async function(id, vals){
+    // vals included implies campaign stage.
+    const cid = getURLParameter('campaign_id');
+    const parent_id = id;
+    const form_id = document.getElementById(id).parentNode.id;
+    const name = form_id.replace("fields_campaign_stage ","");
+    let existing = document.getElementById(`data_handling_service_editor_campaign_stage`);
+    if (existing){
+        existing.remove();
+    }
+    let data =  await new wf_uploader().make_poms_call('get_data_handling_service', {
+        'stage_name': `${name}`,
+        "campaign_id": cid,
+    });
+    data_handling_service_editor = new data_handling_config()
+    data_handling_service_editor.init("campaign_stage", name, cid, data, parent_id);
+    data_handling_service_editor.render();
+    var formElement = data_handling_service_editor.form;
+    let e = document.getElementById(id);
+    e.parentNode.appendChild(formElement);
+}
+
+
+
+gui_editor.prototype.test_data_handling_config = function(){
+    var popup_parent = $("div", {class: "popup_parent"}).html(gui_editor.prototype.data_handling_config.form[0]);
+    const pp = document.getElementById("popups");
+    pp.appendChild(popup_parent);
+}
 
 /*
  * box to represent dependencies -- note that
@@ -2086,15 +2192,17 @@ gui_editor.prototype.new_stage = function (name, label) {
     // this.state['campaign']['campaign_stage_list'] += " " + k;
     this.state['campaign']['campaign_stage_list'] += "," + k;
     k = 'campaign_stage ' + k;
+    
     this.state[k] = {
         'name': label,
         'campaign_keywords': null,
         'vo_role': null,
         // 'state': null,
         'software_version': null,
-        'sam_dataset_or_split_data': null,
-        'data_dispatcher_dataset_query': null,
-        'data_dispatcher_project_id': null,
+        'sam_settings': null,
+        'data_dispatcher_settings': null,
+        //'data_dispatcher_dataset_query': null,
+       // 'data_dispatcher_project_id': null,
         //'data_handling_service': null,
         'cs_split_type': null,
         'test_split_type': null,

@@ -10,7 +10,7 @@
                         <tbody >
                             <tr>
                                 <td><a>Name</a></td>
-                                <td><input type="text" id="campaign_defaults_name" value="{{cd['defaults']['name']}}"></td>
+                                <td><input type="text" id="campaign_defaults_name" value="{{cd.get('defaults', {}).get('name', '')}}"></td>
                             </tr>
                             <tr>
                                 <td><a>Campaign Keywords</a></td>
@@ -19,75 +19,75 @@
                             </tr>
                             <tr>
                                 <td><a>VO Role</a></td>
-                                <td><input type="text" id="campaign_defaults_vo_role" value="{{cd['defaults']['vo_role']}}"></td>
+                                <td><input type="text" id="campaign_defaults_vo_role" value="{{cd.get('defaults', {}).get('vo_role')}}"></td>
                             </tr>
                             <tr>
                                 <td><a>Software Version</a></td>
-                                <td><input type="text" id="campaign_defaults_software_version" value="{{cd['defaults']['software_version']}}"></td>
+                                <td><input type="text" id="campaign_defaults_software_version" value="{{cd.get('defaults', {}).get('software_version')}}"></td>
                             </tr>
                             <tr>
                                 <td><a>Data Handling Service</a></td>
                                 <td>
                                     <select type="text" id="campaign_defaults_data_handling_service_dropdown">
-                                        <option value="data_dispatcher" {% if cd['defaults']['data_handling_service'] == 'data_dispatcher' %}selected{% endif %} >Data Dispatcher</option>
-                                        <option value="sam" {% if cd['defaults']['data_handling_service'] == 'sam' %}selected{% endif %}>SAM</option>
+                                        <option value="data_dispatcher" {% if data_handling_service == 'data_dispatcher' %}selected{% endif %} >Data Dispatcher</option>
+                                        <option value="sam" {% if data_handling_service == 'sam' %}selected{% endif %}>SAM</option>
                                     </select>
                                 </td>
                             </tr>
-                            <tr class="sam_group" {% if cd['defaults']['data_handling_service'] == 'data_dispatcher' %}style="display:none;"{% endif %}>
+                            <tr class="sam_group" {% if data_handling_service == 'data_dispatcher' %}style="display:none;"{% endif %}>
                                 <td><a>Sam Dataset / Split Data</a></td>
-                                <td><input type="text" id="campaign_defaults_sam_dataset_or_split_data" value="{{cd['defaults']['sam_dataset_or_split_data']}}"></td>
+                                <td><input type="text" id="campaign_defaults_dataset_or_split_data" value="{{cdh['sam'].get('dataset_or_split_data')}}"></td>
                             </tr>
-                            <tr class="dd_group" {% if cd['defaults']['data_handling_service'] == 'sam' %}style="display:none;"{% endif %}>
+                            <tr class="dd_group" {% if data_handling_service == 'sam' %}style="display:none;"{% endif %}>
                                 <td><a>Data Dispatcher Project ID Override</a></td>
-                                <td><input type="text" id="campaign_defaults_data_dispatcher_project_id" value="{{cd['defaults']['data_dispatcher_project_id']}}"></td>
+                                <td><input type="text" id="campaign_defaults_data_dispatcher_project_id" value="{{cdh['data_dispatcher'].get('data_dispatcher_project_id')}}"></td>
                             </tr>
-                            <tr class="dd_group" {% if cd['defaults']['data_handling_service'] == 'sam' %}style="display:none;"{% endif %}>
+                            <tr class="dd_group" {% if data_handling_service == 'sam' %}style="display:none;"{% endif %}>
                                 <td><a>Data Dispatcher Dataset Query</a></td>
-                                <td><input type="text" id="campaign_defaults_data_dispatcher_dataset_query" value="{{cd['defaults']['data_dispatcher_dataset_query']}}"></td>
+                                <td><input type="text" id="campaign_defaults_data_dispatcher_dataset_query" value="{{cdh['data_dispatcher'].get('data_dispatcher_dataset_query')}}"></td>
                             </tr>
                             <tr>
                                 <td><a>CS Split Type</a></td>
-                                <td><input type="text" id="campaign_defaults_cs_split_type" value="{{cd['defaults']['cs_split_type']}}" disabled/></td>
+                                <td><input type="text" id="campaign_defaults_cs_split_type" value="{{cd.get('defaults', {}).get('cs_split_type')}}" disabled/></td>
                                 <td><button type="text" id="campaign_defaults_cs_split_type_edit">Edit</button></td>
                             </tr>
                             <tr>
                                 <td><a>Test Split Type</a></td>
-                                <td><input type="text" id="campaign_defaults_test_split_type" value="{{cd['defaults']['test_split_type']}}" disabled/></td>
+                                <td><input type="text" id="campaign_defaults_test_split_type" value="{{cd.get('defaults', {}).get('test_split_type')}}" disabled/></td>
                                 <td><button type="text" id="campaign_defaults_test_split_type_edit">Edit</button></td>
                             </tr>
                             <tr>
                                 <td><a>Default Clear Cronjob</a></td>
-                                <td><input type="checkbox" id="campaign_defaults_default_clear_cronjob" checked="{{cd['defaults']['default_clear_cronjob']}}"/></td>
+                                <td><input type="checkbox" id="campaign_defaults_default_clear_cronjob" checked="{{cd.get('defaults', {}).get('default_clear_cronjob', False)}}"/></td>
                             </tr>
                             <tr>
                                 <td><a>Completion Type</a></td>
                                 <td>
                                     <select type="text" id="campaign_defaults_completion_type_dropdown">
-                                        <option value="complete" {% if cd['defaults']['completion_type'] == 'complete' %}selected{% endif %} >Complete</option>
-                                        {% if cd['defaults']['data_handling_service'] == 'sam' %}
-                                            <option value="located" {% if cd['defaults']['completion_type'] == 'located' %}selected{% endif %}>Located</option>
+                                        <option value="complete" {% if cd.get('defaults', {}).get('completion_type', 'located') == 'complete' %}selected{% endif %} >Complete</option>
+                                        {% if data_handling_service == 'sam' %}
+                                            <option value="located" {% if cd.get('defaults', {}).get('completion_type', 'located') == 'located' %}selected{% endif %}>Located</option>
                                         {% endif %}
                                     </select>
                                 </td>
                             </tr>
                             <tr>
                                 <td><a>Completion %</a></td>
-                                <td><input type="text" id="campaign_defaults_completion_pct" value="{{cd['defaults']['completion_pct']}}"/></td>
+                                <td><input type="text" id="campaign_defaults_completion_pct" value="{{cd.get('defaults', {}).get('completion_pct', None)}}"/></td>
                             </tr>
                             <tr>
                                 <td><a>Param Overrides</a></td>
-                                <td><input type="text" id="campaign_defaults_param_overrides" value='{{cd["defaults"]["param_overrides"] |safe}}' disabled/></td>
+                                <td><input type="text" id="campaign_defaults_param_overrides" value='{{cd.get("defaults", {}).get("param_overrides") | safe}}' disabled/></td>
                                 <td><button type="text" id="campaign_defaults_param_overrides_edit">Edit</button></td>
                             </tr>
                             <tr>
                                 <td><a>Test Param Overrides</a></td>
-                                <td><input type="text" id="campaign_defaults_test_param_overrides" value='{{cd["defaults"]["test_param_overrides"]}}' disabled/></td>
+                                <td><input type="text" id="campaign_defaults_test_param_overrides" value='{{cd.get("defaults", {}).get("test_param_overrides", None)}}' disabled/></td>
                                 <td><button type="text" id="campaign_defaults_test_param_overrides_edit">Edit</button></td>
                             </tr>
                             <tr>
                                 <td><a>Merge Overrides</a></td>
-                                <td><input type="checkbox" id="campaign_defaults_merge_overrides" checked="{{cd['defaults']['merge_overrides']}}"/></td>
+                                <td><input type="checkbox" id="campaign_defaults_merge_overrides" checked="{{cd.get('defaults', {}).get('merge_overrides', None)}}"/></td>
                             </tr>
                             <tr>
                                 <td><a>Login Setup</a></td>
@@ -100,7 +100,7 @@
                                 <td>
                                     <select id="campaign_defaults_job_type_dropdown">
                                         {% for name, job_type in jt.items() %}
-                                            {% if name == cd['defaults']['job_type'] %}
+                                            {% if name == cd.get('defaults', {}).get('job_type') %}
                                                 <option value="{{job_type.job_type_id}}" selected>{{name}}</option>
                                             {% else %}
                                                 <option value="{{job_type.job_type_id}}">{{name}}</option>
@@ -111,11 +111,11 @@
                             </tr>
                             <tr>
                                 <td><a>Stage Type</a></td>
-                                <td><input type="text" id="campaign_defaults_stage_type" value="{{cd['defaults']['stage_type']}}"/></td>
+                                <td><input type="text" id="campaign_defaults_stage_type" value="{{cd.get('defaults', {}).get('stage_type', '')}}"/></td>
                             </tr>
                             <tr>
                                 <td><a>Output Ancestor Depth</a></td>
-                                <td><input type="text" id="campaign_defaults_output_ancestor_depth" value="{{cd['defaults']['output_ancestor_depth']}}"/></td>
+                                <td><input type="text" id="campaign_defaults_output_ancestor_depth" value="{{cd.get('defaults', {}).get('output_ancestor_depth', '')}}"/></td>
                             </tr>
                         </tbody>
                         <tfoot>

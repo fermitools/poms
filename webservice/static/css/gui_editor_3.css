@@ -147,6 +147,19 @@ div.box.selected {
     box-shadow: 10px 10px 20px grey;
 }
 
+.form-field{
+    margin: 3px !important;
+}
+.form-field:hover label {
+    pointer-events: none;
+}
+.form-field:hover label i {
+    pointer-events:painted;
+}
+.form-field:hover input[type="checkbox"], .form-field:hover select{
+    cursor: pointer;
+}
+
 .helpbutton:before {
     content: "\f059";
     font-family: "Icons";
@@ -169,9 +182,9 @@ div.box.selected {
   float: right;
 }
 
-.wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger; }
-.wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger; }
-.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger; }
+.wakefields:before { content: "\25a6"; width: 1em; height: 1em; font-size: larger; }
+.wakedeps:before { content: "\269f"; width: 1em; height: 1em;  font-size: larger; }
+.deletebutton:before { content: "\267b"; width: 1em; height: 1em;  font-size: larger; }
 
 #outer_gui_editor_frame {
     width: 1000px;
