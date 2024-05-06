@@ -1,5 +1,7 @@
 import cherrypy
 import os
+
+from toml_parser import TConfig
 from .get_user import get_user
 from .poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy import and_, text, exists
@@ -48,8 +50,9 @@ class Ctx:
         self.config_get = config_get if config_get else cherrypy.config.get
         if not os.environ.get("WEB_CONFIG", None):
             os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
-        self.web_config = web_config if web_config else ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+        #self.web_config = web_config if web_config else ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = TConfig()
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
         self.experiment = (

@@ -18,9 +18,11 @@ from poms.webservice.poms_model import FaultyRequest
 import poms.webservice.logit as logit
 import configparser
 
-config = configparser.ConfigParser()
-config.read(os.environ["WEB_CONFIG"])
+from toml_parser import TConfig
 
+#config = configparser.ConfigParser()
+#config.read(os.environ["WEB_CONFIG"])
+config = TConfig()
 # shut up annoying InsecureRequestWarnings
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 

@@ -30,9 +30,10 @@ from cryptography.fernet import Fernet
 from sqlalchemy import and_, distinct, desc
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-
-poms_config = configparser.ConfigParser()
-poms_config.read(os.environ.get("WEB_CONFIG","/home/poms/poms/webservice/poms.ini"))
+from toml_parser import TConfig
+#poms_config = configparser.ConfigParser()
+#poms_config.read(os.environ.get("WEB_CONFIG"))
+poms_config = TConfig()
 PIPE = -1
 
 def timestamp_to_readable(timestamp):
@@ -63,6 +64,9 @@ class DMRService:
         self.rucio_client = None
         self.test = None
         self.config = config
+        if not self.config:
+            cherrypy.config["Shrek"] = toml.load(os.environ.get("SHREK_CONFIG"))
+            self.config = cherrypy.config["Shrek"]
         
     
     def initialize_session(self, ctx, agent_session=None):
@@ -722,8 +726,8 @@ class DMRService:
         return retval
 
     def _authorize_agent(self, ctx, agent_header):
-            queue = LocalJsonQueue(ctx.web_config.get("POMS", "submission_records_path"))
-            return queue.authorize_agent(ctx, agent_header)
+            queue = LocalJsonQueue(ctx.web_config)
+            return queue.authorize_agent(agent_header)
         
     def calculate_dd_project_completion(self, ctx, agent_header, dd_submission_id = None, dd_submission_ids=None):
         print("Submission Agent | Authorizing Agent | %s" % agent_header)

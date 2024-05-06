@@ -27,6 +27,8 @@ from .poms_model import Submission, CampaignStage, Experimenter, ExperimentsExpe
 from .utc import utc
 from .SAMSpecifics import sam_specifics
 import shutil
+
+import toml
 from urllib.parse import unquote
 from cryptography.fernet import Fernet
 class FilesStatus:
@@ -559,7 +561,7 @@ class FilesStatus:
                         
                         # This is a recently submitted job, we will initialize our new queue system which
                         # is monitored by the submission_agent. 
-                        queue = LocalJsonQueue(ctx.web_config.get("POMS", "submission_records_path"))
+                        queue = LocalJsonQueue(ctx.web_config)
                         # Enqueue an item
                         queue.enqueue({"pomsTaskID": submission_id, "id": job_id, "group": ctx.experiment, "queued_at": str(datetime.now(utc))})
                         
@@ -648,11 +650,13 @@ def extract_failure_status(file):
     
     
 class LocalJsonQueue:
-    def __init__(self, filepath):
-        self.queue_path = f"{filepath}/queue.json"
-        self.results_path = f"{filepath}/results.json"
-        self.queue_lock = FileLock(f"{filepath}/queue.json.lock")
-        self.results_lock = FileLock(f"{filepath}/results.json.lock")
+    def __init__(self, cfg):
+        self.queue_config = toml.load(cfg.get("POMS", "queue_file_path"))
+        self.queue_path = self.queue_config["queue"]["queue_file"]
+        self.queue_lock =  FileLock(self.queue_config["queue"]["queue_lock_file"])
+        self.results_path =  self.queue_config["queue"]["results_file"] 
+        self.results_lock =  FileLock(self.queue_config["queue"]["results_lock_file"])
+        
         
     def enqueue(self, item):
         with self.queue_lock:
@@ -706,9 +710,9 @@ class LocalJsonQueue:
                     exit(1)
         return file_session_data
     
-    def authorize_agent(self, ctx, agent_header):
-        keypath = ctx.web_config.get("POMS", "agent_key")
-        host = ctx.web_config.get("POMS", "POMS_HOST")
+    def authorize_agent(self, agent_header):
+        keypath = self.queue_config["queue"]["agent_key"]
+        host = self.queue_config["queue"]["server"]
         session = self.fetch_session()
         with open(keypath, 'rb') as keyfile:
             key = keyfile.read()
@@ -720,7 +724,7 @@ class LocalJsonQueue:
         agent_id = cipher_suite.decrypt(agent_id)
         agent_id = agent_id.decode('utf-8')
         
-        secret = ctx.web_config.get("POMS", "agent_secret")
+        secret = self.queue_config["queue"]["agent_secret"]
         evaluate = {
             "username": "submission_agent",
             "agent_id": agent_id,

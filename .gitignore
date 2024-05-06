@@ -46,14 +46,13 @@ test/rucio_metacat_sample_dataset_generator/rucio_client.py
 bin/db_equalizer.py
 bin/db_equalizing_script.sql
 documentation
+alma9_setup
 
 webservice/config/shrek.toml
 config/shrek/dune-data-dispatcher.sh
 test/set_hypot_config_shrek
 tmp/*
-submission_broker/records/queue.json
-submission_broker/records/results.json
-submission_broker/records/results.json.lock
-submission_broker/records/queue.json.lock
+submission_broker/records/*.json
+submission_broker/records/*.lock
 submission_broker/config/old/submission_agent.cfg
 submission_broker/config/*

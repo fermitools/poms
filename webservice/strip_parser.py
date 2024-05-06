@@ -3,8 +3,11 @@ import os
 
 class ConfigParser():
     def __init__(self):
-        self.config = configparser.ConfigParser()
-        self.config.read(os.environ["WEB_CONFIG"])
+        if "WEB_CONFIG" in os.environ:
+            self.config = configparser.ConfigParser()
+            self.config.read(os.environ["WEB_CONFIG"]) 
+        else:
+            raise EnvironmentError("Missing Configuration")
         
     
     def get(self, section, option, *, raw=False, vars=None, fallback=None):

@@ -78,11 +78,11 @@ from .Ctx import Ctx
 #
 # we have a routine here we give to cherrypy to format errors
 #
-
+from toml_parser import TConfig
 def error_response():
-    web_config = ConfigParser()
-    web_config.read(os.environ["WEB_CONFIG"])
-    
+    #web_config = ConfigParser()
+    #web_config.read(os.environ["WEB_CONFIG"])
+    web_config = TConfig()
     dump = ""
     if cherrypy.config.get("dump", True):
         dump = cherrypy._cperror.format_exc()
@@ -135,8 +135,9 @@ class PomsService:
         # USE post_initialize if you need to log data!!!
         ##
         global global_version
-        self.web_config = ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+        #self.web_config = ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = TConfig()
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")

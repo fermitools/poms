@@ -7,18 +7,17 @@ and report it into POMS
 import logging
 import os
 import time
-from http.client import HTTPConnection
-import requests
 import configparser
 import json
 import argparse
 import uuid
 
+import requests
+
 from datetime import datetime
-
-from local_queue import SubmissionQueue
-
+from http.client import HTTPConnection
 from helper_functions import *
+from local_queue import SubmissionQueue
 
 
 HTTPConnection.debuglevel = 1

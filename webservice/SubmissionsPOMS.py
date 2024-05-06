@@ -1130,7 +1130,7 @@ class SubmissionsPOMS:
         if s.parent_obj:
             s = s.parent_obj
 
-        if not ctx.config_get("poms.launch_recovery_jobs", False):
+        if not ctx.web_config.get("POMS", "launch_recovery_jobs"):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
@@ -1185,7 +1185,7 @@ class SubmissionsPOMS:
     def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
         logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
         self.init_statuses(ctx)
-        if not ctx.config_get("poms.launch_recovery_jobs", False):
+        if not ctx.web_config.get("POMS", "launch_recovery_jobs"):
             logit.log("recovery launches disabled")
             return 1
 

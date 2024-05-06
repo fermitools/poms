@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import json
 import sys
 import os
 import os.path
@@ -10,6 +11,7 @@ import urllib.parse
 import argparse
 import logging
 import logging.config
+
 from markupsafe import Markup
 
 import cherrypy
@@ -20,6 +22,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
 import toml
+from toml_parser import TConfig
 
 from prometheus_client import make_wsgi_app
 
@@ -231,39 +234,34 @@ def parse_command_line():
 # if __name__ == '__main__':
 run_it = True
 if run_it:
-
-    poms_config_path = "config/poms.ini"
-    shrek_config_path = "config/shrek.toml"
     parser, args = parse_command_line()
     if args.config:
         poms_config_path = args.config
+    elif "WEB_CONFIG" in os.environ:
+        poms_config_path = os.environ["WEB_CONFIG"]
+    else:
+        raise EnvironmentError("Missing Configuration")
     if args.shrek_config:
         shrek_config_path = args.shrek_config
+    elif "SHREK_CONFIG" in os.environ:
+        shrek_config_path = os.environ["SHREK_CONFIG"]
+    else:
+        raise EnvironmentError("Missing Configuration")
+    
+    config = TConfig(**{
+        "HOME": os.environ["HOME"],
+        "POMS_DIR": f"{os.environ['HOME']}/poms"
+    })
 
-    #
-    # make %(HOME) and %(POMS_DIR) work in various sections
-    #
-    confs = dedent(
-        """
-       [DEFAULT]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-    """
-        % os.environ
-    )
-
-    poms_cf = open(poms_config_path, "r")
-    confs = confs + poms_cf.read()
-    poms_cf.close()
     
     with open(shrek_config_path, 'r') as shrek_cf:
         shrek_config = toml.load(shrek_cf)
-    
-    
+        
+    config["Shrek"] = shrek_config
+    cherrypy.config["Shrek"] = shrek_config
+    cherrypy_config = config.get_cherrypy_config()
     try:
-        cherrypy.config.update(io.StringIO(confs))
-        cherrypy.config["Shrek"] = shrek_config
-        # cherrypy.config.update(poms_config_path)
+        cherrypy.config.update(cherrypy_config)
     except IOError as mess:
         print(mess, file=sys.stderr)
         parser.print_help()
@@ -273,7 +271,9 @@ if run_it:
     # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
+    cherrypy_config = config.get_cherrypy_config()
+    
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, cherrypy_config)
     cherrypy.tree.graft(make_wsgi_app(), poms_instance.path + "/metrics")
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()

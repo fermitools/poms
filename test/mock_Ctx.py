@@ -5,6 +5,7 @@
 from poms.webservice.poms_model import Experimenter
 from configparser import ConfigParser
 import DBHandle
+from toml_parser import TConfig
 import utils
 import os
 config = ConfigParser()
@@ -81,8 +82,9 @@ class Ctx:
 
         self.db = db if db else DBHandle.DBHandle().get()
         self.config_get = config_get if config_get else utils.get_config().get
-        self.web_config = web_config if web_config else ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+        #self.web_config = web_config if web_config else ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = TConfig()
         self.headers_get = headers_get if headers_get else fakeheaders.get
         self.sam = sam if sam else None
         self.experiment = experiment if experiment else pathv[2] if len(pathv) >= 4 else None

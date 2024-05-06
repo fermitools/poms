@@ -3,29 +3,30 @@ import copy
 import json
 import os
 
+import toml
 
 from cryptography.fernet import Fernet
 from datetime import datetime
-from filelock import FileLock
 from helper_functions import record_queue_log, utc, set_run_number, set_run_start
+from filelock import FileLock
 
 
 class SubmissionQueue:
     def __init__(self, cfg, agent_id):
         set_run_start(datetime.now(utc))
-        _filepath = cfg.get("submission_agent", "submission_records_path")
+        queue_config = toml.load(cfg.get("submission_agent", "queue_file_path"))
         self.poms_running_query = cfg.get("submission_agent", "poms_running_query")
-        self.queue_path = f"{_filepath}/queue.json"
-        self.completed_submissions_path = f"{_filepath}/results.json"
-        self.queue_lock = FileLock(f"{_filepath}/queue.json.lock")
-        self.completed_submissions_lock = FileLock(f"{_filepath}/queue.json.lock")
+        self.queue_path = queue_config["queue"]["queue_file"]
+        self.queue_lock =  FileLock(queue_config["queue"]["queue_lock_file"])
+        self.completed_submissions_path =  queue_config["queue"]["results_file"] 
+        self.completed_submissions_lock =  FileLock(queue_config["queue"]["results_lock_file"])
         self.agent_id = agent_id
         self.session = None
         self.run_number = None
         self._set_instance(
-            keypath = cfg.get("submission_agent", "agent_key"),
-            secret = cfg.get("submission_agent", "agent_secret"),
-            server = cfg.get("submission_agent", "server")
+            keypath = queue_config["queue"]["agent_key"], 
+            secret = queue_config["queue"]["agent_secret"],
+            server = queue_config["queue"]["server"] 
         )
         self.update_results = False
         
