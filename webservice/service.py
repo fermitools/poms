@@ -15,17 +15,18 @@ from markupsafe import Markup
 import cherrypy
 from cherrypy.process import plugins
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
 from prometheus_client import make_wsgi_app
 
-from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment, FilterOutArchived
 from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
 from poms.webservice import jobsub_fetcher
 from poms.webservice import samweb_lite
+from poms.webservice import DMRService
 from poms.webservice import logging_conf
 from poms.webservice import logit
 
@@ -93,11 +94,12 @@ class SATool(cherrypy.Tool):
         the request terminates.
         """
         cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
-        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
+        self.dmr_service = DMRService.DMRService() # Data-Dispatcher/Metacat/Rucio
 
     def _setup(self):
         cherrypy.Tool._setup(self)
@@ -108,10 +110,11 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        cherrypy.request.dmr_service = self.dmr_service
         try:
             # Disabiling pylint false positives
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
             # restart database connection
@@ -119,19 +122,21 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.start()
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
-            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):
         # flushing here deletes it too soon...
         # cherrypy.request.jobsub_fetcher.flush()
         cherrypy.request.samweb_lite.flush()
+        cherrypy.request.dmr_service.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
+        cherrypy.request.dmr_service = None
         self.session.remove()
 
 

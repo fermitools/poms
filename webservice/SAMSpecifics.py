@@ -1,10 +1,10 @@
 from datetime import datetime
 from . import logit
-from .poms_model import CampaignDependency, Submission
-from sqlalchemy import func
+from .poms_model import CampaignDependency, Submission, Campaign, CampaignStage
+from sqlalchemy import func, and_
 from sqlalchemy.orm.attributes import flag_modified
 import uuid
-
+import re
 
 
 class sam_specifics:
@@ -52,6 +52,7 @@ class sam_specifics:
 
     def create_recovery_dataset(self, s, rtype, rlist):
 
+        keywords = s.campaign_stage_obj.campaign_obj.campaign_keywords
         isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
 
@@ -79,7 +80,7 @@ class sam_specifics:
                 dataset = s.submission_params.get("dataset")
             elif s.project:
                 # details = samhandle.fetch_info(
-                details = ctx.sam.fetch_info(experiment, s.project, dbhandle)
+                details = self.ctx.sam.fetch_info(s.job_type_snapshot_obj.experiment, s.project, self.ctx.db)
                 dataset = details["dataset"]
             else:
                 dataset = None
@@ -121,7 +122,7 @@ class sam_specifics:
             )
 
         try:
-
+            recovery_dims = self.try_format_with_keywords(recovery_dims, s.campaign_stage_snapshot_obj.campaign_obj.campaign_keywords)
             logit.log("counting files dims %s" % recovery_dims)
             nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=self.ctx.db)
            
@@ -216,6 +217,8 @@ class sam_specifics:
         )
 
         dims = "%s and %s" % (basedims, dim_bits)
+        dims = self.try_format_with_keywords(dims, s.campaign_stage_obj.campaign_obj.campaign_keywords)
+        
         new_dname_nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, dims, dbhandle=self.ctx.db)
         logit.log("count files: defname %s has %d files" % (dname, cur_dname_nfiles))
         logit.log("count files: new dimensions has %d files" % new_dname_nfiles)
@@ -249,6 +252,18 @@ class sam_specifics:
         self.ctx.db.commit()
 
         return dname
+    
+    # Adds campaign keywords into applicable strings.
+    def try_format_with_keywords(self, query, campaign_keywords=None):
+        try:
+            if campaign_keywords and bool(re.search(r'%\(\w+\)s', query)):
+                query = query % campaign_keywords
+                return query % campaign_keywords
+            else:
+                return query
+        except Exception as e:
+            logit.log("SAMSpecifics | try_format_with_keywords | Error during formatting: %s" % e)
+            return query
 
     def get_file_stats_for_submissions(self, submission_list, experiment, just_output=False):
         #
@@ -262,12 +277,28 @@ class sam_specifics:
         all_kids_needed = []
         all_kids_decl_needed = []
         output_files = []
+        
         # finished_flying_needed = []
+        
+        campaign = self.ctx.db.query(Campaign).join(
+                CampaignStage, Campaign.campaign_id == CampaignStage.campaign_id
+            ).join(
+                Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id
+            ).filter(
+                    Submission.submission_id.in_([sub.submission_id for sub in submission_list])
+            ).first()
+        
+        keywords = campaign.campaign_keywords if campaign else None
+        
+        
         for s in submission_list:
+            
             summary_needed.append(s)
             basedims = "snapshot_for_project_name %s " % s.project
+            basedims = self.try_format_with_keywords(basedims, keywords)
             base_dim_list.append(basedims)
 
+            
             isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
             ischildof = "ischildof:(" * s.campaign_stage_obj.output_ancestor_depth
             isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
@@ -278,6 +309,7 @@ class sam_specifics:
                 s.campaign_stage_snapshot_obj.software_version,
                 isclose,
             )
+            somekiddims = self.try_format_with_keywords(somekiddims, keywords)
             some_kids_needed.append(somekiddims)
 
             somekidsdecldims = "%s and %s version %s with availability anylocation %s" % (
@@ -286,6 +318,7 @@ class sam_specifics:
                 s.campaign_stage_snapshot_obj.software_version,
                 isclose,
             )
+            somekidsdecldims = self.try_format_with_keywords(somekidsdecldims, keywords)
             some_kids_decl_needed.append(somekidsdecldims)
 
             allkiddecldims = basedims
@@ -317,16 +350,23 @@ class sam_specifics:
                     ischildof,
                     basedims,
                     isclose,
-                    s.created.strftime("%Y-%m-%d %H:%M:%S"),
+                    s.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
                     dimbits,
                     s.campaign_stage_snapshot_obj.software_version,
                 )
+                
+            allkiddims = self.try_format_with_keywords(allkiddims, keywords)
             all_kids_needed.append(allkiddims)
+            
+            allkiddecldims = self.try_format_with_keywords(allkiddecldims, keywords)
             all_kids_decl_needed.append(allkiddecldims)
+            
+            outputfiledims = self.try_format_with_keywords(outputfiledims, keywords)
             output_files.append(outputfiledims)
         #
         # -- now call parallel fetches for items
         #
+
         output_list = self.ctx.sam.count_files_list(experiment, output_files)
         if just_output:
             summary_list = None
@@ -340,7 +380,6 @@ class sam_specifics:
             all_kids_decl_list = self.ctx.sam.count_files_list(experiment, all_kids_decl_needed)
         subs = set([x.submission_id for x in submission_list])
         existing = self.ctx.db.query(Submission).filter(Submission.submission_id.in_(subs)).all()
-        logit.log("existing, got s: %s" % repr(existing))
         if existing and summary_list:
             for i in range(0,len(submission_list)):
                 logit.log("sub_%d: %s" % (i, submission_list[i]))
@@ -352,6 +391,7 @@ class sam_specifics:
                     self.ctx.db.add(s[0])
                    
         self.ctx.db.commit()
+        
         return (
             summary_list,
             some_kids_decl_needed,

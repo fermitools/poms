@@ -9,12 +9,13 @@ class stagedfiles:
        files and deliver them on each iteration
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.stage_project = cs.dataset
-        self.n = int(cs.cs_split_type[12:].strip(")"))
+        self.n = int(cs.cs_split_type[12:].strip(")"))  if not self.test else int(cs.test_split_type[12:].strip(")"))
 
     def params(self):
         return []

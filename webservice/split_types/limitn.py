@@ -6,16 +6,17 @@ class limitn:
        Useful for analysis users who want a limited set
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.samhandle = samhandle
         self.dbhandle = dbhandle
         self.ds = cs.dataset
         self.id = uuid.uuid4()
         try:
-            self.n = int(cs.cs_split_type[7:].strip(")"))
+            self.n = int(cs.cs_split_type[7:].strip(")")) if not self.test else int(cs.test_split_type[7:].strip(")"))
         except:
-            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type)
+            raise SyntaxError("unable to parse integer parameter from '%s'" % cs.cs_split_type if not self.test else cs.test_split_type)
 
     def params(self):
         return ["n"]

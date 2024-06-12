@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from collections import deque
 import urllib.request
@@ -208,8 +208,15 @@ class samweb_lite:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
                 replies = executor.map(lambda url: safe_get(sess, url, dbhandle=dbhandle), urls)
+                # Replies is a generator that gets consumed once you start iterating over it in the for loop. Once it's exhausted, we cannot iterate over it again. 
+                # This causses an error "cannot schedule new futures after shutdown" when we try to iterate over replies.
+                # To fix this, we convert replies to a list before the for loop so that we can iterate over it as needed.
+                replies_list = list(replies)
+                executor.shutdown(wait=True)  # Wait for all tasks to complete and then shut down the executor
+        
         infos = deque()
-        for r in replies:
+        
+        for r in replies_list:
             if r:
                 try:
                     info = proj_class_dict(r.json())
@@ -370,10 +377,10 @@ class samweb_lite:
 
     def count_files_list(self, experiment, dims_list):
         def getit(req, url):
-            retries = 2
+            retries = 10
             r = req.get(url, verify=False)
             while r and r.status_code >= 500 and retries > 0:
-                time.sleep(5)
+                time.sleep(1)
                 retries = retries - 1
                 r = req.get(url, verify=False)
             if r:
@@ -391,20 +398,32 @@ class samweb_lite:
             % (base, experiment[i], urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])}))
             for i in range(len(dims_list))
         ]
+        replies = None
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 # replies = executor.map(getit, urls)
                 replies = executor.map(lambda url: getit(sess, url), urls)
+                # Replies is a generator that gets consumed once you start iterating over it in the for loop. Once it's exhausted, we cannot iterate over it again. 
+                # This causses an error "cannot schedule new futures after shutdown" when we try to iterate over replies.
+                # To fix this, we convert replies to a list before the for loop so that we can iterate over it as needed.
+                replies_list = list(replies)
+                executor.shutdown(wait=True)  # Wait for all tasks to complete and then shut down the executor
+        
         infos = deque()
-        for r in replies:
-            if r.text.find("query limit") > 0:
-                infos.append(-1)
-            else:
-                try:
-                    infos.append(int(r.text))
-                except BaseException as b:
-                    logit.log("Exception %s converting count_files response to int: %s" % (b, r.text))
-                    infos.append(-1)
+        if replies_list:
+            try:
+                for r in replies_list:
+                    if r.text.find("query limit") > 0:
+                        infos.append(-1)
+                    else:
+                        try:
+                            infos.append(int(r.text))
+                        except BaseException as b:
+                            logit.log("Exception %s converting count_files response to int: %s" % (b, r.text))
+                            infos.append(-1)
+            except Exception as e:
+                logit.log("Exception %s getting replies: %s" % (e, repr(replies)))
+        logit.log("URLS: %s" % urls)
         return infos
 
     def create_definition(self, experiment, name, dims):

@@ -21,7 +21,7 @@ import re
 
 import cherrypy
 from crontab import CronTab
-from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy import and_, distinct, func, or_, text, Integer, String
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 
@@ -558,12 +558,14 @@ class MiscPOMS:
         )
 
     # h3. split_type_javascript
-    def split_type_javascript(self, ctx):
+    def split_type_javascript(self, ctx, do_data_dispatcher=False):
         class fake_campaign_stage:
             # h3. __init__
-            def __init__(self, dataset="", cs_split_type=""):
+            def __init__(self, dataset="", cs_split_type="", cs_last_split = None, data_dispatcher_dataset_query = ""):
                 self.dataset = dataset
                 self.cs_split_type = cs_split_type
+                self.cs_last_split = cs_last_split
+                self.data_dispatcher_dataset_query = data_dispatcher_dataset_query
 
         modmap = {}
         docmap = {}
@@ -573,17 +575,17 @@ class MiscPOMS:
         modmap["None"] = None
         docmap["None"] = "No splitting is done"
         parammap["None"] = []
-
+            
+        logit.log("Is doing data_dispatcher: %s" % do_data_dispatcher)
         # make the import set POMS_DIR..
         importlib.import_module("poms.webservice")
-
-        gpath = "%s/webservice/split_types/*.py" % os.environ["POMS_DIR"]
+        gpath = "%s/webservice/%s/*.py" % (os.environ["POMS_DIR"], "dd_split_types" if do_data_dispatcher else "split_types")
         rlist.append("/* checking: %s */ " % gpath)
 
         split_list = glob.glob(gpath)
 
         modnames = [os.path.basename(x).replace(".py", "") for x in split_list]
-
+        
         fake_cs = fake_campaign_stage(dataset="null", cs_split_type="")
 
         for modname in modnames:
@@ -593,9 +595,12 @@ class MiscPOMS:
 
             fake_cs.cs_split_type = "%s(2)" % modname
 
-            mod = importlib.import_module("poms.webservice.split_types." + modname)
+            mod = importlib.import_module("poms.webservice.%s.%s" % ("dd_split_types" if do_data_dispatcher else "split_types" , modname))
             split_class = getattr(mod, modname)
-            inst = split_class(fake_cs, ctx.sam, ctx.db)
+            if do_data_dispatcher:
+                inst = split_class(ctx, fake_cs)
+            else:
+                inst = split_class(fake_cs, ctx.sam, ctx.db)
             poptxt = inst.edit_popup()
 
             if poptxt != "null":
@@ -647,7 +652,7 @@ class MiscPOMS:
         return rlist
 
     # h3. snapshot_parts
-    def snapshot_parts(self, ctx, s, campaign_stage_id):
+    def snapshot_parts(self, ctx, s, campaign_stage_id, keywords=None):
 
         cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         for table, snaptable, field, sfield, sid, tfield in [
@@ -669,14 +674,39 @@ class MiscPOMS:
                 "login_setup_snapshot_obj",
             ],
         ]:
-
             i = ctx.db.query(func.max(snaptable.updated)).filter(sfield == sid).first()
             j = ctx.db.query(table).filter(field == sid).first()
             if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
+                if keywords:
+                    logit.log(f"keywords: {keywords}")
                 for fieldname in list(columns.keys()):
-                    setattr(newsnap, fieldname, getattr(j, fieldname))
+                    if keywords:
+                        try:
+                            def navigate(item):
+                                if isinstance(item, str):
+                                    for keyword in keywords.keys():
+                                        if f"%({keyword})s" in item:
+                                            item = item.replace(f"%({keyword})s", keywords[keyword])
+                                elif isinstance(item, dict):
+                                    item = item % keywords
+                                elif isinstance(item, list):
+                                    for i in range(0, len(item)):
+                                        item[i] = navigate(item[i])
+                                return item
+                            value = navigate(getattr(j, fieldname))
+                            setattr(newsnap, fieldname, value)
+                        except KeyError as e:
+                            logit.log(f"Key error: {e}")
+                            pass
+                        except ValueError as e:
+                            logit.log(f"Value error: {e}")
+                            pass
+                        except Exception:
+                            setattr(newsnap, fieldname, getattr(j, fieldname))
+                    else:
+                        setattr(newsnap, fieldname, getattr(j, fieldname))
                 ctx.db.add(newsnap)
             else:
                 newsnap = ctx.db.query(snaptable).filter(snaptable.updated == i[0]).first()
