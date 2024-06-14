@@ -79,7 +79,7 @@ class sam_specifics:
                 dataset = s.submission_params.get("dataset")
             elif s.project:
                 # details = samhandle.fetch_info(
-                details = ctx.sam.fetch_info(experiment, s.project, dbhandle)
+                details = self.ctx.sam.fetch_info(s.job_type_snapshot_obj.experiment, s.project, self.ctx.db)
                 dataset = details["dataset"]
             else:
                 dataset = None
@@ -409,15 +409,14 @@ class sam_project_checker:
 
         self.n_project = self.n_project + 1
 
-        isparentof = "isparentof:( " * submission.campaign_stage_obj.output_ancestor_depth
-        isclose = ")" * submission.campaign_stage_obj.output_ancestor_depth
+        isparentof = "isparentof:( " * submission["output_ancestor_depth"]
+        isclose = ")" * submission["output_ancestor_depth"]
 
-        basedims = "snapshot_for_project_name %s " % submission.project
+        basedims = "snapshot_for_project_name %s " % submission["project"]
         allkiddims = basedims
-        plist = self.get_file_patterns(submission)
 
         prev = None
-        for pat in plist:
+        for pat in submission["dependency_file_patterns"]:
             if pat == "None":
                 pat = "%"
 
@@ -434,35 +433,36 @@ class sam_project_checker:
                 allkiddims,
                 isparentof,
                 pat,
-                submission.campaign_stage_snapshot_obj.software_version,
-                submission.created.strftime("%Y-%m-%dT%H:%M:%S%z"),
+                submission["software_version"],
+                submission["created"].strftime("%Y-%m-%dT%H:%M:%S%z"),
                 isclose,
             )
 
-        self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
+        self.lookup_exp_list.append(submission["experiment"])
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
 
     def add_non_project_submission(self, submission):
         # it's located but there's no project, so assume they are
         # defining the poms_depends_%(submission_id)s_1 dataset..
-        if submission.campaign_stage_obj.creator_role == "analysis":
+        if submission["creator_role"] == "analysis":
             allkiddims = "defname:poms_%s_depends_%s_1" % (
-                submission.campaign_stage_obj.experimenter_creator_obj.username,
-                submission.submission_id,
+                submission["username"],
+                submission["submission_id"],
             )
         else:
-            allkiddims = "defname:poms_depends_%s_1" % (submission.submission_id)
-        self.lookup_exp_list.append(submission.campaign_stage_snapshot_obj.experiment)
+            allkiddims = "defname:poms_depends_%s_1" % (submission["submission_id"])
+        self.lookup_exp_list.append(submission["experiment"])
         self.lookup_submission_list.append(submission)
         self.lookup_dims_list.append(allkiddims)
+        
 
-    def check_added_submissions(self, finish_up_submissions, res):
+    def check_added_submissions(self, finish_up_submissions, res, urls=None):
 
-        summary_list = self.ctx.sam.fetch_info_list(self.lookup_submission_list, dbhandle=self.ctx.db)
+        summary_list = self.ctx.sam.fetch_info_list(self.lookup_submission_list, dbhandle=self.ctx.db, urls=urls)
         count_list = self.ctx.sam.count_files_list(self.lookup_exp_list, self.lookup_dims_list)
         thresholds = []
-        logit.log("wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
+        logit.log(logit.DEBUG, "wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
         res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
 
         res.append("count_list: %s" % count_list)
@@ -502,5 +502,55 @@ class sam_project_checker:
             if val >= threshold and (threshold != 0 or submission.recovery_tasks_parent):
                 res.append("adding submission %s " % submission)
                 finish_up_submissions.add(submission.submission_id)
+
+        return finish_up_submissions, res
+    
+    def check_added_submissions_new(self, finish_up_submissions, res, urls=None):
+        
+        summary_list = self.ctx.sam.fetch_info_list(self.lookup_submission_list, dbhandle=self.ctx.db, urls=urls)
+        count_list = self.ctx.sam.count_files_list(self.lookup_exp_list, self.lookup_dims_list)
+        thresholds = []
+        logit.log(logit.DEBUG, "wrapup_tasks: summary_list: %s" % repr(summary_list))  # Check if that is working
+        res.append("wrapup_tasks: summary_list: %s" % repr(summary_list))
+
+        res.append("count_list: %s" % count_list)
+        res.append("thresholds: %s" % thresholds)
+        res.append("lookup_dims_list: %s" % self.lookup_dims_list)
+
+        for i in range(len(summary_list)):
+            submission = self.lookup_submission_list[i]
+            cfrac = submission["completion_pct"] / 100.0
+            if submission.get("files_consumed", None) == None:
+                submission["files_consumed"] = summary_list[i].get("tot_consumed", 0)
+                submission["update"].append("files_consumed")
+            if submission.get("files_generated", None) == None:
+                submission["files_generated"] = count_list[i]
+                submission["update"].append("files_generated")
+
+            if submission["completion_type"] == "complete":
+                # not zero, but should always pass...
+                threshold = 0.00001
+
+            elif submission.get("project", None):
+                threshold = summary_list[i].get("tot_consumed", 0) * cfrac
+            else:
+                # no project, so guess based on number of jobs in submit
+                # command?
+                p1 = submission["command_executed"].find("-N")
+                p2 = submission["command_executed"].find(" ", p1 + 3)
+                try:
+                    threshold = int(submission["command_executed"][p1 + 3 : p2]) * cfrac
+                except BaseException:
+                    threshold = 0
+
+            thresholds.append(threshold)
+            val = float(count_list[i])
+            if submission["completion_type"] == "complete":
+                if val == -1.0:
+                    val = 0.1
+            res.append("submission %s val %f threshold %f " % (submission["submission_id"], val, threshold))
+            if val >= threshold and (threshold != 0 or submission["recovery_tasks_parent"]):
+                res.append("adding submission %s " % submission)
+                finish_up_submissions[submission["submission_id"]] = submission
 
         return finish_up_submissions, res

@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
-import configparser
+#import configparser
 import ast
 import glob
 import importlib
@@ -602,8 +602,8 @@ class StagesPOMS:
 
         csq = (
             ctx.db.query(CampaignStage)
-            .options(joinedload("experiment_obj"))
-            .options(joinedload("campaign_obj"))
+            .options(joinedload(CampaignStage.experiment_obj))
+            .options(joinedload(CampaignStage.campaign_obj))
             .options(joinedload(CampaignStage.experimenter_holder_obj))
             .options(joinedload(CampaignStage.experimenter_creator_obj))
             .options(joinedload(CampaignStage.experimenter_updater_obj))
@@ -952,7 +952,7 @@ class StagesPOMS:
             logit.log("Error fetching/saving project name: %s" % repr(e))
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
-            .join("experimenter_creator_obj")
+            .join(Submission.experimenter_creator_obj)
             .filter(
                 Submission.campaign_stage_id.in_(campaign_stage_ids),
                 SubmissionHistory.submission_id == Submission.submission_id,
@@ -1087,6 +1087,30 @@ class StagesPOMS:
         except StopIteration:
             if camp.default_clear_cronjob:
                 self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
+            else:
+                try:
+                    with open(ctx.web_config.get("POMS","cronjob_analysis_file"),  "r+", encoding="utf-8") as file:
+                        errors = json.load(file)
+                        stage_id = str(camp.campaign_stage_id)
+                        failed_at = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+                        if "campaign_stage_id" not in errors:
+                            errors["campaign_stage_id"] = {}
+                        if stage_id not in errors["campaign_stage_id"]:
+                            errors["campaign_stage_id"][stage_id] = {}
+                        if "AssertionError" not in errors["campaign_stage_id"][stage_id]:
+                            errors["campaign_stage_id"][stage_id]["AssertionError"] = {
+                                "started_logging": failed_at,
+                                "occurrences": 1,
+                                "updated": failed_at
+                            }
+                        else:
+                            errors["campaign_stage_id"][stage_id]["AssertionError"]["occurrences"] += 1
+                            errors["campaign_stage_id"][stage_id]["AssertionError"]["updated"] = failed_at
+                        file.seek(0)
+                        json.dump(errors, file, indent=4)
+                        file.truncate()
+                except Exception as e:
+                    pass
             raise AssertionError("No more splits in this campaign.")
 
         ctx.db.commit()
@@ -1201,11 +1225,11 @@ class StagesPOMS:
 
             # make job for new -- use current link for product
             pdir = os.environ.get("POMS_DIR", "/etc/poms")
-            if pdir.find("/current/") <= 0:
-                # try to find a current symlink path that points here
-                tpdir = pdir[: pdir.rfind("poms", 0, len(pdir) - 1) + 4] + "/current"
-                if os.path.exists(tpdir):
-                    pdir = tpdir
+            #if pdir.find("/current/") <= 0:
+            #    # try to find a current symlink path that points here
+            #    tpdir = pdir[: pdir.rfind("poms", 0, len(pdir) - 1) + 4] + "/current"
+            #    if os.path.exists(tpdir):
+            #        pdir = tpdir
 
             job = my_crontab.new(
                 command="{}/cron/launcher --campaign_stage_id={} --launcher={}".format(

@@ -27,7 +27,7 @@ parser.add_option('--dev', action='store_const', const='dev', dest='test_client'
 parser.add_option('--int', action='store_const', const='int', dest='test_client' , metavar='',  help='use the int/integration instance of POMS')
 
 
-(options, args ) = parser.parse_args()
+(options, args) = parser.parse_args()
 if options.verbose:
     logging.getLogger().setLevel(logging.DEBUG)
 

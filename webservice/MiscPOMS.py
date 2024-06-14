@@ -647,7 +647,8 @@ class MiscPOMS:
         return rlist
 
     # h3. snapshot_parts
-    def snapshot_parts(self, ctx, s, campaign_stage_id):
+    # h3. snapshot_parts
+    def snapshot_parts(self, ctx, s, campaign_stage_id, keywords=None):
 
         cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         for table, snaptable, field, sfield, sid, tfield in [
@@ -675,8 +676,34 @@ class MiscPOMS:
             if i[0] is None or j is None or j.updated is None or i[0] < j.updated:
                 newsnap = snaptable()
                 columns = j._sa_instance_state.class_.__table__.columns
+                if keywords:
+                    logit.log(f"keywords: {keywords}")
                 for fieldname in list(columns.keys()):
-                    setattr(newsnap, fieldname, getattr(j, fieldname))
+                    if keywords:
+                        try:
+                            def navigate(item):
+                                if isinstance(item, str):
+                                    for keyword in keywords.keys():
+                                        if f"%({keyword})s" in item:
+                                            item = item.replace(f"%({keyword})s", keywords[keyword])
+                                elif isinstance(item, dict):
+                                    item = item % keywords
+                                elif isinstance(item, list):
+                                    for i in range(0, len(item)):
+                                        item[i] = navigate(item[i])
+                                return item
+                            value = navigate(getattr(j, fieldname))
+                            setattr(newsnap, fieldname, value)
+                        except KeyError as e:
+                            logit.log(f"Key error: {e}")
+                            pass
+                        except ValueError as e:
+                            logit.log(f"Value error: {e}")
+                            pass
+                        except Exception:
+                            setattr(newsnap, fieldname, getattr(j, fieldname))
+                    else:
+                        setattr(newsnap, fieldname, getattr(j, fieldname))
                 ctx.db.add(newsnap)
             else:
                 newsnap = ctx.db.query(snaptable).filter(snaptable.updated == i[0]).first()

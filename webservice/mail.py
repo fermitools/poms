@@ -1,8 +1,9 @@
 import smtplib
 from email.mime.text import MIMEText
-import configparser
+#import configparser
 import os
 import poms.webservice.logit as logit
+from toml_parser import TConfig
 
 
 class Mail:
@@ -11,8 +12,9 @@ class Mail:
 
     def __get_smtp_info(self):
         logit.log("Mail: in %s" % os.environ["POMS_DIR"])
-        config = configparser.ConfigParser()
-        config.read("../webservice/poms.ini")
+        #config = configparser.ConfigParser()
+        #config.read("../webservice/poms.ini")
+        config = TConfig()
         server = config.get("smtp", "server").strip('"')
         sender = config.get("smtp", "sender").strip('"')
         debug = config.getint("smtp", "debug")

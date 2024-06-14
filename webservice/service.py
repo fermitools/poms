@@ -15,7 +15,10 @@ from markupsafe import Markup
 import cherrypy
 from cherrypy.process import plugins
 
-from sqlalchemy import create_engine
+import toml
+from toml_parser import TConfig
+
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
@@ -110,8 +113,8 @@ class SATool(cherrypy.Tool):
         cherrypy.request.samweb_lite = self.samweb_lite
         try:
             # Disabiling pylint false positives
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
         except sqlalchemy.exc.UnboundExecutionError:
             # restart database connection
@@ -120,8 +123,8 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
             self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
-            self.session.execute("SET SESSION lock_timeout = '300s';")  # pylint: disable=E1101
-            self.session.execute("SET SESSION statement_timeout = '400s';")  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
+            self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
 
     def release_session(self):
@@ -152,6 +155,14 @@ class SessionTool(cherrypy.Tool):
 
     def establish_session(self):
         pass
+    
+class SessionExperiment:
+    def __init__(self, exp):
+        self.experiment = exp.experiment
+        self.name = exp.name
+        self.logbook = exp.logbook
+        self.snow_url = exp.snow_url
+        self.restricted = exp.restricted
 
 
 def urlencode_filter(s):
@@ -164,27 +175,60 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
-    
-    if not e:
-        exp =  "this experiment" 
-        if len(cherrypy.url().split("/")) > 5:
-            exp = cherrypy.url().split("/")[5]
-        raise cherrypy.HTTPError(
-            401, "%s is not a registered user for %s in the POMS database" % (get_user(), exp)
-        )
-
     roles = ["analysis", "production-shifter", "production", "superuser"]
+    exps = {}
+    e2e = None
+    if e.root is True:
+        e2e = cherrypy.request.db.query(Experiment)
+        for row in e2e:
+            exps[row.experiment] = roles
+    else:
+        e2e = (
+            cherrypy.request.db.query(ExperimentsExperimenters)
+            .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+            .filter(ExperimentsExperimenters.active.is_(True))
+        )
+        for row in e2e:
+            position = 0
+            if e.root is True:
+                position = 3
+            elif row.role == "superuser":
+                position = 3
+            elif row.role == "production":
+                position = 2
+            else:  # analysis
+                position = 1
+            exps[row.experiment] = roles[:position]
+
+    pathv = cherrypy.request.path_info.split("/")
+    if len(pathv) >= 4:
+        session_experiment = pathv[2]
+        session_role = pathv[3]
+    else:
+        # pick saved experiment/role
+        session_experiment = None
+        session_role = None
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
         dict(
+            session_role=session_role,
+            session_experiment=session_experiment,
+            user_authorization=exps.keys(),
+            allowed_roles=exps,
+            is_root=e.root,
+            experimenter_id=e.experimenter_id,
+            last_name=e.last_name,
+            first_name=e.first_name,
+            username=e.username,
             version=root.version,
+            hostname=socket.gethostname(),
             pomspath=root.path,
             docspath=root.docspath,
+            poms_servicenow_url = root.poms_servicenow_url,
             sam_base = root.sam_base,
             landscape_base = root.landscape_base,
             fifemon_base = root.fifemon_base,
-            hostname=socket.gethostname(),
             all_roles=roles,
             ExperimentsExperimenters=ExperimentsExperimenters,
         )
@@ -219,31 +263,34 @@ def parse_command_line():
 # if __name__ == '__main__':
 run_it = True
 if run_it:
-
-    configfile = "poms.ini"
     parser, args = parse_command_line()
     if args.config:
-        configfile = args.config
+        poms_config_path = args.config
+    elif "WEB_CONFIG" in os.environ:
+        poms_config_path = os.environ["WEB_CONFIG"]
+    else:
+        raise EnvironmentError("Missing Configuration")
+    #if args.shrek_config:
+    #    shrek_config_path = args.shrek_config
+    #if "SHREK_CONFIG" in os.environ:
+    #    shrek_config_path = os.environ["SHREK_CONFIG"]
+    #else:
+    #    raise EnvironmentError("Missing Configuration")
+    
+    config = TConfig(**{
+        "HOME": os.environ["HOME"],
+        "POMS_DIR": f"{os.environ['HOME']}/poms"
+    })
 
-    #
-    # make %(HOME) and %(POMS_DIR) work in various sections
-    #
-    confs = dedent(
-        """
-       [DEFAULT]
-       HOME="%(HOME)s"
-       POMS_DIR="%(POMS_DIR)s"
-    """
-        % os.environ
-    )
-
-    cf = open(configfile, "r")
-    confs = confs + cf.read()
-    cf.close()
-
+    
+    #with open(shrek_config_path, 'r') as shrek_cf:
+    #    shrek_config = toml.load(shrek_cf)
+        
+    #config["Shrek"] = shrek_config
+    #cherrypy.config["Shrek"] = shrek_config
+    cherrypy_config = config.get_cherrypy_config()
     try:
-        cherrypy.config.update(io.StringIO(confs))
-        # cherrypy.config.update(configfile)
+        cherrypy.config.update(cherrypy_config)
     except IOError as mess:
         print(mess, file=sys.stderr)
         parser.print_help()
@@ -253,7 +300,9 @@ if run_it:
     # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
+    cherrypy_config = config.get_cherrypy_config()
+    
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, cherrypy_config)
     cherrypy.tree.graft(make_wsgi_app(), poms_instance.path + "/metrics")
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()

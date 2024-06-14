@@ -3,7 +3,9 @@ import os
 from .get_user import get_user
 from .poms_model import Experimenter
 from sqlalchemy import text
-from configparser import ConfigParser
+from sqlalchemy.orm import scoped_session
+#from configparser import ConfigParser
+from toml_parser import TConfig
 
 # h2. Ctx "Context" class
 
@@ -23,7 +25,7 @@ class Ctx:
         username=None,
         role=None,
         experiment=None,
-        db=None,
+        db:scoped_session=None,
         config_get=None,
         headers_get=None,
         sam=None,
@@ -45,9 +47,10 @@ class Ctx:
             self.backend_pid = pid
         self.config_get = config_get if config_get else cherrypy.config.get
         if not os.environ.get("WEB_CONFIG", None):
-            os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
-        self.web_config = web_config if web_config else ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+            os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/prod.webservice.toml"
+        #self.web_config = web_config if web_config else ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = web_config if web_config else TConfig()
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
         self.experiment = (
@@ -56,7 +59,7 @@ class Ctx:
         self.role = role if role else pathv[3] if len(pathv) >= 4 else cherrypy.request.params.get("role", None)
 
         self.username = username if username else get_user()
-        rows = self.db.execute("select txid_current();")
+        rows = self.db.execute(text("select txid_current();"))
         for r in rows:
             self.dbtransaction = r[0]
         rows.close()
@@ -80,7 +83,7 @@ class Ctx:
     def __repr__(self):
         res = ["<Ctx:"]
         for k in self.__dict__:
-            if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect"):
+            if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect", "web_config"):
                 res.append("'%s': '...'," % k)
             else:
                 res.append("'%s': '%s'," % (k, self.__dict__[k]))

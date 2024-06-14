@@ -737,7 +737,12 @@ def base_path(test_client, config, tokens=False):
     return base
 
 def auth_token():
-    return os.environ['BEARER_TOKEN_FILE']
+    token_path = os.environ.get("BEARER_TOKEN_FILE", None)
+    if token_path and os.path.exists(token_path):
+        with open(token_path, "r", encoding="UTF-8") as f:
+            _token_string = f.read()
+            return _token_string.strip() 
+    return None
 
 def check_stale_token(options):
     token = auth_token()

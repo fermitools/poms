@@ -40,6 +40,7 @@ from jinja2 import Environment, PackageLoader
 import jinja2.exceptions
 import sqlalchemy.exc
 from sqlalchemy.inspection import inspect
+from toml_parser import TConfig
 from .get_user import get_user
 from .poms_method import poms_method, error_rewrite
 
@@ -66,7 +67,7 @@ from . import (
 # ORM model is in source:poms_model.py
 #
 
-from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
+from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter, ExperimentsExperimenters
 from .utc import utc
 
 from .Ctx import Ctx
@@ -78,8 +79,9 @@ from .Ctx import Ctx
 #
 
 def error_response():
-    web_config = ConfigParser()
-    web_config.read(os.environ["WEB_CONFIG"])
+    #web_config = ConfigParser()
+    #web_config.read(os.environ["WEB_CONFIG"])
+    web_config = TConfig()
     
     dump = ""
     if cherrypy.config.get("dump", True):
@@ -92,11 +94,10 @@ def error_response():
     redmine_url = web_config.get("FNAL", "redmine_url")
     servicenow = web_config.get("FNAL", "servicenow")
     poms_servicenow_url = web_config.get("POMS", "poms_servicenow_url")
-    body = template.render(message=message, pomspath=path, dump=dump, version=global_version, docspath=docspath, servicenow=servicenow)
+    body = template.render(message=message, pomspath=path, dump=dump, version=global_version, docspath=docspath, servicenow=servicenow, poms_servicenow_url=poms_servicenow_url)
     cherrypy.response.status = 500
     cherrypy.response.headers["content-type"] = "text/html"
     cherrypy.response.body = body.encode()
-    logit.log(dump)
 
 
 #
@@ -133,11 +134,13 @@ class PomsService:
         # USE post_initialize if you need to log data!!!
         ##
         global global_version
-        self.web_config = ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+        #self.web_config = ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = TConfig()
         self.jinja_env = Environment(loader=PackageLoader("poms.webservice", "templates"))
         self.path = cherrypy.config.get("pomspath", "/poms")
         self.docspath = cherrypy.config.get("docspath", "/docs")
+        self.poms_servicenow_url = self.web_config.get("POMS", "poms_servicenow_url")
         self.sam_base = self.web_config.get("SAM", "sam_base")
         self.landscape_base = self.web_config.get("FNAL", "landscape_base")
         self.fifemon_base = self.web_config.get("FNAL", "fifemon_base")
@@ -722,6 +725,13 @@ class PomsService:
     @poms_method(p=[{"p": "can_modify", "t": "Campaign", "item_id": "campaign_id"}])
     def mark_campaign_active(self, **kwargs):
         self.campaignsPOMS.mark_campaign_active(**kwargs)
+    
+    # Method for testing
+    #@poms_method(p=[{"p": "is_superuser"}], rtype="text")
+    #def maybe_relaunch_recoveries(self, **kwargs):
+    #    from tmp_subs import get_subs
+    #    temp_subs=get_subs()
+    #    self.submissionsPOMS.maybe_relaunch_recoveries(ctx=kwargs["ctx"],submissions_to_process = temp_subs)
 
     # h4. mark_campaign_hold
     @poms_method(rtype="redirect", redirect="%(poms_path)s/show_campaign_stages/%(experiment)s/%(role)s")

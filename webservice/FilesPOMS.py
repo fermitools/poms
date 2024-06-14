@@ -296,7 +296,7 @@ class FilesStatus:
         
 
     # h3. list_launch_file
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None, submission_id=None):
         """
             get launch output file and return the lines as a list
         """

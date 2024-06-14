@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from collections import deque
+from logging import config
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -16,10 +17,12 @@ from requests.adapters import HTTPAdapter
 from poms.webservice.utc import utc
 from poms.webservice.poms_model import FaultyRequest
 import poms.webservice.logit as logit
-import configparser
+from toml_parser import TConfig
+#import configparser
 
-config = configparser.ConfigParser()
-config.read(os.environ["WEB_CONFIG"])
+#config = configparser.ConfigParser()
+#config.read(os.environ["WEB_CONFIG"])
+config = TConfig()
 
 # shut up annoying InsecureRequestWarnings
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -194,22 +197,30 @@ class samweb_lite:
             self.proj_cache_time[experiment + projid] = time.time()
         return info
 
-    def fetch_info_list(self, task_list, dbhandle=None):
+    def fetch_info_list(self, task_list, dbhandle=None, urls=None):
         # ~ return [ {"tot_consumed": 0, "tot_unknown": 0, "tot_jobs": 0, "tot_jobfails": 0} ] * len(task_list)    #VP Debug
-        base = "%s" % config.get("SAM", "sam_base")
-        urls = [
-            "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
-            % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
-            if s.project and s.project != "None"
-            else None
-            for s in task_list
-        ]
+        if not urls:
+            base = "%s" % config.get("SAM", "sam_base").replace("\"", "")
+            urls = [
+                "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
+                % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
+                if s.project and s.project != "None"
+                else None
+                for s in task_list
+            ]
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 # replies = executor.map(sess.get, urls)
                 replies = executor.map(lambda url: safe_get(sess, url, dbhandle=dbhandle), urls)
+                # Replies is a generator that gets consumed once you start iterating over it in the for loop. Once it's exhausted, we cannot iterate over it again. 
+                # This causses an error "cannot schedule new futures after shutdown" when we try to iterate over replies.
+                # To fix this, we convert replies to a list before the for loop so that we can iterate over it as needed.
+                replies_list = list(replies)
+                executor.shutdown(wait=True)  # Wait for all tasks to complete and then shut down the executor
+        
         infos = deque()
-        for r in replies:
+        
+        for r in replies_list:
             if r:
                 try:
                     info = proj_class_dict(r.json())
@@ -370,10 +381,10 @@ class samweb_lite:
 
     def count_files_list(self, experiment, dims_list):
         def getit(req, url):
-            retries = 2
+            retries = 10
             r = req.get(url, verify=False)
             while r and r.status_code >= 500 and retries > 0:
-                time.sleep(5)
+                time.sleep(1)
                 retries = retries - 1
                 r = req.get(url, verify=False)
             if r:
@@ -385,26 +396,38 @@ class samweb_lite:
         if isinstance(experiment, str):
             experiment = [experiment] * len(dims_list)
 
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("\"", "")
         urls = [
             "%s/sam/%s/api/files/count?%s"
             % (base, experiment[i], urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])}))
             for i in range(len(dims_list))
         ]
+        replies = None
         with requests.Session() as sess:
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
                 # replies = executor.map(getit, urls)
                 replies = executor.map(lambda url: getit(sess, url), urls)
+                # Replies is a generator that gets consumed once you start iterating over it in the for loop. Once it's exhausted, we cannot iterate over it again. 
+                # This causses an error "cannot schedule new futures after shutdown" when we try to iterate over replies.
+                # To fix this, we convert replies to a list before the for loop so that we can iterate over it as needed.
+                replies_list = list(replies)
+                executor.shutdown(wait=True)  # Wait for all tasks to complete and then shut down the executor
+        
         infos = deque()
-        for r in replies:
-            if r.text.find("query limit") > 0:
-                infos.append(-1)
-            else:
-                try:
-                    infos.append(int(r.text))
-                except BaseException as b:
-                    logit.log("Exception %s converting count_files response to int: %s" % (b, r.text))
-                    infos.append(-1)
+        if replies_list:
+            try:
+                for r in replies_list:
+                    if r.text.find("query limit") > 0:
+                        infos.append(-1)
+                    else:
+                        try:
+                            infos.append(int(r.text))
+                        except BaseException as b:
+                            logit.log("Exception %s converting count_files response to int: %s" % (b, r.text))
+                            infos.append(-1)
+            except Exception as e:
+                logit.log("Exception %s getting replies: %s" % (e, repr(replies)))
+        logit.log("URLS: %s" % urls)
         return infos
 
     def create_definition(self, experiment, name, dims):

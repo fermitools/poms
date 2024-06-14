@@ -28,3 +28,5 @@ poms.egg-info/
 tmp
 .DS_Store
 __pycache__
+alma9_setup
+poms_client/bin/client.cfg

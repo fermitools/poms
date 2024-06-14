@@ -231,8 +231,12 @@ def set_logging(log_dir, verbose):
     logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
     rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
+    if log_dir and not os.path.exists(log_dir):
+        os.system("mkdir -p %s" % log_dir)
     if log_dir:
         log_file = "%s/addusers-%s.log" % (log_dir, time.strftime('%Y-%m-%d-%H%M%S'))
+        if not os.path.exists(log_file):
+            os.system("touch %s" % log_file)
         fileHandler = logging.FileHandler(log_file)
         fileHandler.setFormatter(logFormatter)
         fileHandler.setLevel(logging.DEBUG)
