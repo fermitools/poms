@@ -9,7 +9,7 @@ if "ENV" in os.environ:
     elif os.environ["ENV"] == "prod":
         os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/prod.webservice.toml"
     else:
-        os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/dev.webservice.toml"
+        os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/prod.webservice.toml"
 elif "WEB_CONFIG" not in os.environ:
     os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/prod.webservice.toml"
 #print "set POMS_DIR to " , os.environ['POMS_DIR']
