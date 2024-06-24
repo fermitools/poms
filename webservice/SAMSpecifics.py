@@ -54,8 +54,9 @@ class sam_specifics:
 
         isparentof = "isparentof:( " * s.campaign_stage_obj.output_ancestor_depth
         isclose = ")" * s.campaign_stage_obj.output_ancestor_depth
-
-        param_overrides = rlist[s.recovery_position].param_overrides
+        #if not s.recovery_position:
+        #    s.recovery_position = 0
+        #param_overrides = rlist[s.recovery_position].param_overrides if rlist else None
         if rtype.name == "consumed_status":
             # not using ctx.sam.recovery_dimensions here becuase it
             # doesn't do what I want on ended incomplete projects, etc.
@@ -131,7 +132,7 @@ class sam_specifics:
             # now...
             nfiles = 1
 
-        s.recovery_position = s.recovery_position + 1
+        s.recovery_position = s.recovery_position + 1 if s.recovery_position else 1
         
        
 
