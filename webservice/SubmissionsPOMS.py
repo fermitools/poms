@@ -1575,12 +1575,12 @@ class SubmissionsPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise PermissionError("non experimenter launch not on localhost")
 
-        if role== "production" and not lt.launch_host.find(exp) >= 0 and lt.launch_host not in ctx.web_config.get("POMS", "non_production_launch_hosts") and exp != "samdev":
+        if role == "production" and not lt.launch_host.find(exp) >= 0 and lt.launch_host in ctx.web_config.get("POMS", "analysis_launch_hosts") and exp != "samdev":
             logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
             output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
             raise AssertionError(output)
 
-        if role == "analysis" and lt.launch_host not in ctx.web_config.get("POMS", "non_analysis_launch_hosts"):
+        if role == "analysis" and lt.launch_host not in ctx.web_config.get("POMS", "analysis_launch_hosts"):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
             raise AssertionError(output)
         
