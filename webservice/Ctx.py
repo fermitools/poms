@@ -1,8 +1,8 @@
 import cherrypy
 import os
 from .get_user import get_user
-from .poms_model import Experimenter
-from sqlalchemy import text
+from .poms_model import Experimenter, ExperimentsExperimenters
+from sqlalchemy import and_, text, exists
 from configparser import ConfigParser
 from . import DMRService
 
@@ -33,7 +33,6 @@ class Ctx:
         tmin=None,
         tmax=None,
         tdays=None,
-        dmr=None,
         web_config=None,
         function=None
     ):
@@ -75,18 +74,29 @@ class Ctx:
             self.experiment = e.session_experiment
             self.role = e.session_role
             
-        self.dmr_service = dmr if dmr else cherrypy.request.dmr_service
-        self.dmr_service.update_config_if_needed(self.db,self.experiment, self.username, self.role)
-        services = self.dmr_service.services_logged_in
-        if services:
-            if not services["data_dispatcher"]:
-                self.dmr_service.begin_services("data_dispatcher")
-            if not services["metacat"]:
-                self.dmr_service.begin_services("metacat")
-        else:
-            self.dmr_service.begin_services()
-        cherrypy.request.dmr_service = self.dmr_service
-
+        
+        self.dmr_service = cherrypy.request.dmr_service
+        if "Shrek" not in cherrypy.session or cherrypy.session["Shrek"].get("current_experiment", None) != self.experiment:
+            self.dmr_service.initialize_session(self)
+        if self.dmr_service and self.experiment in cherrypy.config.get("Shrek", {}):
+            
+            #self.dmr_service.update_config_if_needed(self.db,self.experiment, self.username, self.role)
+            services = cherrypy.session["Shrek"]["services_logged_in"]
+            if not services:
+                self.dmr_service.begin_services()
+            else:
+                for service in ["metacat", "data_dispatcher"]:
+                    # check shrek service status dictionary - {"service_name": bool } True value indicates the client is initialized and authenticated
+                    if service not in services or not services[service]:
+                        self.dmr_service.begin_services(service)
+            cherrypy.request.dmr_service = self.dmr_service
+        
+    def get_vo_role(self, id):
+        return self.db.query(ExperimentsExperimenters.role).filter(and_(
+            ExperimentsExperimenters.experiment == self.experiment,
+            ExperimentsExperimenters.experimenter_id == id
+            )).scalar()
+    
     def get_experimenter(self):
         if not self.experimenter_cache:
             self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
@@ -97,6 +107,12 @@ class Ctx:
             self.experimenter_cache = self.db.query(Experimenter).filter(Experimenter.username == self.username).first()
         return self.experimenter_cache.experimenter_id
 
+    def is_production_experiment(self, experimenter_id):
+        return self.db.query(Experimenter).filter(
+            exists().where(
+                (Experimenter.experimenter_id == experimenter_id) & (Experimenter.last_name == "Production")
+            )).scalar()
+    
     def __repr__(self):
         res = ["<Ctx:"]
         for k in self.__dict__:

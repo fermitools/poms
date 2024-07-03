@@ -1,25 +1,38 @@
 import configparser
+import copy
+from ctypes import Array
 import os
 import time
 import re
 from io import BytesIO
 import subprocess
 import json
+from typing import Any, Dict, List
 import cherrypy
 import base64
 import datetime
 import threading
 import uuid
+import hashlib
+import base64
+
+import utc
 from . import logit
+from urllib.parse import unquote, urlencode
+from poms_model import Campaign, DataDispatcherSubmission, CampaignStage, Submission
+from .FilesPOMS import LocalJsonQueue
+from pythreader import Timeout
+
+import toml
 from data_dispatcher.api import DataDispatcherClient
 from metacat.webapi import MetaCatClient
-from poms_model import DataDispatcherSubmission
-from urllib.parse import unquote, urlencode
-#from rucio.client import Client as RucioClient
+from cryptography.fernet import Fernet
 from sqlalchemy import and_, distinct, desc
 from sqlalchemy.orm.attributes import flag_modified
-config = configparser.ConfigParser()
-config.read(os.environ.get("WEB_CONFIG","/home/poms/poms/webservice/poms.ini"))
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
+poms_config = configparser.ConfigParser()
+poms_config.read(os.environ.get("WEB_CONFIG","/home/poms/poms/webservice/poms.ini"))
 PIPE = -1
 
 def timestamp_to_readable(timestamp):
@@ -30,14 +43,15 @@ def timestamp_to_readable(timestamp):
         readable_format = converted_datetime.strftime("%A, %B %d, %Y")
     return readable_format
 
+class AuthenticationError(Exception):
+    """Raised when authentication fails"""
+    pass
+
 class DMRService:
     
-    def __init__(self):
+    def __init__(self, config = cherrypy.config.get("Shrek", {})):
         self.db = None
-        self.services_logged_in = {}
-        self.experiment = "hypot"
-        self.username = "poms"
-        self.role = None
+        self.experiment = None
         self.dd_client = None
         self.dd_server_url = None
         self.dd_auth_server_url = None
@@ -48,13 +62,59 @@ class DMRService:
         self.metacat_token_file = None
         self.rucio_client = None
         self.test = None
+        self.config = config
+        
+    
+    def initialize_session(self, ctx, agent_session=None):
+        needs_new = False
+        session_id_only = False
+        if agent_session:
+            ctx.role = agent_session["role"]
+            ctx.experiment = agent_session["experiment"]
+            ctx.username = "poms"
+
+        if not cherrypy.session.get("Shrek", None):
+            logit.log("DMR-Service | Initializing Session")
+            needs_new = True
+        if not needs_new and cherrypy.session.get("Shrek", {}).get("current_experiment", None) != ctx.experiment:
+            logit.log("DMR-Service | Experiment Changed | Updating Session")
+            needs_new = True
+        if not needs_new and cherrypy.session.get("Shrek", {}).get("role", None) != ctx.role:
+            logit.log("DMR-Service | Role Changed | Updating Session")
+            needs_new = True
+            session_id_only = True
+            
+        if needs_new:
+            session_info = { 'user': ctx.username, 'experiment':ctx.experiment , 'role': ctx.role, 'session': cherrypy.session.id }
+            secure_session_id = hashlib.sha256(json.dumps(session_info).encode()).hexdigest()
+            session_info["session"] = secure_session_id
+            logit.log(f"Shrek | New Session Info | {ctx.username}: {session_info}" )
+            if not session_id_only:
+                cherrypy.session["Shrek"] = {
+                        "onboarded": self.config.get(ctx.experiment, None) is not None,
+                        "current_experiment": ctx.experiment,
+                        "user": ctx.username,
+                        "role": ctx.role,
+                        "dd_client": None,
+                        "dd_status": None,
+                        "mc_client": None,
+                        "mc_status": None,
+                        "session": secure_session_id,
+                        "services_logged_in": {"data_dispatcher": False, "metacat": False}
+                    }
+            self.db = ctx.db if not self.db and ctx.db else cherrypy.request.db
+            if cherrypy.session["Shrek"]["onboarded"]:
+                return self.set_configuration()
+        cherrypy.session["Shrek"]["user"] = ctx.username
+        cherrypy.session["Shrek"]["role"] = ctx.role
+    
+    
+
+        
     
     def flush(self):
         self.db = None
-        self.services_logged_in = None
         self.experiment = None
-        self.username = None
-        self.role = None
         self.dd_client = None
         self.dd_server_url = None
         self.dd_auth_server_url = None
@@ -66,72 +126,42 @@ class DMRService:
         self.rucio_client = None
         self.test = None
         
-    def set_user(self, username):
-        self.username = username
-        
-    def set_role(self, role):
-        self.role = role
-        
-    def set_experiment(self, experiment):
-        if not experiment or experiment != "dune": # Temporary until we have experiment server info
-            self.experiment = "hypot"
-        else:
-            self.experiment = experiment
-        self.set_configuration()
     
     def set_configuration(self):
         # SET DATA_DISPATCHER CREDS
-        self.dd_server_url = config.get("Data_Dispatcher","%s_DATA_DISPATCHER_SERVER_URL" % self.experiment.upper())
-        self.dd_auth_server_url = config.get("Data_Dispatcher","%s_DATA_DISPATCHER_AUTH_SERVER_URL" % self.experiment.upper())
-        self.dd_token_file = config.get("Data_Dispatcher","%s_DATA_DISPATCHER_TOKEN_FILE" % self.experiment.upper())
-        # METACAT CREDS
-        self.metacat_server_url = config.get("Metacat","%s_METACAT_SERVER_URL" % self.experiment.upper())
-        self.metacat_auth_server_url = config.get("Metacat","%s_METACAT_AUTH_SERVER_URL" % self.experiment.upper())
-        self.metacat_token_file = config.get("Metacat","%s_METACAT_TOKEN_FILE" % self.experiment.upper())
-        
-        # Set token library for non-poms usage
-        if self.experiment == "dune":
-            self.dd_token_file = "%s/%s/%s/.token_library" % (self.dd_token_file, self.username, self.role)
-            self.metacat_token_file = "%s/%s/%s/.token_library" % (self.metacat_token_file, self.username, self.role)
+        experiment = cherrypy.session["Shrek"]["current_experiment"]
+        self.dd_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_URL"]
+        self.dd_auth_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_AUTH_URL"]
+        self.dd_token_file = self.config[experiment]["data_dispatcher"]["TOKEN_FILE"]
+        # SET METACAT CREDS
+        self.metacat_server_url = self.config[experiment]["metacat"]["METACAT_SERVER_URL"]
+        self.metacat_auth_server_url = self.config[experiment]["metacat"]["METACAT_AUTH_SERVER_URL"]
+        self.metacat_token_file = self.config[experiment]["metacat"]["TOKEN_FILE"]
 
         # Create token file if not exist
         for file in [self.dd_token_file, self.metacat_token_file]:
             if not os.path.exists(file):
                 os.system("mkdir -p %s" % file.replace("/.token_library", ""))
                 os.system("touch %s" % file)
-        
-    def update_config_if_needed(self, db, experiment, username, role):
-        self.db = db
-        reset_clients = False
-        if experiment == "dune":
-            if self.experiment != "dune" or self.username != username or self.role != role:
-                self.experiment = "dune"
-                self.username = username
-                self.role = role
-                reset_clients = True
-        elif experiment != "dune":
-            if self.experiment != "hypot" or self.username != "poms":
-                self.experiment = "hypot"
-                self.username = "poms"
-                reset_clients = True
-            self.role = role
-        if reset_clients or not self.dd_client or not self.metacat_client:
-            self.set_configuration()
-            try:
-                self.set_data_dispatcher_client()
-                self.set_metacat_client()
-                return True
-            except Exception as e:
-                logit.log("DMR-Service | Update Config | Failed To Create New Clients | Exception: %s" % repr(e))
-                return False
-        else:
+                
+        try:
+            self.set_data_dispatcher_client()
+            self.set_metacat_client()
+            
             return True
+        except Exception as e:
+            logit.log("DMR-Service | Update Config | Failed To Create New Clients | Exception: %s" % repr(e))
+            return False
+        
 
         
     def set_data_dispatcher_client(self):
         try:
-            self.dd_client = DataDispatcherClient(server_url=self.dd_server_url, auth_server_url=self.dd_auth_server_url, token_library=self.dd_token_file)
-            logit.log("DMR-Service | set_data_dispatcher_client() | Client set to %s - Version: %s" % (self.experiment, self.dd_client.version()))
+            if not cherrypy.session["Shrek"].get("dd_client", None):
+                cherrypy.session["Shrek"]["dd_client"] = DataDispatcherClient(server_url=self.dd_server_url, auth_server_url=self.dd_auth_server_url, token_library=self.dd_token_file)
+
+            cherrypy.session["Shrek"]["dd_client"] = cherrypy.session["Shrek"]["dd_client"]
+            logit.log("DMR-Service | set_data_dispatcher_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["dd_client"].version()))
             return True
         except Exception as e:
             logit.log("DMR-Service | set_data_dispatcher_client() | Exception: %s" % repr(e))
@@ -139,169 +169,149 @@ class DMRService:
     
     def set_metacat_client(self):
         try:
-            self.metacat_client = MetaCatClient(server_url=self.metacat_server_url, auth_server_url=self.metacat_auth_server_url, token_library=self.metacat_token_file)
-            logit.log("DMR-Service | set_metacat_client() | Client set to %s - Version: %s" % (self.experiment, self.metacat_client.get_version()))
+            if not cherrypy.session["Shrek"].get("mc_client", None):
+                cherrypy.session["Shrek"]["mc_client"] = MetaCatClient(server_url=self.metacat_server_url, auth_server_url=self.metacat_auth_server_url, token_library=self.metacat_token_file)
+            logit.log("DMR-Service | set_metacat_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["mc_client"].get_version()))
             return True
         except Exception as e:
             logit.log("DMR-Service | set_metacat_client() | Exception: %s" % repr(e))
             return False
     
-    def set_rucio_client(self):
-        rucio_host = config.get("Rucio",'rucio_host')
-        auth_host =  config.get("Rucio",'auth_host')
-        account =  config.get("Rucio",'account')
-        ca_cert =  config.get("Rucio",'ca_cert')
-        auth_type =  config.get("Rucio",'auth_type')
-        self.rucio_client = RucioClient(rucio_host, auth_host,account,ca_cert,auth_type)
-        
-    def check_rucio_for_replicas(self, dids):
-        if not self.rucio_client:
-            self.set_rucio_client()
-        return self.rucio_client.list_replicas(dids)
-    
-    def login_with_password(self, username, password):
-        try:
-            # Validation check
-            if not username or not password:
-                return json.dumps({"login_status": "Login Failed, please check username and password and try again."})
-            if not self.experiment:
-                return json.dumps({"login_status": "Login Failed, please select experiment, then try again."})
-            
-            # Set new client
-            logit.log("DMR-Service  | login_with_password() | Attempting to set new client with experiment: %s" % self.experiment)
-            if not self.set_data_dispatcher_client():
-                logit.log("DMR-Service  | login_with_password() | Failed to set up client for experiment: %s" % self.experiment)
-                return json.dumps({"login_status": "Login Failed: Internal issue. Please contact a POMS administrator for assistance."})
-            
-            # Try logging in
-            logit.log("DMR-Service  | login_with_password() | Attempting login as: %s" % username)
-            auth_info = self.dd_client.login_password(username, password)
-            if auth_info:
-                logit.log("DMR-Service  | login_with_password() | Logged in as %s" % auth_info[0])
-            return json.dumps(self.session_status('password')[1])
-
-        except Exception as e:
-            logit.log("DMR-Service | login_with_password() | Exception: %s" % repr(e))
-            return json.dumps({
-                    "login_method": "Attempted login method: password",
-                    "login_status": "%s" % repr(e).split("'")[1].replace("\n", "")
-                })
+    # We dont need this right now
+    #def set_rucio_client(self):
+    #    rucio_host = poms_config.get("Rucio",'rucio_host')
+    #    auth_host =  poms_config.get("Rucio",'auth_host')
+    #    account =  poms_config.get("Rucio",'account')
+    #    ca_cert =  poms_config.get("Rucio",'ca_cert')
+    #    auth_type =  poms_config.get("Rucio",'auth_type')
+    #    self.rucio_client = RucioClient(rucio_host, auth_host,account,ca_cert,auth_type)
+    #    
+    #def check_rucio_for_replicas(self, dids):
+    #    if not self.rucio_client:
+    #        self.set_rucio_client()
+    #    return self.rucio_client.list_replicas(dids)
             
     def login_with_x509(self):
         try:
             # Set new client
-            logit.log("DMR-Service  | login_with_x509() | System Login on behalf of: %s" % self.experiment)
-            if not self.set_data_dispatcher_client():
-                logit.log("DMR-Service  | login_with_x509() | Failed to set up client for experiment: %s" % self.experiment)
-                return json.dumps({"login_status": "Login Failed: Internal issue. Please contact a POMS administrator for assistance."})
+            logit.log(f"DMR-Service  | login_with_x509() | session: {cherrypy.session['Shrek']['session']}")
+            if not cherrypy.session["Shrek"]["onboarded"]:
+                logit.log("DMR-Service  | login_with_x509() | Skipped, not onboarded | experiment: %s" % cherrypy.session["Shrek"]["current_experiment"])
+                return json.dumps({"login_status": "Prevented: Experiment is not Onboarded. Please contact a POMS administrator for assistance."})
             
             # Try logging in
-            auth_info = self.dd_client.login_x509('poms', config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
-            if auth_info:
-                logit.log("DMR-Service  | login_with_x509() | Logged in as POMS")
+            logit.log("DMR-Service  | login_with_x509() | Data Dispatcher Client Login on behalf of: %s" % cherrypy.session["Shrek"]["current_experiment"])
+            cherrypy.session["Shrek"]["dd_status"] = cherrypy.session["Shrek"]["dd_client"].login_x509('poms', poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
+            print("Login X509 | subject: %s | expiration: %s" % cherrypy.session["Shrek"]["dd_status"])
+            logit.log("DMR-Service  | login_with_x509() | Metacat Client Login on behalf of: %s" % cherrypy.session["Shrek"]["current_experiment"])
+            cherrypy.session["Shrek"]["mc_status"] = cherrypy.session["Shrek"]["mc_client"].login_x509('poms', poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
+            if cherrypy.session["Shrek"]["dd_status"]:
+                logit.log(f'DMR-Service  | login_with_x509() | Data Dispatcher Client | {cherrypy.session["Shrek"]["user"]} Logged in to DataDispatcher as POMS | session: {cherrypy.session["Shrek"]["session"]}')
+            if cherrypy.session["Shrek"]["mc_status"]:
+                logit.log(f'DMR-Service | login_with_x509() | Metacat Client | {cherrypy.session["Shrek"]["user"]} Logged in to Metacat as POMS | session: {cherrypy.session["Shrek"]["session"]}')
                 
             return json.dumps(self.session_status('x509')[1])
-
         except Exception as e:
-            logit.log("DMR-Service | login_with_x509() | Exception: %s" % repr(e))
+            logit.log("DMR-Service | login_with_x509() | %s" % repr(e).replace('\n', ''))
             return json.dumps({
                     "login_method": "Attempted login method: x509",
-                    "login_status": "%s" % repr(e).split("'")[1].replace("\n", "").replace("\\","")
+                    "login_status": f"{e}" % repr(e).replace('\n', '')
                 })
             
     def login_metacat(self):
         try:
             # Set new client
-            logit.log("Metacat Service  | login_with_x509() | System Login on behalf of: %s" % self.experiment)
+            logit.log(f"Metacat Service  | login_with_x509() | session: {cherrypy.session['Shrek']['session']}")
             # Try logging in
-            auth_info = self.metacat_client.login_x509('poms', config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
-            if auth_info:
+            if not cherrypy.session["Shrek"].get("mc_client", None):
+                self.set_metacat_client()
+            auth_info = cherrypy.session["Shrek"]["mc_client"].login_x509('poms', poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
+            cherrypy.session["Shrek"]["mc_status"] = auth_info
+            if cherrypy.session["Shrek"]["mc_status"]:
                 logit.log("Metacat Service  | login_with_x509() | Logged in as POMS")
                 return True
-            logit.log("Metacat Service  | login_with_x509() | Failed")
-            return False
-
+            raise AuthenticationError("Invalid credentials")
         except Exception as e:
-            logit.log("Metacat Service | login_with_x509() | Exception: %s" % repr(e))
+            logit.log("Metacat Service | login_with_x509() | %s" % repr(e).replace('\n', ''))
             False
     
     def begin_services(self, service="all"):
-        services_logged_in = {
-                "data_dispatcher":False,
-                "metacat":False, 
-            }
+        if not cherrypy.session["Shrek"]["services_logged_in"]:
+            cherrypy.session["Shrek"]["services_logged_in"] = {
+                    "data_dispatcher":False,
+                    "metacat":False, 
+                }
         try:
             logit.log("DMR Service | Begin Services %s" % service)
             if service == "all" or service == "data_dispatcher":
                 dd_info = None
                 if os.stat(self.dd_token_file).st_size == 0:
-                    dd_info = self.dd_client.login_x509(self.username, config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
-                elif self.dd_client:
-                    dd_info = self.dd_client.auth_info()
+                    dd_info = cherrypy.session["Shrek"]["dd_client"].login_x509("poms", poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
+                elif cherrypy.session["Shrek"]["dd_client"]:
+                    dd_info = cherrypy.session["Shrek"]["dd_client"].auth_info()
                 elif os.path.exists(self.dd_token_file):
                     token_library_content = open(self.dd_token_file, 'r').read()
                     if token_library_content and len(token_library_content.split(" ")) > 1:
                         dd_token = token_library_content.split(" ")[1].strip()
-                        dd_info = self.dd_client.login_token(self.username, dd_token)
+                        dd_info = cherrypy.session["Shrek"]["dd_client"].login_token("poms", dd_token)
                     else:
-                        dd_info = self.dd_client.login_x509(self.username, config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
+                        dd_info = cherrypy.session["Shrek"]["dd_client"].login_x509("poms", poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
                 if dd_info:
-                    services_logged_in["data_dispatcher"] = True
+                    cherrypy.session["Shrek"]["services_logged_in"]["data_dispatcher"] = True
             if service == "all" or service == "metacat":
                 mc_info = None
                 if os.stat(self.metacat_token_file).st_size == 0:
-                    mc_info = self.metacat_client.login_x509(self.username, config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
-                elif self.metacat_client:
-                    mc_info = self.metacat_client.auth_info()
+                    cherrypy.session["Shrek"]["mc_status"] = cherrypy.session["Shrek"]["mc_client"].login_x509("poms", poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
+                elif cherrypy.session["Shrek"]["mc_client"]:
+                    mc_info = cherrypy.session["Shrek"]["mc_client"].auth_info()
                 elif os.path.exists(self.metacat_token_file):
-                    metacat_token_library_content = open(self.metacat_token_file , 'r').read()
+                    metacat_token_library_content = open(self.metacat_token_file, 'r').read()
                     if metacat_token_library_content and len(metacat_token_library_content.split(" ")) > 1:
                         mc_token = metacat_token_library_content.split(" ")[1].strip()
-                        mc_info = self.metacat_client.login_token(self.username, mc_token)
+                        mc_info = cherrypy.session["Shrek"]["mc_client"].login_token("poms", mc_token)
                     else:
-                        mc_info = self.metacat_client.login_x509(self.username, config.get("POMS", "POMS_CERT"), config.get("POMS", "POMS_KEY"))
+                        mc_info = cherrypy.session["Shrek"]["mc_client"].login_x509("poms", poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
                 if mc_info:
-                    services_logged_in["metacat"] = True
+                    cherrypy.session["Shrek"]["services_logged_in"]["metacat"] = True
                     
-            self.services_logged_in = services_logged_in
             
-            return services_logged_in
+            return cherrypy.session["Shrek"]["services_logged_in"]
             
                     
         except Exception as e:
-            logit.log("DMR Service | System Login | Exception: %s" % repr(e))
-            return services_logged_in
+            logit.log("DMR Service | System Login | %s" % repr(e).replace("\n", ""))
+            return cherrypy.session["Shrek"]["services_logged_in"]
     
     def session_status(self, auth_type='Auth_Token'):
         try:
-            logit.log("DMR-Service  | get_session(%s) | Begin")
+            logit.log(f"DMR-Service  | get_session | Begin | session: {cherrypy.session['Shrek']['session']}")
             auth_info = None
-            if self.dd_client:
-                auth_info = self.dd_client.auth_info()
-            elif not self.dd_client and os.path.exists(self.dd_token_file):
+            if cherrypy.session["Shrek"]["dd_client"]:
+                auth_info = cherrypy.session["Shrek"]["dd_client"].auth_info()
+            elif not cherrypy.session["Shrek"]["dd_client"] and os.path.exists(self.dd_token_file):
                 if os.path.exists(self.dd_token_file):
                     token_library_content = open(self.dd_token_file, 'r').read()
                     token = None
                     if len(token_library_content.split(" ")) > 1:
                         token = token_library_content.split(" ")[1].strip()
                     self.set_data_dispatcher_client()
-                    auth_info = self.dd_client.login_token(self.username, token)
+                    auth_info = cherrypy.session["Shrek"]["dd_client"].login_token("poms", token)
                     logit.log("DMR-Service  | session_status(%s) | Logged in as %s" % (auth_type, token))
             if auth_info:
                     logit.log("DMR-Service  | session_status(%s) | Logged in as %s" % (auth_type, auth_info[0]))
                     return True, {
                         "login_method" : auth_type,
                         "login_status": 'Logged in', 
-                        "experiment": self.experiment, 
+                        "experiment": cherrypy.session["Shrek"]["current_experiment"], 
                         "dd_username":auth_info[0], 
                         "timestamp":auth_info[1]
                     }
         except Exception as e:
-            logit.log("DMR-Service  | session_status(%s) | Exception:  %s" % (auth_type, repr(e)))
-            message = repr(e).split("'")[1].replace("\\n", "").replace("\\","")
+            logit.log(f"DMR-Service  | session_status |  %s | session: {cherrypy.session['Shrek']['session']} | %s" % (auth_type, repr(e).replace("\n", "")))
+            message = repr(e).replace("\n", "")
             logit.log("DMR-Service  | session_status(%s) | Failed to get session:  %s" % (auth_type, message))
-            if message == "No token found":
-                return False, {"login_status": "Not logged in"}
+            if "No token found" in message:
+                return False, {"login_status": "Not logged in - Authentication Failed"}
             else:
                 return False, {
                         "login_method": "Attempted login method: %s" % auth_type,
@@ -311,19 +321,19 @@ class DMRService:
     
     
     def list_rses(self):
-        logit.log("DMR-Service  | list_rses(%s, %s) | Begin" % (self.experiment, self.role))
-        retval = self.dd_client.list_rses()
-        logit.log("DMR-Service  | list_rses(%s, %s) | Success" % (self.experiment, self.role))
+        logit.log(f"DMR-Service  | list_rses | Begin | session: {cherrypy.session['Shrek']['session']}")
+        retval = cherrypy.session["Shrek"]["dd_client"].list_rses()
+        logit.log("DMR-Service  | list_rses | Success")
         return retval
     
     def list_all_projects(self, **kwargs):
-        logit.log("DMR-Service  | list_all_projects(%s, %s) | Begin" % (self.experiment, self.role))
+        logit.log(f"DMR-Service  | list_all_projects | Begin | session: {cherrypy.session['Shrek']['session']}")
         retval = {}
         
-        retval['projects_active'] = self.dd_client.list_projects(with_files=False)
+        retval['projects_active'] = cherrypy.session["Shrek"]["dd_client"].list_projects(with_files=False)
         retval['projects_active_count'] = len(retval.get("projects_active", 0))
         for p_state in ["done", "failed","cancelled", "abandoned"]:
-            projects = self.dd_client.list_projects(state=p_state,  not_state='active')
+            projects = cherrypy.session["Shrek"]["dd_client"].list_projects(state=p_state,  not_state='active')
             retval["projects_%s" % p_state] = projects
             retval["projects_%s_count" % p_state] = len(projects)
     
@@ -331,21 +341,59 @@ class DMRService:
         if poms_attributes:
             retval['poms_attributes'] = poms_attributes
                 
-        logit.log("DMR-Service  | list_projects(%s, %s) | Success" % (self.experiment, self.role))
+        logit.log("DMR-Service  | list_projects | Success")
         return retval
     
+    def get_file_output_queries_for(self, dd_projects:List[Any] = None) -> Dict[int, str]:
+        
+        logit.log(f"DMR-Service  | get_file_output_queries_for |  Begin | session: {cherrypy.session['Shrek']['session']}")
+        
+        depths = {}
+        projects_with_dataset = set()
+        projects_without_dataset = set()
+       
+        for project in dd_projects:
+            depths[project.campaign_stage_id] = project.output_ancestor_depth
+            if project.named_dataset:
+                if "project_id:" in project.named_dataset:
+                    projects_without_dataset.add(project)
+                else:
+                    projects_with_dataset.add(project)
+                    
+        # Create an mql query index for the dataset output files using the provided mql query
+        queries = { 
+                    project.project_id if project.project_id else project.data_dispatcher_project_idx : "%s%s%s" % (
+                    "children(" * depths.get(project.output_ancestor_depth, 1),
+                    project.named_dataset if self.is_query(project.named_dataset) else "files from %s" % project.named_dataset,
+                    ")" * depths.get(project.output_ancestor_depth, 1))
+                    for project in projects_with_dataset
+                }
+        
+        all_projects = cherrypy.session["Shrek"]["dd_client"].list_projects(state="any", not_state='ignore', with_files=True)
+        project_items = {project.project_id:project for project in projects_without_dataset if project.project_id}
+        
+        # Update mql query index with the dataset output files using the fids of the data dispatcher project files.
+        for item in all_projects:
+            if item.get("project_id", None) in project_items:
+                child_open = "children(" * int(depths.get(project_items[item["project_id"].campaign_stage_id],1))
+                fids = f"fids {','.join([file.get('fid') for file in list(cherrypy.session['Shrek']['mc_client'].get_files(item['file_handles']))])}"
+                child_close = ")" * int(depths.get(project_items[item["project_id"].campaign_stage_id],1))
+                queries[item["project_id"]] = f"{child_open}{fids}{child_close}"
+            
+        return queries
+    
     def list_filtered_projects(self, **kwargs):
-        logit.log("DMR-Service  | list_filtered_projects(%s, %s) | Begin" % (self.experiment, self.role))
+        logit.log(f"DMR-Service  | list_filtered_projects | Begin | session: {cherrypy.session['Shrek']['session']}")
         retval = {}
         
         poms_attributes = self.find_poms_data_dispatcher_projects(format="html", **kwargs)  
         if poms_attributes is not None:
             retval['poms_attributes'] = poms_attributes
-            logit.log("DMR-Service  | list_filtered_projects(%s, %s) | Got poms project-attributes: %s" % (self.experiment, self.role, poms_attributes))
-            retval['projects_active'] = [project for project in self.dd_client.list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
+            logit.log("DMR-Service  | list_filtered_projects | Got poms project-attributes: %s" % poms_attributes)
+            retval['projects_active'] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
             retval['projects_active_count'] = len(retval["projects_active"])
             for p_state in ["done", "failed","cancelled", "abandoned"]:
-                retval["projects_%s" % p_state] = [project for project in self.dd_client.list_projects(state=p_state,  not_state='active') if project.get("project_id", None) and project["project_id"] in poms_attributes] or []
+                retval["projects_%s" % p_state] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects(state=p_state,  not_state='active') if project.get("project_id", None) and project["project_id"] in poms_attributes] or []
                 retval['projects_%s_count' % p_state] = len(retval["projects_%s" % p_state])
         else:
             for p_state in ["active", "done", "failed","cancelled", "abandoned"]:
@@ -353,52 +401,62 @@ class DMRService:
                 retval['projects_%s_count' % p_state] = len(retval["projects_%s" % p_state])
             
                 
-        logit.log("DMR-Service  | list_filtered_projects(%s, %s) | Success" % (self.experiment, self.role))
+        logit.log("DMR-Service  | list_filtered_projects | Success")
         return retval
     
     def get_project_handles(self, project_id, state=None, not_state=None):
-        logit.log("DMR-Service  | get_project_handles(%s, %s) | project_id: %s | Begin" % (self.experiment, self.role, project_id))
+        logit.log(f"DMR-Service  | get_project_handles | project_id: %s | Begin | session: {cherrypy.session['Shrek']['session']}" % project_id)
         retval = None
         msg = "Fail"
         try:
-            project_info = self.dd_client.get_project(project_id, True, with_replicas=True)
+            project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, with_replicas=True)
             retval = project_info.get("file_handles", []) if project_info else None
+            state = [state] if state and not isinstance(state, Array) else None
+            not_state = [not_state] if not_state and not isinstance(not_state, Array) else None
+            print(retval)
+            print("State = %s" % state)
+            print("NOT State = %s" % not_state)
             if state:
-                retval = [ handle for handle in retval if handle.state == state ]
+                retval = [ handle for handle in retval if handle.get("state", None) in state ]
             if not_state:
-                retval = [ handle for handle in retval if handle.state != state ]
+                retval = [ handle for handle in retval if handle.get("state", None) not in not_state ]
             if retval:
                 msg = "OK"
-                logit.log("DMR-Service  | get_project_handles(%s, %s) | project_id: %s | Success" % (self.experiment, self.role, project_id))
+                logit.log("DMR-Service  | get_project_handles | project_id: %s | Success" % project_id)
         except Exception as e:
             retval = {"exception": repr(e)}
-            logit.log("DMR-Service  | get_project_handles(%s, %s) | project_id: %s | Exception: %s" % (self.experiment, self.role, project_id, e))
+            logit.log("DMR-Service  | get_project_handles | project_id: %s | Exception: %s" %  (project_id, e))
             raise e
         return {"project_handles": retval, "msg": msg, "stats": self.get_project_stats(handles=retval), "project_details": {k: project_info[k] for k in set(list(project_info.keys())) - set(["file_handles"])}}
     
     def get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
         files = []
         if project_id:
-            project_info = self.dd_client.get_project(project_id, True, True)
+            project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
             file_handles = project_info.get("file_handles", []) if project_info else None
-            files = list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
+            files = list(cherrypy.session["Shrek"]["mc_client"].get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
         elif project_idx:
             project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == project_idx).first()
             if project and project.project_id:
-                project_info = self.dd_client.get_project(project_id, True, True)
+                project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
                 file_handles = project_info.get("file_handles", []) if project_info else None
-                files = list(self.metacat_client.get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
+                files = list(cherrypy.session["Shrek"]["mc_client"].get_files(file_handles, with_metadata=metadata, with_provenance=hierarchy))
             elif project and project.named_dataset:
-                files = list(self.metacat_client.query(project.named_dataset, with_metadata=metadata, with_provenance=hierarchy))
+                files = list(cherrypy.session["Shrek"]["mc_client"].query(project.named_dataset, with_metadata=metadata, with_provenance=hierarchy))
         return files
     
     def list_file_urls(self, project_id=None, project_idx=None, mc_query=None):
+        if not self.metacat_server_url:
+            experiment = cherrypy.session.get("Shrek", {}).get("current_experiment")
+            assert experiment, "Cannot determine metacat server"
+            self.metacat_server_url = self.config[experiment]["metacat"]["METACAT_SERVER_URL"]
+            
         file_url = "%s/gui/show_file?show_form=no&fid=%%s" % (self.metacat_server_url)
         do_all=False
         fdict = None
         if mc_query and mc_query != "None":
             fids_query=unquote(mc_query)
-            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") if file["fid"] != '0' else 0 for file in list(self.metacat_client.query(fids_query, False, False))}
+            fdict = { "%s:%s" % (file.get("namespace"), file.get("name")) : file_url % file.get("fid") if file["fid"] != '0' else 0 for file in list(cherrypy.session["Shrek"]["mc_client"].query(fids_query, False, False))}
             if not fdict:
                 do_all=True
         if not mc_query or mc_query == "None" or do_all:
@@ -413,14 +471,13 @@ class DMRService:
     def get_project_stats(self, handles=None, project_id=None):
         retval = {"initial": 0,"done" : 0,"reserved" : 0,"failed" : 0}
         if not handles and project_id:
-            handles = self.dd_client.list_handles(project_id)
+            handles = cherrypy.session["Shrek"]["dd_client"].list_handles(project_id)
         for handle in handles:
             retval[handle.get("state")] += 1
         return retval
     
     def is_query(self, named_dataset):
         # Match "{namespace}:{name}" pattern.
-        print("Checking named dataset if query: %s" % named_dataset )
         pattern = r'\w+:\w+'
         match = re.search(pattern, named_dataset)
         
@@ -437,49 +494,69 @@ class DMRService:
         output = {}
         already_did ={}
         
-        if not self.metacat_client and not self.begin_services("metacat").get("metacat", False):
+        start_time = time.time()
+        def get_elapsed_time(started = start_time):
+            elapsed_time = time.time() - started
+            minutes, seconds = divmod(elapsed_time, 60)
+            milliseconds = (elapsed_time - int(elapsed_time)) * 1000
+            return f"Elapsed Time: {int(minutes):02d}:{int(seconds):02d}:{int(milliseconds):03d}"
+            
+        logit.log(f"DMR-Service  | get_output_file_details_for_submissions | Begin | session: {cherrypy.session['Shrek']['session']}")
+        if not cherrypy.session["Shrek"]["mc_status"] or not self.begin_services("metacat").get("metacat", False):
             try:
-                self.set_metacat_client()
-                self.login_metacat()
+                if not self.login_metacat():
+                    raise AuthenticationError()
             except:
                 retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
                 return list(retvals.values())
         
         
-        for dd_project in list(dd_projects):
-            if (dd_project.project_id is not None and dd_project.project_id in already_did):
-                output[dd_project.submission_id] = dict(already_did.get(dd_project.project_id))
+        child_queries = self.get_file_output_queries_for(dd_projects)
+        logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Got Project Output Queries | Count: {len(set(child_queries.values()))} | {get_elapsed_time()}')
+        query_index = {}
+        unique_queries = {}
+        total_processed = 0
+        
+        logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Begin Running Queries | {get_elapsed_time()}')
+        for id, child_query in child_queries.items():
+            if child_query in query_index:
+                query_index[child_query].append(id)
             else:
-                if dd_project.named_dataset and "project_id:" not in dd_project.named_dataset:
-                    child_query= "%s%s%s" % (
-                        "children(" * dd_project.campaign_stage_obj.output_ancestor_depth,
-                        dd_project.named_dataset if self.is_query(dd_project.named_dataset) else "files from %s" % dd_project.named_dataset,
-                        ")" * dd_project.campaign_stage_obj.output_ancestor_depth
-                    )
-                    all_files = list(self.metacat_client.query(child_query)) if dd_project.named_dataset else []
-                else:
-                    project_info = self.dd_client.get_project(dd_project.project_id, True)
-                    file_handles = project_info.get("file_handles", []) if project_info else None
-                    all_files = list(self.metacat_client.get_files(file_handles)) if dd_project.named_dataset else []
-                    child_query= "%s%s%s" % (
-                        "children(" * dd_project.campaign_stage_obj.output_ancestor_depth,
-                        "fids %s" % ','.join([file.get("fid") for file in all_files]),
-                        ")" * dd_project.campaign_stage_obj.output_ancestor_depth
-                    )
-                    all_files = list(self.metacat_client.query(child_query)) if file_handles else []
-                    
-                
-                #child_fids = self.get_hierarchy_info_from_files(all_files, "children", dd_project.campaign_stage_obj.output_ancestor_depth)
-                mc_query = self.get_metacat_query_url(query=child_query)
-                if dd_project.project_id: 
-                    available_output_query = "project_id=%d&querying=output&mc_query=%s" % (dd_project.project_id, mc_query if mc_query else "" )
-                else:
-                    available_output_query = "project_idx=%d&querying=output&mc_query=%s" % (dd_project.data_dispatcher_project_idx, mc_query if mc_query else "" )
-                output[dd_project.submission_id] = {"query": available_output_query, "length":len(all_files)}
-                if dd_project.project_id is None:
+                query_index[child_query] = [id]
+                unique_queries[child_query] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query, None))
+                total_processed += 1
+        logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Finished Running Queries | {get_elapsed_time()} ')
+
+        for dd_project in dd_projects:
+            if dd_project.data_dispatcher_project_idx in child_queries:
+                id = dd_project.data_dispatcher_project_idx
+                output_bit = f"project_idx={id}"
+            else:
+                id = dd_project.project_id
+                if id in already_did:
+                    output[dd_project.submission_id] = dict(already_did[id])
                     continue
-                else:
-                    already_did[dd_project.project_id] ={"query": available_output_query, "length":len(all_files)}
+                output_bit = f"project_id={id}"
+                
+            query = child_queries.get(id, None)
+            results = list(unique_queries.get(query, []))
+            if query in unique_queries:
+                del unique_queries[query]
+                
+            n = len(results)
+            mc_query = self.get_metacat_query_url(query=query)
+            available_output_query = "%s&querying=output&mc_query=%s" % (output_bit, mc_query if mc_query else "" )
+            output[dd_project.submission_id] = {"query": available_output_query, "length":n}
+            
+            if query in query_index:
+                completed_project_queries = query_index[query]
+                for project_id in completed_project_queries:
+                    if project_id not in already_did:
+                        already_did[project_id] = {"query": available_output_query, "length":n}
+            
+            already_did[id] = {"query": available_output_query, "length":n}
+            
+        logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Done | {get_elapsed_time()}')
             
         return output
     
@@ -492,7 +569,7 @@ class DMRService:
                 desired_files.append(hierarchy_file)
         if desired_files and desired_generation > current_generation:
             fids = list(set([file.get("fid") for file in desired_files if file.get("fid", None) and file["fid"] not in ['0', 0, None, "None"]]))
-            desired_files = list(self.metacat_client.query("fids %s" % ', '.join(fids) if fids else "", with_provenance=True))
+            desired_files = list(cherrypy.session["Shrek"]["mc_client"].query("fids %s" % ', '.join(fids) if fids else "", with_provenance=True))
             return self.get_family_generation(desired_files, hierarchy, desired_generation, output, current_generation + 1)
         else:
             if output == "fids": 
@@ -533,7 +610,10 @@ class DMRService:
     
     def get_file_stats_for_submissions(self, dd_projects):
         
-        if not dd_projects or (not self.metacat_client and not self.begin_services("metacat").get("metacat", False)):
+        if not cherrypy.session["Shrek"].get("mc_client", None):
+            self.login_metacat()
+        if not dd_projects or not cherrypy.session["Shrek"]["services_logged_in"].get("metacat", False):
+            logit.log(f'DMR-Service  | get_file_stats_for_submissions({cherrypy.session["Shrek"]["current_experiment"]}) | Not logged in to metacat | Status: {cherrypy.session["Shrek"].get("mc_status")} | Projects: {repr(dd_projects)}')
             return {}
         
         project_dict = {item.project_id if item.project_id else "idx: %s" % item.data_dispatcher_project_idx: item for item in dd_projects}
@@ -546,15 +626,15 @@ class DMRService:
             #if project_index_queries.get(project_id, None):
             #    file_handles = []
             #    is_project_submission = False
-            #    all_files = list(self.metacat_client.query(project_index_queries[project_id], with_metadata=True, with_provenance=True))
+            #    all_files = list(cherrypy.session["Shrek"]["mc_client"].query(project_index_queries[project_id], with_metadata=True, with_provenance=True))
             #else:
-            #    project = self.dd_client.get_project(project_id, True, True)
+            #    project = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
             #    is_project_submission = True
             #    file_handles = project.get("file_handles", []) if project else None
             #    if not file_handles and project_dict[project_id].named_dataset:
-            #        all_files = list(self.metacat_client.query(project_dict[project_id].named_dataset, with_metadata=True, with_provenance=True))
+            #        all_files = list(cherrypy.session["Shrek"]["mc_client"].query(project_dict[project_id].named_dataset, with_metadata=True, with_provenance=True))
             #    else:
-            #        all_files = list(self.metacat_client.get_files(file_handles, with_metadata=True, with_provenance=True))
+            #        all_files = list(cherrypy.session["Shrek"]["mc_client"].get_files(file_handles, with_metadata=True, with_provenance=True))
             dd_project = project_dict[project_id]
             if project_index_queries.get(project_id,None) and "project_id:" not in project_index_queries[project_id]:
                 file_handles=[]
@@ -562,13 +642,13 @@ class DMRService:
                 mc_query = dd_project.named_dataset if self.is_query(dd_project.named_dataset) else "files from %s" % dd_project.named_dataset,
             else:
                 is_project_submission = True
-                project_info = self.dd_client.get_project(project_id, True, True)
+                project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
                 file_handles = project_info.get("file_handles", []) if project_info else None
-                all_files = list(self.metacat_client.get_files(file_handles)) if file_handles else []
+                all_files = list(cherrypy.session["Shrek"]["mc_client"].get_files(file_handles)) if file_handles else []
                 mc_query = "fids %s" % ','.join([file.get("fid") for file in all_files])
             
             if any(char.isalnum() for char in mc_query):
-                all_files = list(self.metacat_client.query(mc_query))
+                all_files = list(cherrypy.session["Shrek"]["mc_client"].query(mc_query))
             else:
                 all_files = []
             
@@ -599,13 +679,13 @@ class DMRService:
             
             if len(all_files) > 0:
                 child_query= "%s%s%s" % (
-                    "children(" *  dd_project.campaign_stage_obj.output_ancestor_depth,
+                    "children(" *  dd_project.output_ancestor_depth,
                     mc_query,
-                    ")" *  dd_project.campaign_stage_obj.output_ancestor_depth
+                    ")" *  dd_project.output_ancestor_depth
                 )
                 parents_query= "parents(%s)" % mc_query
-                project_fids_dict["children"] = list(self.metacat_client.query(child_query))
-                project_fids_dict["parents"] = list(self.metacat_client.query(parents_query))
+                project_fids_dict["children"] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query))
+                project_fids_dict["parents"] = list(cherrypy.session["Shrek"]["mc_client"].query(parents_query))
             else:
                 project_fids_dict["children"] = []
                 project_fids_dict["parents"] = []
@@ -641,8 +721,19 @@ class DMRService:
                     retval[project.submission_id][key] = project_queries[index][key]
         return retval
 
-    def calculate_dd_project_completion(self, dd_submission_id = None, dd_submission_ids=None):
+    def _authorize_agent(self, ctx, agent_header):
+            queue = LocalJsonQueue(ctx.web_config.get("POMS", "submission_records_path"))
+            return queue.authorize_agent(ctx, agent_header)
+        
+    def calculate_dd_project_completion(self, ctx, agent_header, dd_submission_id = None, dd_submission_ids=None):
+        print("Submission Agent | Authorizing Agent | %s" % agent_header)
+        if not self._authorize_agent(ctx, agent_header):
+            return {"error": "Unauthorized"}
+        print("Submission Agent | Authorized")
         retval = {}
+        self.db = self.db if self.db else cherrypy.request.db
+        if not self.db:
+            raise RuntimeError("Could not connect to database")
         if dd_submission_ids:
             try:
                 task_ids = list(eval(dd_submission_ids))
@@ -652,94 +743,202 @@ class DMRService:
                         task_ids = [int(dd_submission_ids)]
                 except:
                     pass
-                
-            
         else:
-            task_ids = [dd_submission_id] 
-        if not self.dd_client and not self.begin_services("data_dispatcher").get("metacat", False):
-            try:
-                self.set_data_dispatcher_client()
-                self.login_with_x509()
-            except:
-                return retval
+            task_ids = [dd_submission_id]
+            
+        tasks: List[DataDispatcherSubmission] = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx.in_(task_ids)).all()
+        agent_sessions = {}
+        print("Submission Agent | Checking Tasks | tasks: %s " % (len(tasks)))
+        for task in tasks:
+            if task.experiment not in agent_sessions:
+                agent_sessions[task.experiment] = {}
+            if task.vo_role not in agent_sessions[task.experiment]:
+                agent_sessions[task.experiment][task.vo_role] = []
+            agent_sessions[task.experiment][task.vo_role].append(task)
+        
         def incr_comp(state):
             return 1 if state in ["done", "failed"] else 0
-        tasks = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.data_dispatcher_project_idx.in_(task_ids)).all()
-        for task in tasks:
-            if task.data_dispatcher_project_idx in retval:
-                continue
-            ncomp = 0
-            ntotal = 0
-            if task.project_id:
-                project_handles = self.dd_client.list_handles(task.project_id)
-                for handle in project_handles:
-                    ntotal += 1
-                    ncomp += incr_comp(handle.get("state"))
+        
+        for exp, roles in agent_sessions.items():
+            for role, agent_tasks in roles.items():
+                agent_session = { "role": role, "experiment": exp }
+                print("Submission Agent | Updating session for Submission Agent | %s" % agent_session)
+                self.initialize_session(ctx, agent_session)
+                print("Submission Agent | Session Updated | exp: %s role: %s tasks: %s" % (exp, role, len(agent_tasks)))
+                for task in agent_tasks:
+                    if task.data_dispatcher_project_idx in retval:
+                        continue
+                    ncomp = 0
+                    ntotal = 0
+                    if task.project_id:
+                        project_handles = cherrypy.session["Shrek"]["dd_client"].list_handles(task.project_id)
+                        for handle in project_handles:
+                            ntotal += 1
+                            ncomp += incr_comp(handle.get("state"))
 
-                retval[task.data_dispatcher_project_idx] = ncomp * 100.0/ntotal if ntotal > 0 else None
-            
+                        retval[task.data_dispatcher_project_idx] = ncomp * 100.0/ntotal if ntotal > 0 else None
+        print("Submission Agent | Updated Tasks")
         return retval
         
     def copy_project(self, project_id, **kwargs):
         kwargs["use_hostname"] = True
-        new_project = self.dd_client.copy_project(project_id)
-        logit.log("DMR-Service  | experiment: %s | copy_project(%s) | done" % (self.experiment, project_id))
+        new_project = cherrypy.session["Shrek"]["dd_client"].copy_project(project_id)
+        logit.log("DMR-Service  | experiment: %s | copy_project(%s) | done" % (cherrypy.session["Shrek"]["current_experiment"], project_id))
         return new_project
     
     def get_project_for_submission(self, project_id, **kwargs):
-        logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | submission_id: %s " % (self.experiment, project_id, kwargs.get("submission_id")))
-        existing_project = self.dd_client.get_project(project_id)
+        logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | submission_id: %s " % (cherrypy.session["Shrek"]["current_experiment"], project_id, kwargs.get("submission_id")))
+        existing_project = cherrypy.session["Shrek"]["dd_client"].get_project(project_id)
         if existing_project:
-            logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | located project" % (self.experiment, project_id))
-            worker_timeout = existing_project.get('worker_timeout', None)
-            idle_timeout = existing_project.get('idle_timeout', None)
-            project = self.store_project(project_id = project_id, worker_timeout=worker_timeout, idle_timeout=idle_timeout, **kwargs)
-            logit.log("DMR-Service  | experiment: %s |  get_project_for_submission(%s) | stored data-dispatcher project information in database" % (self.experiment, project.project_id))
-            logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | done" % (self.experiment, project_id))
+            logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | located project" % (cherrypy.session["Shrek"]["current_experiment"], project_id))
+            kwargs["worker_timeout"] = existing_project.get('worker_timeout', None)
+            kwargs["idle_timeout"] = existing_project.get('idle_timeout', None)
+            project = self.store_project(project_id = project_id,  **kwargs)
+            logit.log("DMR-Service  | experiment: %s |  get_project_for_submission(%s) | stored data-dispatcher project information in database" % (cherrypy.session["Shrek"]["current_experiment"], project.project_id))
+            logit.log("DMR-Service  | experiment: %s | get_project_for_submission(%s) | done" % (cherrypy.session["Shrek"]["current_experiment"], project_id))
             return project
         return None
+    
+    def _is_OneP(self, cs):
+        defaults = (cs.campaign_obj.defaults.get("defaults", {}).get("data_handling_service", {}).get("data_dispatcher", {}) 
+                            if cs.campaign_obj.defaults else {})
+                
+        return (cs.data_dispatcher_stage_methodology == "1P" 
+                    or (cs.data_dispatcher_settings 
+                        and cs.data_dispatcher_settings.get("stage_methodology", "standard") == "1P")
+                    or (defaults.get("data_dispatcher_stage_methodology", "standard") == "1P"))
+    
+    def get_campaign_dd_field(self, cs:CampaignStage, field:str, default=None):
+        try:
+            assert cs, "No campaign stage information provided"
+            defaults = (cs.campaign_obj.defaults.get("defaults", {}).get("data_handling_service", {}).get("data_dispatcher", {}) 
+                            if cs.campaign_obj.defaults else {})
             
+            if hasattr(cs, field) and getattr(cs, field) != None:
+                return getattr(cs, field)
+            elif cs.data_dispatcher_settings and cs.data_dispatcher_settings.get(field, None):
+                return cs.data_dispatcher_settings[field]
+            elif defaults and defaults.get(field, None):
+                return defaults[field]
+            else:
+                return default
+
+        except Exception as e:
+            logit.log("DMR-Service  | experiment: %s |  get_campaign_dd_field(%s) | %s" % (cherrypy.session["Shrek"]["current_experiment"], field, e))
+    
     def create_project(self, username, dataset=None, files=[], **kwargs):
-        logit.log("DMR-Service  | experiment: %s | create_project() | Begin " % (self.experiment))
+        logit.log("DMR-Service  | experiment: %s | create_project() | Begin " % (cherrypy.session["Shrek"]["current_experiment"]))
         users = []
+        project_attributes = {}
+        idle_timeout = kwargs.get("idle_timeout", None)
+        worker_timeout = kwargs.get("worker_timeout", None)
+        for item in [idle_timeout, worker_timeout]:
+            if item and item in (None, "null", "None", 0):
+                item = None
+        common_attributes = kwargs.get("common_attributes", {})
         if "creator_name" in kwargs:
             users.append(kwargs.get("creator_name"))
         if username not in users:
             users.append(username)
+        if "virtual" in kwargs and kwargs["virtual"] in (True, "true", "True"):
+            project_attributes["virtual"] = True
+        if "load_limit" in kwargs and kwargs["load_limit"]:
+            project_attributes["load_limit"] = kwargs["load_limit"]
+        
+        
+        check_stage = not (project_attributes or idle_timeout or worker_timeout)
+        cs = None
             
         if files and not dataset:
-            logit.log("DMR-Service  | experiment: %s | create_project() | Creating project from files | count %d" % (self.experiment, len(files)))
+            logit.log("DMR-Service  | experiment: %s | create_project() | Creating project from files | count %d" % (cherrypy.session["Shrek"]["current_experiment"], len(files)))
         if dataset and not files:
-            logit.log("DMR-Service  | experiment: %s | create_project() | Creating project from dataset: %s " % (self.experiment, dataset))
-            files = list(self.metacat_client.query(dataset, with_metadata=True))
-            logit.log("DMR-Service  | experiment: %s | create_project() | located files from dataset: %s" % (self.experiment, files))
+            logit.log("DMR-Service  | experiment: %s | create_project() | Creating project from dataset: %s " % (cherrypy.session["Shrek"]["current_experiment"], dataset))
+            files = list(cherrypy.session["Shrek"]["mc_client"].query(dataset, with_metadata=True))
+            logit.log("DMR-Service  | experiment: %s | create_project() | located files from dataset: %s" % (cherrypy.session["Shrek"]["current_experiment"], files))
+        if not self.db:
+            if cherrypy.request.db:
+                self.db = cherrypy.request.db
+            else:
+                logit.log("DMR-Service  | store_project | fail: no database access | session %s" % (cherrypy.session["Shrek"]["session"]))
+                raise Exception("DMR-Service  | store_project | fail: no database access")
+        if "campaign_stage_id" in kwargs and check_stage:
+            cs = self.db.query(CampaignStage).join(Campaign).filter(CampaignStage.campaign_stage_id == int(kwargs["campaign_stage_id"])).first()
+            if cs and (cs.data_dispatcher_settings 
+                       or cs.data_dispatcher_project_virtual is not None 
+                       or cs.data_dispatcher_idle_timeout 
+                       or cs.data_dispatcher_worker_timeout
+                       or cs.data_dispatcher_load_limit):
+                project_attributes["virtual"] = cs.data_dispatcher_settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                project_attributes["load_limit"] = cs.data_dispatcher_settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+        new_project = cherrypy.session["Shrek"]["dd_client"].create_project(files, 
+                                                                            users=users,
+                                                                            query=dataset, 
+                                                                            idle_timeout=idle_timeout,
+                                                                            worker_timeout=worker_timeout,
+                                                                            common_attributes=common_attributes,
+                                                                            project_attributes=project_attributes)
         
-        new_project = self.dd_client.create_project(files, query=dataset, users=users)
-        logit.log("DMR-Service  | experiment: %s | create_project() | created data-dispatcher project: %s" % (self.experiment, new_project))
+        logit.log("DMR-Service  | experiment: %s | create_project() | created data-dispatcher project: %s" % (cherrypy.session["Shrek"]["current_experiment"], new_project))
+        
         project_id = new_project.get('project_id', None)
-        worker_timeout = new_project.get('worker_timeout', None)
-        idle_timeout = new_project.get('idle_timeout', None)
-        project = self.store_project(project_id = project_id, worker_timeout=worker_timeout, idle_timeout=idle_timeout, **kwargs)
-        logit.log("DMR-Service  | experiment: %s | create_project() | Done | Created Project ID: %s" % (self.experiment, project.project_id))
+        worker_timeout = new_project.get('worker_timeout', worker_timeout)
+        idle_timeout = new_project.get('idle_timeout', idle_timeout)
+        common_attributes = new_project.get('common_attributes', common_attributes)
+        project_attributes = new_project.get('project_attributes', project_attributes)
+        kwargs["load_limit"] = project_attributes.get("load_limit", None)
+        kwargs["idle_timeout"] = idle_timeout
+        kwargs["worker_timeout"] = worker_timeout
+        project = self.store_project(project_id = project_id, **kwargs)
+        logit.log("DMR-Service  | experiment: %s | create_project() | Done | Created Project ID: %s" % (cherrypy.session["Shrek"]["current_experiment"], project.project_id))
         
+        # OneP methodology. Do not create any more projects since one already exists.
+        # Check the stage/campaign defaults for this its stage methodology setting
+        # Setting the data_dispatcher_project_id in the settings for this stage will make it "1P"
+        # if "campaign_stage_id" in kwargs:
+        #     if not cs:
+        #         cs = self.db.query(CampaignStage).join(Campaign).filter(CampaignStage.campaign_stage_id == int(kwargs["campaign_stage_id"])).first()
+        #     if cs and self._is_OneP(cs):
+        #         cs.data_dispatcher_project_id = project_id
+        #         if cs.data_dispatcher_settings:
+        #             updated_settings = copy.deepcopy(cs.data_dispatcher_settings)
+        #             updated_settings["project_id"] = project_id
+        #         else:
+        #             updated_settings = {
+        #                 "idle_timeout": cs.data_dispatcher_idle_timeout,
+        #                 "worker_timeout": cs.data_dispatcher_worker_timeout,
+        #                 "project_id": project_id,
+        #                 "dataset_query": cs.data_dispatcher_dataset_query,
+        #                 "virtual": cs.data_dispatcher_project_virtual,
+        #                 "stage_methodology": "1P",
+        #                 "recovery_mode": cs.data_dispatcher_recovery_mode,
+        #                 "load_limit": cs.data_dispatcher_load_limit
+        #             }
+        #         cs.data_dispatcher_settings = updated_settings
+        #         self.db.add(cs)
+        #         self.db.commit()
         return project
         
     
     def find_poms_data_dispatcher_projects(self, format=None, **kwargs):
         try:
-            logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | begin" % (self.experiment, format))
+            logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | begin" % (cherrypy.session["Shrek"]["current_experiment"], format))
             if not self.db:
-                logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | fail: no database access" % (self.experiment, format))
-                return {}
+                if cherrypy.request.db:
+                    self.db = cherrypy.request.db
+                else:
+                    logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | fail: no database access" % (cherrypy.session["Shrek"]["current_experiment"], format))
+                    return {}
             
-            query = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.experiment == self.experiment)
-            searchList = ["experiment=%s" % self.experiment]
+            query = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.experiment == cherrypy.session["Shrek"]["current_experiment"])
+            searchList = ["experiment=%s" % cherrypy.session["Shrek"]["current_experiment"]]
             if kwargs.get("project_id", None):
                 # Project id is known, so only one result would exist
                 searchList.append("project_id=%s" % kwargs["project_id"])
                 query = query.filter(DataDispatcherSubmission.project_id == kwargs["project_id"])
                 project = query.one_or_none()
-                logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: %s | results: %s" % (self.experiment, format, ", ".join(searchList), 1 if project else 0))
+                logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: %s | results: %s" % (cherrypy.session["Shrek"]["current_experiment"], format, ", ".join(searchList), 1 if project else 0))
                 if project:
                     return self.format_projects(format, [project])
             if kwargs.get("submission_id", None):
@@ -747,7 +946,7 @@ class DMRService:
                 searchList.append("submission_id=%s" % kwargs["submission_id"])
                 query = query.filter(DataDispatcherSubmission.submission_id == kwargs["submission_id"])
                 project = query.one_or_none()
-                logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: submission_id=%s | results: %s" % (self.experiment, format, ", ".join(searchList), 1 if project else 0))
+                logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: submission_id=%s | results: %s" % (cherrypy.session["Shrek"]["current_experiment"], format, ", ".join(searchList), 1 if project else 0))
                 if project:
                     return self.format_projects(format, [project])
                 
@@ -793,7 +992,7 @@ class DMRService:
                 query = query.filter(DataDispatcherSubmission.recovery_position == kwargs["recovery_position"])
             
             projects = query.order_by(DataDispatcherSubmission.created).all()
-            logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: %s | results: %s" % (self.experiment, format, ", ".join(searchList), len(projects)))
+            logit.log("DMR-Service  | experiment: %s | find_poms_data_dispatcher_projects() | format: %s | searched: %s | results: %s" % (cherrypy.session["Shrek"]["current_experiment"], format, ", ".join(searchList), len(projects)))
             if len(projects) > 0:
                 return self.format_projects(format, projects)
  
@@ -803,7 +1002,7 @@ class DMRService:
         return {}
     
     def format_projects(self, format=None, results = None):
-        logit.log("DMR-Service  | experiment: %s | format_projects() | format: %s" % (self.experiment, format))
+        logit.log("DMR-Service  | experiment: %s | format_projects() | format: %s" % (cherrypy.session["Shrek"]["current_experiment"], format))
         if not format:
             return {project.project_id: project for project in results}
              
@@ -815,13 +1014,13 @@ class DMRService:
                 for key, value in values.items():
                     if value and key != "data_dispatcher_project_idx" and key != 'updater':
                         if key == "campaign_id":
-                            string += "<a target='_blank' href='/poms/campaign_overview/%s/%s?campaign_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (self.experiment, self.role, value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
+                            string += "<a target='_blank' href='/poms/campaign_overview/%s/%s?campaign_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["role"], value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
                         elif key == "campaign_stage_id":
-                            string += "<a target='_blank' href='/poms/campaign_stage_info/%s/%s?campaign_stage_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (self.experiment, self.role, value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
+                            string += "<a target='_blank' href='/poms/campaign_stage_info/%s/%s?campaign_stage_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["role"], value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
                         elif key == "submission_id" or key == "depends_on_submission" or key == "recovery_tasks_parent_submission":
-                            string += "<a target='_blank' href='/poms/submission_details/%s/%s?submission_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (self.experiment, self.role, value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
+                            string += "<a target='_blank' href='/poms/submission_details/%s/%s?submission_id=%s'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["role"], value, key.replace("_", " ").title(),state,key.replace("_", "-"), value)
                         elif key == "depends_on_project" or key == "recovery_tasks_parent_project":
-                            string += "<a target='_blank' class='poms-dd-attribute-link' style='cursor:pointer;' onclick='getProjectHandles(this, `%s`, false)'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (value, key.replace("_", " ").title(),key.replace("_", "-"), value)
+                            string += "<a target='_blank' class='poms-dd-attribute-link' style='cursor:pointer;' onclick='getProjectHandles(this, `%s`, false)'>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (proj_id, value, key.replace("_", " ").title(),key.replace("_", "-"), value)
                         elif key == "created" or key == "updated":
                             string += "<a>* %s: <span class='%s-projects-poms-%s'>%s</span></a><br/>" % (key.replace("_", " ").title(),state,key.replace("_", "-"), timestamp_to_readable(value))
                         else:
@@ -837,11 +1036,19 @@ class DMRService:
         
         return {}
     
-    def store_project(self, project_id, worker_timeout, idle_timeout, **kwargs):
+    def store_project(self, project_id, **kwargs):
+        logit.log("DMR-Service  | store_project | project_id: %s | Begin | session %s" % (str(project_id), cherrypy.session["Shrek"]["session"]))
+        if not self.db:
+            if cherrypy.request.db:
+                self.db = cherrypy.request.db
+            else:
+                logit.log("DMR-Service  | store_project | fail: no database access | session %s" % (cherrypy.session["Shrek"]["session"]))
+                raise Exception("DMR-Service  | store_project | fail: no database access")
+        project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.project_id == project_id).first()
         project = DataDispatcherSubmission()
-        project.project_id = project_id
-        project.worker_timeout = worker_timeout
-        project.idle_timeout = idle_timeout
+        project.project_id = kwargs.get("project_id", project_id)
+        project.worker_timeout = kwargs.get("worker_timeout", None)
+        project.idle_timeout = kwargs.get("idle_timeout", None)
         if kwargs.get("project_name", None):
             project.project_name = kwargs.get("project_name", None)
         if kwargs.get("experiment", None):
@@ -874,29 +1081,40 @@ class DMRService:
             project.named_dataset = kwargs.get("named_dataset", None)
         if kwargs.get("status", None):
             project.status = kwargs.get("status", None)
+        project.virtual = kwargs.get("virtual", False) in (True, "True", "true")
+        project.stage_methodology = kwargs.get("stage_methodology", "standard")
+        project.recovery_mode = kwargs.get("recovery_mode", "standard")
+        project.load_limit = kwargs.get("load_limit", None)
         # Try getting dependents
         if project.depends_on_submission:
             project.depends_on_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == project.depends_on_submission).one_or_none()
         if project.recovery_tasks_parent_submission:
             project.recovery_tasks_parent_project = self.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == project.recovery_tasks_parent_submission).one_or_none()
         
+        
         self.db.add(project)
         self.db.commit()
         return project
         
+    def restart_handles(self, project_id):
+        logit.log("DMR-Service | restart_project: %s | Start" % (project_id))
+        cherrypy.session["Shrek"]["dd_client"].file_done(project_id,"poms_samples:96483cee-4e35-4590-934d-47229afcf15b.root")
+        logit.log("DMR-Service | restart_project: %s | Complete" % (project_id))
+        handles = cherrypy.session["Shrek"]["dd_client"].list_handles(project_id, with_replicas=True)
+        return {"project_handles": handles, "msg":"OK", "stats": self.get_project_stats(handles=handles)}
     
     def restart_project(self, project_id):
         logit.log("DMR-Service | restart_project: %s | Start" % (project_id))
-        self.dd_client.restart_handles(project_id, all=True)
+        cherrypy.session["Shrek"]["dd_client"].restart_handles(project_id, all=True)
         logit.log("DMR-Service | restart_project: %s | Complete" % (project_id))
-        handles = self.dd_client.list_handles(project_id, with_replicas=True)
+        handles = cherrypy.session["Shrek"]["dd_client"].list_handles(project_id, with_replicas=True)
         return {"project_handles": handles, "msg":"OK", "stats": self.get_project_stats(handles=handles)}
     
     def activate_project(self, project_id):
         logit.log("DMR-Service | restart_project: %s | Start" % (project_id))
-        self.dd_client.activate_project(project_id)
+        cherrypy.session["Shrek"]["dd_client"].activate_project(project_id)
         logit.log("DMR-Service | restart_project: %s | Complete" % (project_id))
-        handles = self.dd_client.list_handles(project_id, with_replicas=True)
+        handles = cherrypy.session["Shrek"]["dd_client"].list_handles(project_id, with_replicas=True)
         return {"project_handles": handles, "msg":"OK", "stats": self.get_project_stats(handles=handles)}
     
     # For Testing Purposes only
@@ -905,7 +1123,7 @@ class DMRService:
         return uuid.uuid4()
 
     def generate_results_file(self, task_id):
-        results_dir = config.get("Data_Dispatcher", "BACKGROUND_JOBS_RESULTS_DIR")
+        results_dir = poms_config.get("Shrek", "BACKGROUND_JOBS_RESULTS_DIR")
         results_file = "%s/job_%s.json" % (results_dir, task_id)
         return results_file
     
@@ -917,9 +1135,9 @@ class DMRService:
     
     def pass_fail_files(self, project_id, n_pass, n_fail, task_id, started):
         logit.log("DMR-Service | Process Files | Pass: %s | Fail: %s | Begin" % (n_pass, n_fail))
-        self.test = DataDispatcherTest(self.dd_client, project_id)
+        self.test = DataDispatcherTest(cherrypy.session["Shrek"]["dd_client"], project_id)
         passed, failed = self.test.process_files(n_pass, n_fail)
-        files_left = len(self.dd_client.list_handles(project_id, state="initial"))
+        files_left = len(cherrypy.session["Shrek"]["dd_client"].list_handles(project_id, state="initial"))
         logit.log("DMR-Service | Process Files | Complete | Passed: %s | Failed: %s | Files Remaining: %s" % (passed, failed, files_left))
         date = datetime.datetime.utcfromtimestamp(time.perf_counter() - started)
         elapsed = datetime.datetime.strftime(date, "%M:%S:%f")
@@ -965,87 +1183,135 @@ class DMRService:
             "Awaiting Approval": "Submission Awaiting Approval",
             "Cancelled": "Submission Cancelled"
         }
-        dd_project = self.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).first()
+        dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).first()
         if dd_project:
             dd_project.status = dd_status_map.get(status, None)
             dd_project.updater = ctx.get_experimenter_id()
             dd_project.updated = datetime.datetime.now()
-        self.db.commit()
+        ctx.db.commit()
         
         
-    def create_recovery_dataset(self, submission, rtype, rlist, test=False):
-        nfiles = 0 
-        project = submission.data_dispatcher_submission_obj
-        if rtype.name == "reserved_files":
-            handles = self.get_project_handles(project.project_id, state="reserved").get("project_handles", [])
-        elif rtype.name == "failed_files":
-            handles = self.get_project_handles(project.project_id, state="failed").get("project_handles", [])
-        elif rtype.name == "added_files":
-            handles = self.get_project_handles(project.project_id, state="initial").get("project_handles", [])
-        else: # same as "submitted_not_done"
-            handles = self.get_project_handles(project.project_id, not_state="done").get("project_handles", [])
-        
-        project_name = "%s | Recovery: %d | Submission: %d" % (submission.campaign_stage_obj.name, submission.submission_id, submission.recovery_position + 1)
-        if rtype.name == "added_files":
+    def create_recovery_dataset(self, submission: Submission, rtype, rlist=None, test=False):
+        try:
+            nfiles = 0 
+            assert submission.data_dispatcher_submission_obj, "No data-dispatcher related information was found for this submission"
+            project: DataDispatcherSubmission = submission.data_dispatcher_submission_obj
+            campaign_stage: CampaignStage = project.campaign_stage_obj
+            snapshot = submission.campaign_stage_snapshot_obj if submission.campaign_stage_snapshot_obj else None
+            recovery_position = int(submission.recovery_position + 1) if submission.recovery_position else 1
+            recovery_parent = int(submission.submission_id)
+            methodology = self.get_campaign_dd_field(campaign_stage, "stage_methodology", "standard")
+            mode = self.get_campaign_dd_field(campaign_stage, "recovery_mode", "standard")
+            project_name = "Recovery | stage: %s | method: %s | mode: %s | parent_sid: %s | pos: %s" % (campaign_stage.name, methodology, mode, recovery_parent, recovery_position)
             recovery_files = []
-            cdate = submission.created.timestamp()
-            for file in list(self.metacat_client.get_files(handles, with_metadata=True, with_provenance=True)):
-                if file.get("created_timestamp", datetime.datetime.min.timestamp()) > cdate:
-                    recovery_files.append(file)
-        else:
-            recovery_files = list(self.metacat_client.get_files(handles, with_metadata=True, with_provenance=True))
-        
-        # Count files matching query
-        nfiles = len(recovery_files)
-        
-        logit.log("DMR-Service  | create_recovery_dataset | Project Name: %s | File Count: %s" % (project_name, nfiles))
-        
-        submission.recovery_position = submission.recovery_position + 1
-        dd_project_idx = None
-        if nfiles > 0:
-            logit.log("DMR-Service  | create_recovery_dataset | Files Exist | Creating Project for exp=%s name=%s" % (submission.campaign_stage_snapshot_obj.experiment, project_name))
+            handles = []
+            if rtype.name in ["state_not_done", "state_failed", "reprocess_all"]:
+                if rtype.name == "reprocess_all":
+                    handles = self.get_project_handles(project.project_id).get("project_handles", [])
+                else:
+                    not_states = ["done"] if rtype.name == "state_not_done" else None
+                    states = ["failed"] if rtype.name == "state_failed" else None
+                    handles = self.get_project_handles(project.project_id, state=states, not_state=not_states).get("project_handles", [])
+                print(handles)
+                recovery_files = list(cherrypy.session["Shrek"]["mc_client"].get_files(handles, with_metadata=True, with_provenance=True)) if methodology == "standard" else []
+            elif rtype.name in ["reprocess_orphans", "added_files"]:
+                cdate = submission.created.timestamp()
+                handle_dict = {handle["name"]: handle for handle in self.get_project_handles(project.project_id, state=["done", "failed"]).get("project_handles", [])}
+                handles = []
+                print(handle_dict)
+                for file in list(cherrypy.session["Shrek"]["mc_client"].get_files(handle_dict.values(), with_provenance=True)):
+                    if rtype.name == "reprocess_orphans" and not len(file.get("children", [])) > 0:
+                        handles.append(handle_dict[file["name"]])
+                        if methodology == "standard":
+                            recovery_files.append(file)
+                    elif rtype.name == "added_files" and file.get("created_timestamp", datetime.datetime.min.timestamp()) > cdate:
+                        handles.append(handle_dict[file["name"]])
+                        if methodology == "standard":
+                            recovery_files.append(file)
             
-            dd_project = self.create_project(username=submission.experimenter_creator_obj.username, 
-                                               files=recovery_files,
-                                               experiment=project.experiment,
-                                               role=project.vo_role,
-                                               project_name=project_name,
-                                               campaign_id=project.campaign_id, 
-                                               campaign_stage_id=project.campaign_stage_id,
-                                               split_type=project.cs_split_type,
-                                               last_split=project.cs_last_split,
-                                               campaign_stage_snapshot_id=submission.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
-                                               recovery_position=submission.recovery_position,
-                                               creator=submission.experimenter_creator_obj.experimenter_id,
-                                               creator_name=submission.experimenter_creator_obj.username,
-                                               status="created")
-            if dd_project:
-                logit.log("DMR-Service  | create_recovery_dataset | Created Project | project_id: %s" % (dd_project.project_id))
-                dd_project_idx = dd_project.data_dispatcher_project_idx
-        else:
-            logit.log("DMR-Service  | create_recovery_dataset | no matching files exist | recovery not needed")
-            rname = None
-        
-        recovery = {}
-        recovery["name"] = rname
-        recovery["timestamp"] = datetime.now().isoformat()
-        recovery["count"] = nfiles
-        recovery["exp"] = submission.campaign_stage_snapshot_obj.experiment
-        if dd_project_idx:
-            recovery["dd_project_idx"] = dd_project_idx
-        workflow = submission.submission_params.get("workflow", {})
-        recoveries = workflow.get("recoveries", [])
-        recoveries.append(recovery)
-        workflow["recoveries"] = recoveries
-        submission.submission_params["workflow"] = workflow
-        submission.submission_params = submission.submission_params
-        project.campaign_stage_obj.data_dispatcher_dataset_only=False
-        flag_modified(project.campaign_stage_obj, 'data_dispatcher_dataset_only')
-        flag_modified(submission, 'submission_params')
-        
-        self.db.add(submission)
-        self.db.commit()
-        return nfiles, rname, dd_project_idx
+            
+            nfiles = len(recovery_files) if methodology == "standard" else len(handles)
+            print(project_name)
+            logit.log("DMR-Service  | create_recovery_dataset | File Count: %s" % (nfiles))
+            
+            if nfiles == 0:
+                logit.log("DMR-Service  | create_recovery_dataset | no matching files exist | recovery not needed")
+                return 0, None, None
+            self.db = self.db if self.db else cherrypy.request.db
+            if methodology == "1P":
+                # Pass a DID list of files to reset
+                handles_to_reset=[f"{handle.get('namespace')}:{handle.get('name')}" for handle in handles]
+                cherrypy.session["Shrek"]["dd_client"].restart_handles(project.project_id, handles=handles_to_reset)
+                new_project_entry = project.__dict__.copy()
+                # strip the keys we don't want
+                for key in ['data_dispatcher_project_idx', 'recovery_position', 'submission_id', 'campaign_stage_obj', 'campaign_stage_snapshot_obj', 'submission_obj', 'job_type_snapshot_obj', 'experimenter_creator_obj',  '_sa_instance_state']:
+                    new_project_entry.pop(key, None)
+                dd_project:DataDispatcherSubmission = DataDispatcherSubmission(**new_project_entry)
+                dd_project.project_name = project_name
+                dd_project.recovery_position = submission.recovery_position
+                dd_project.recovery_tasks_parent_submission = recovery_parent
+                dd_project.recovery_tasks_parent_project = int(project.data_dispatcher_project_idx)
+                dd_project.stage_methodology = methodology
+                dd_project.virtual=campaign_stage.data_dispatcher_project_virtual
+                dd_project.recovery_mode=campaign_stage.data_dispatcher_recovery_mode
+                dd_project.project_settings=campaign_stage.data_dispatcher_settings
+                
+                self.db.add(dd_project)
+                self.db.commit()
+            else:
+                logit.log("DMR-Service  | create_recovery_dataset | Files Exist | Creating Project for exp=%s" % (campaign_stage.experiment))
+                dd_project:DataDispatcherSubmission = self.create_project(username=submission.experimenter_creator_obj.username, 
+                                                files=recovery_files,
+                                                experiment=project.experiment,
+                                                role=project.vo_role,
+                                                project_name=project_name,
+                                                campaign_id=project.campaign_id, 
+                                                campaign_stage_id=project.campaign_stage_id,
+                                                split_type=project.cs_split_type,
+                                                last_split=project.cs_last_split,
+                                                campaign_stage_snapshot_id=snapshot.campaign_stage_snapshot_id if snapshot else None,
+                                                recovery_position=recovery_position,
+                                                creator=submission.experimenter_creator_obj.experimenter_id,
+                                                creator_name=submission.experimenter_creator_obj.username,
+                                                status="created",
+                                                virtual=campaign_stage.data_dispatcher_project_virtual,
+                                                stage_methodology=campaign_stage.data_dispatcher_stage_methodology,
+                                                recovery_mode=campaign_stage.data_dispatcher_recovery_mode,
+                                                project_settings=project.data_dispatcher_settings)
+                    
+            if dd_project and dd_project.data_dispatcher_project_idx:
+                if methodology == "standard":
+                    logit.log("DMR-Service  | create_recovery_dataset | Created Recovery Project | project_id: %s" % (dd_project.project_id))
+                else:
+                    logit.log("DMR-Service  | create_recovery_dataset | Added 1P Recovery | project_id: %s" % (dd_project.project_id))
+                recovery = {}
+                recovery["name"] = project_name
+                recovery["timestamp"] = datetime.datetime.now().isoformat()
+                recovery["count"] = nfiles
+                recovery["exp"] = snapshot.experiment if snapshot else cherrypy.session["Shrek"]["current_experiment"]
+                recovery["position"] = recovery_position
+                recovery["methodology"] = methodology
+                recovery["type"] = rtype.name
+                recovery["dd_project_idx"] = int(dd_project.data_dispatcher_project_idx)
+                params = copy.deepcopy(submission.submission_params) if submission.submission_params else {"workflow": {"recoveries": []}}
+                workflow = params.get("workflow", {})
+                recoveries = workflow.get("recoveries", [])
+                recoveries.append(recovery)
+                submission.submission_params = params
+                project.campaign_stage_obj.data_dispatcher_dataset_only=False
+                flag_modified(project.campaign_stage_obj, 'data_dispatcher_dataset_only')
+                flag_modified(submission, 'submission_params')
+                self.db.add(submission)
+                self.db.commit()
+                return nfiles, project_name, recovery["dd_project_idx"]
+            else:
+                logit.log("DMR-Service  | create_recovery_dataset | Failed")
+        except IntegrityError as e:
+            logit.log("DMR-Service  | create_recovery_dataset | IntegrityError: %s" % e)
+            self.db.rollback()
+        except Exception as e:
+            logit.log("DMR-Service  | create_recovery_dataset | Exception: %s" % e)
+        return 0, None, None
     
     def dependency_definition(self, submission, jobtype, i, test=False):
         dd_project = submission.data_dispatcher_submission_obj
@@ -1061,7 +1327,7 @@ class DMRService:
         
         filters = []
         project_files = self.get_project_handles(project_id=dd_project.project_id)
-        cur_dname_files =  list(self.metacat_client.get_files(project_files, with_metadata=True, with_provenance=True))
+        cur_dname_files =  list(cherrypy.session["Shrek"]["mc_client"].get_files(project_files, with_metadata=True, with_provenance=True))
         cur_dname_nfiles = len(cur_dname_files)
         
         if not dd_project or not dd_project.project_id or campaign_stage.campaign_stage_type == "generator":
@@ -1114,7 +1380,7 @@ class DMRService:
         
         query = self.try_format_with_keywords(query, campaign_stage.campaign_obj.campaign_keywords)
         
-        new_dname_files = list(self.metacat_client.query(query, with_metadata=True, with_provenance=True))
+        new_dname_files = list(cherrypy.session["Shrek"]["mc_client"].query(query, with_metadata=True, with_provenance=True))
         new_dname_nfiles = len(new_dname_files)
         logit.log("count files: %s has %d files" % (project_name, cur_dname_nfiles))
         logit.log("count files: new dimensions has %d files" % len(new_dname_files))
@@ -1136,26 +1402,34 @@ class DMRService:
                                     recovery_position=dd_project.recovery_position,
                                     creator=dd_project.experimenter_creator_obj.experimenter_id,
                                     creator_name=dd_project.experimenter_creator_obj.username,
+                                    virtual=campaign_stage.data_dispatcher_project_virtual,
+                                    stage_methodology=campaign_stage.data_dispatcher_stage_methodology,
+                                    recovery_mode=campaign_stage.data_dispatcher_recovery_mode,
+                                    project_settings=campaign_stage.data_dispatcher_settings,
                                     named_dataset="fids %s" % ",".split([file.get("fid") if file["fid"] != '0' else 0 for file in cur_dname_files]),
                                     status="created")
             return project_name, stored_dd_project
 
         try:
             depends_dd_project = self.create_project(username=dd_project.experimenter_creator_obj.username, 
-                                               files=new_dname_files,
-                                               experiment=campaign_stage.experiment,
-                                               role=campaign_stage.vo_role,
-                                               project_name=project_name,
-                                               campaign_id=campaign_stage.campaign_id, 
-                                               campaign_stage_id=campaign_stage.campaign_stage_id,
-                                               split_type=campaign_stage.cs_split_type,
-                                               last_split=campaign_stage.cs_last_split,
-                                               campaign_stage_snapshot_id=dd_project.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
-                                               recovery_position=dd_project.recovery_position,
-                                               creator=dd_project.experimenter_creator_obj.experimenter_id,
-                                               creator_name=dd_project.experimenter_creator_obj.username,
-                                               named_dataset=query,
-                                               status="created")
+                                            files=new_dname_files,
+                                            experiment=campaign_stage.experiment,
+                                            role=campaign_stage.vo_role,
+                                            project_name=project_name,
+                                            campaign_id=campaign_stage.campaign_id, 
+                                            campaign_stage_id=campaign_stage.campaign_stage_id,
+                                            virtual=campaign_stage.data_dispatcher_project_virtual,
+                                            stage_methodology=campaign_stage.data_dispatcher_stage_methodology,
+                                            recovery_mode=campaign_stage.data_dispatcher_recovery_mode,
+                                            project_settings=campaign_stage.data_dispatcher_settings,
+                                            split_type=campaign_stage.cs_split_type,
+                                            last_split=campaign_stage.cs_last_split,
+                                            campaign_stage_snapshot_id=dd_project.campaign_stage_snapshot_obj.campaign_stage_snapshot_id,
+                                            recovery_position=dd_project.recovery_position,
+                                            creator=dd_project.experimenter_creator_obj.experimenter_id,
+                                            creator_name=dd_project.experimenter_creator_obj.username,
+                                            named_dataset=query,
+                                            status="created")
             
         except:
             logit.log("ignoring definition error")
@@ -1180,15 +1454,15 @@ class DMRService:
         return project_name, depends_dd_project
     
     def create_dataset_definition(self, namespace, dataset_definition, query):
-        if not self.metacat_client.get_namespace(namespace):
-            self.metacat_client.create_namespace(namespace, owner_role="poms_user")
+        if not cherrypy.session["Shrek"]["mc_client"].get_namespace(namespace):
+            cherrypy.session["Shrek"]["mc_client"].create_namespace(namespace, owner_role="poms_user")
             logit.log("DMRService | create_dataset_definition | Created Namespace: %s" % namespace)
         
         logit.log("DMRService | create_dataset_definition | Dataset: %s | Query: %s" % (dataset_definition, query))
         try:
-            self.metacat_client.query(query, save_as=dataset_definition)
+            cherrypy.session["Shrek"]["mc_client"].query(query, save_as=dataset_definition)
         except Exception as e:
-            if not self.metacat_client.get_dataset(dataset_definition):
+            if not cherrypy.session["Shrek"]["mc_client"].get_dataset(dataset_definition):
                 raise e
         logit.log("DMRService | create_dataset_definition | Created Dataset Definition: %s" % (dataset_definition))
 
@@ -1221,7 +1495,7 @@ class DataDispatcherProjectChecker:
 
 class DataDispatcherTest:
     def __init__(self, client, project_id):
-        self.dd_client = client
+        cherrypy.session["Shrek"]["dd_client"] = client
         self.project_id = project_id
     
         
@@ -1234,14 +1508,14 @@ class DataDispatcherTest:
             try:
                 action = "pass" if passed < int(files_to_pass) else "fail"
                 
-                reserved_file = self.dd_client.next_file(self.project_id, timeout=20)
+                reserved_file = cherrypy.session["Shrek"]["dd_client"].next_file(self.project_id, timeout=20)
                 if type(reserved_file) is dict: 
                     handle = "%s:%s" % (reserved_file.get("namespace"), reserved_file.get("name"))
                     logit.log("DMR-Service | Process Files | Project ID: %s | Handle: %s | Run: %s of %s | State Set To: %s " % (self.project_id, handle, x, total_runs , "reserved"))
                     if action == "pass":
-                        self.dd_client.file_done(self.project_id, handle) 
+                        cherrypy.session["Shrek"]["dd_client"].file_done(self.project_id, handle) 
                     else:
-                        self.dd_client.file_failed(self.project_id, handle, False)
+                        cherrypy.session["Shrek"]["dd_client"].file_failed(self.project_id, handle, False)
                     logit.log("DMR-Service | Process Files | Project ID: %s | Handle: %s | Run: %s of %s | State Set To: %s " % (self.project_id, handle, x, total_runs , "done" if action == "pass" else "failed"))
                     if action == "pass":
                         passed += 1

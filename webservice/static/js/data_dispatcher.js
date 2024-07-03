@@ -5,7 +5,7 @@ var countdownToSearch = 0;
 var ongoingCountdowns = [];
 var running=false;
 var cancelTimestampUpdates=false;
-
+let drawer = null;
 function formatDuration(seconds) {
     var hours = Math.floor(seconds / 3600);
     var minutes = Math.floor((seconds % 3600) / 60);
@@ -65,6 +65,12 @@ function percentage(partialValue, totalValue) {
     return (100 * partialValue) / totalValue;
  } 
 function getProjectHandles(self, project_id, change_ui=true){
+    if (!drawer){
+        drawer = document.querySelector('.drawer-overview');
+        const closeButton = drawer.querySelector('#close-drawer');
+        closeButton.addEventListener('click', () => {drawer.hide()});
+        
+    }
     if (!change_ui){
         if ($(self).css(`background-color`) === 'rgb(255, 255, 0)' || $(self).css(`background-color`) === 'yellow'){
             $(self).css(`background-color`, ``);
@@ -76,6 +82,7 @@ function getProjectHandles(self, project_id, change_ui=true){
                         $(`#project_handle_count`).html(`No project selected`);
                     });
             },500);
+            drawer.hide();
         }
         else{
             $(`.poms-dd-attribute-link`).css(`background-color`, ``);
@@ -89,9 +96,11 @@ function getProjectHandles(self, project_id, change_ui=true){
                     update_project_handle_view(project_id, handles, stats);
                 }
             });
+            drawer.show();
         }
         return;
     }
+    
     $(`.poms-dd-attribute-link`).css(`background-color`, ``);
     if ($(self).html().includes(`View`)){
         $(`.dd-results-card-footer`).html(`View Handles`);
@@ -105,6 +114,8 @@ function getProjectHandles(self, project_id, change_ui=true){
                 update_project_handle_view(project_id, handles, stats);
             }
         });
+        
+        drawer.show();
     }
     else{
         $(self).removeClass(`dd-results-card-footer-active`);
@@ -121,7 +132,10 @@ function getProjectHandles(self, project_id, change_ui=true){
             }
         }
         $(`#project_handle_count`).html(`No project selected`);
+        
+        drawer.hide();
     }
+    
 }
 
 function update_project_handle_view(project_id, handles, stats){
@@ -132,30 +146,30 @@ function update_project_handle_view(project_id, handles, stats){
         Object.entries(handles[i]).forEach(([key, value]) => {
             if (!(key == `name` || key == `project_id` || key == null)){
                 if (key == `reserved_since`){
-                    handleDetailsHtml =  handleDetailsHtml + `<a>* ` + capitalizeWords(key) + `: <span class='active-project-handles-handle-` + key.replace(`_`, `-`) + `' >` + get_readable(value) + `<span></a><br/>`;
+                    handleDetailsHtml =  handleDetailsHtml + `* ` + capitalizeWords(key) + `: <span class='active-project-handles-handle-` + key.replace(`_`, `-`) + `' >` + get_readable(value) + `</span><br/>`;
                 }
                 else{
-                    handleDetailsHtml =  handleDetailsHtml + `<a>* ` + capitalizeWords(key) + (key==`replica` ? ` urls` : ``)  +  `: <span class='active-project-handles-handle-` + key.replace(`_`, `-`) + `' >`;
+                    handleDetailsHtml =  handleDetailsHtml + `* ` + capitalizeWords(key) + (key==`replica` ? ` urls` : ``)  +  `: <span class='active-project-handles-handle-` + key.replace(`_`, `-`) + `' >`;
                     if (key == 'attributes'){
-                        handleDetailsHtml = handleDetailsHtml + insertLineBreaks(JSON.stringify(value, customReplacerJs, 2)) + `<span></a><br/>`;
+                        handleDetailsHtml = handleDetailsHtml + insertLineBreaks(JSON.stringify(value, customReplacerJs, 2)) + `</span><br/>`;
                     }
                     else if (key == 'replicas'){
                         Object.entries(value).forEach(([x,y]) => {
-                            var rse_url = `<br/>&emsp; RSE: <a href='URL' target='_blank'>URL</a>`;
+                            var rse_url = `<br/>&emsp; RSE_LINK: <a href='URL_LINK' target='_blank'>URL</a>`;
                             Object.entries(y).forEach(([rkey,rvalue]) => {
                                 if (rkey == `rse`){
-                                    rse_url = rse_url.replace(`RSE`, rvalue);
+                                    rse_url = rse_url.replace(`RSE_LINK`, rvalue);
                                 }
                                 else if (rkey == `url`){
-                                    rse_url = rse_url.replaceAll(`URL`, rvalue);
+                                    rse_url = rse_url.replaceAll(`URL_LINK`, rvalue);
                                 }
                             });
                             handleDetailsHtml = handleDetailsHtml + rse_url;
                         });
-                        handleDetailsHtml = handleDetailsHtml + `<span></a><br/>`;
+                        handleDetailsHtml = handleDetailsHtml + `</span><br/>`;
                     }
                     else{
-                        handleDetailsHtml = handleDetailsHtml + value  + `<span></a><br/>`;
+                        handleDetailsHtml = handleDetailsHtml + value  + `</span><br/>`;
                     }
                 }
             }
@@ -163,7 +177,10 @@ function update_project_handle_view(project_id, handles, stats){
                 state = value;
             }
         });
-        handleRowHtml = handleRowHtml + '<div class="dd-results-card"><div class="'+state+' dd-results-card-header"><p>Name: <span class="active-project-handles-handle-name">' + handles[i].name + '</span></p></div><div class="dd-results-card-body">' + handleDetailsHtml + '</div></div>';
+        handleRowHtml = handleRowHtml + `
+        <sl-details class="result-detail  ${state}" summary="Name: ${handles[i].name}">
+            ${handleDetailsHtml}
+        </sl-details>`;
     }
     pct_complete = handles.length != 0 ? percentage(parseInt(stats.done) + parseInt(stats.failed), handles.length) + `%` : `N/A`;
     $(`#project_handle_count`).html(`Project Id: ` + project_id + `<span style='display:inline-block; width: 5%;'></span>Percent Complete: `+pct_complete+`<span style='display:inline-block; width: 5%;'></span>Total: ` + handles.length);
@@ -424,7 +441,7 @@ $(document).ready(function() {
             unselected.slideUp(`0.5s`, complete=function(){
                 selected.slideDown(`0.5s`, complete=function(){
                     selected.removeClass(`dd-row-toggle-inactive`).addClass(`dd-row-toggle-active`);
-                    makeElementsUniform(selected.children(`.dd-results-card`));
+                    //makeElementsUniform(selected.children(`.dd-results-card`));
                 });
             });
         },500);
@@ -512,7 +529,7 @@ $(document).ready(function() {
                 toggleRow.slideDown(`0.5s`, complete=function(){
                     toggleRow.removeClass(`dd-row-toggle-inactive`).addClass(`dd-row-toggle-active`);
                     setTimeout(() => {
-                        makeElementsUniform(toggleRow.children(`.dd-results-card`));
+                       // makeElementsUniform(toggleRow.children(`.dd-results-card`));
                     },500);
                 });
             

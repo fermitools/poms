@@ -163,7 +163,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 </td>
                 <td>
                     {%if data.authorized[loop.index0] %}
-                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}">
+                    <a href="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}&campaign_id={{s.campaign_id}}">
                         <button class="button">
                             <i class="edit icon blue"></i>
                         </button>
@@ -175,7 +175,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                     {%endif%}
                 </td>
                 <td>
-                    <button type="button" onclick="clone_template('{{s.name}}');">
+                    <button type="button" onclick="clone_template('{{s.name}}', '{{s.campaign_id}}');">
                         <i class="copy blue icon"></i>
                     </button>
                 </td>
@@ -273,8 +273,9 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?">
-      <div class="two fields">
+    <form id="template_clone_form" class="ui form" method="POST" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}">
+        <input type="number" id="campaign_id_to_clone" name="campaign_id" hidden/>
+        <div class="two fields">
         <div class="field">
           <label>Existing Campaign Name</label>
           <input type="text" id="from" name="from" readonly>
@@ -486,7 +487,8 @@ $("a.stagelink").click(function() {
     this.href = href;
 });
 
-function clone_template(campaign_name) {
+function clone_template(campaign_name, campaign_id) {
+    $("#campaign_id_to_clone").val(campaign_id);
     $("#campaign").val(campaign_name);
     $("#from").val(campaign_name)
     $("#template_clone_modal").modal({}).modal('show');

@@ -154,6 +154,7 @@ req_histogram = Histogram("poms_webservice_response_time_seconds", "Time spent h
 
     
 def poms_method(
+    a=[],
     p=[],
     t=None,
     help_page="user_documentation",
@@ -212,6 +213,9 @@ def poms_method(
                 if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
             
+            for header in a:
+                if header not in cherrypy.request.headers:
+                    raise cherrypy.HTTPError(403, "Unauthorized")
             # make permission checks
             for perm in p:
                 pargs = {"ctx": ctx}

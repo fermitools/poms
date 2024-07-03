@@ -109,7 +109,7 @@ json_field_editor.recovery_save = function (fid) {
     json_field_editor.cancel(fid);
 }
 
-json_field_editor.dictstart = function (id) {
+json_field_editor.dictstart = function (id, name=null) {
     var e, r, v, res, i, j, fid, istr, k, e_text;
     var hang_onto;
     e = document.getElementById(id);
@@ -135,8 +135,8 @@ json_field_editor.dictstart = function (id) {
     fid = 'edit_form_' + id;
     res = [];
     res.push('<input type="hidden" id="' + fid + '_count" value="' + count.toString() + '">');
-    res.push('<h3 style="margin-top: 0">Keyword Editor</h3>');
-    res.push('<table style="border-spacing: 5px; border-collapse: separate; borer: 1px solid gray;">');
+    res.push(`<h3 style="margin-top: 0">${name? name: 'Keyword Editor'}</h3>`);
+    res.push('<table style="border-spacing: 5px; border-collapse: separate; border: 1px solid gray;">');
     res.push('<thead>');
     res.push('<tr>');
     res.push('<td>Key <a target="_blank" href="/docs/experimenters_corner/campaign_edit_help#Key"><i class="icon help circle link"></i></a></td>');

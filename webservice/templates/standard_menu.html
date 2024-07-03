@@ -38,7 +38,16 @@
         <a class="item" href='{{servicenow}}/home.do?sysparm_view=scd_outage_calendar&sysparm_auto_request=true' target="_popup" >Downtime Calendar</a>
     </div>
   </div>
-
+  {%if session_role == 'superuser' %}
+  <div class="item">
+    <div class="header">Admin</div>
+    <div class="menu">
+      <a class="item" href="{{pomspath}}/data_dispatcher_overview/{{session_experiment}}/{{session_role}}">
+        Data Dispatcher
+      </a>
+    </div>
+  </div>
+  {% endif %}
   <div class="item">
     <div class="header">Experiment</div>
     <div class="menu">
@@ -80,9 +89,6 @@
       <a class="item" href="{{pomspath}}/show_campaign_stages/{{session_experiment}}/{{session_role}}">
         Campaign Stages
       </a>
-      <a class="item" href="{{pomspath}}/data_dispatcher_overview/{{session_experiment}}/{{session_role}}">
-        Data Dispatcher
-      </a>
       <a class="item" href="{{pomspath}}/sample_workflows/{{session_experiment}}/{{session_role}}">
         Sample Campaigns
       </a>
@@ -93,7 +99,6 @@
 -->
     </div>
   </div>
-
   <div class="item">
     <div class="header">Configure Work</div>
     <div class="menu">

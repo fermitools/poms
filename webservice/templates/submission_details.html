@@ -181,22 +181,56 @@ Kick to Located  <i class="ui forward icon  grey"></i>&nbsp;
 <br>
 
 {% if submission.data_dispatcher_submission_obj %}
-    Re-Launch Submission on Project ID: {{submission.data_dispatcher_submission_obj.project_id}} &nbsp; <button onclick="confirm_call('Are you sure you want to launch jobs now?',
-    {% if submission.recovery_tasks_parent %}
-        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
-    {% else %}
-        '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&dd_project_idx={{submission.data_dispatcher_submission_obj.data_dispatcher_project_idx}}'
-    {% endif %}
+    Re-Launch Submission on Project ID: {{submission.data_dispatcher_submission_obj.project_id}}
+    <br/>
+    <sl-button-group label="Example Button Group">
+        <sl-dropdown placement="bottom-end">
+            <sl-button slot="trigger" variant="primary" caret>
+                Launch Recovery Submission
+                <sl-visually-hidden>More options</sl-visually-hidden>
+            </sl-button>
+            <sl-menu>
+                {% for name, (rId, desc) in recoverymap.items() %}
+                    {% if rId >= 4 %}
+                        <sl-tooltip content="{{desc}}">
+                            <sl-menu-item onclick="confirm_recovery_launch('{{rId}}', '{{name}}');">{{name}}</sl-menu-item>
+                        </sl-tooltip>
+                    {% endif %}
+                {% endfor %}
+            </sl-menu>
+        </sl-dropdown>
+    </sl-button-group>
+    <sl-dialog id="recovery_dialog" label="Confirm recovery launch" class="dialog-deny-close">
+        Are you sure you want to launch a '<span id="recovery_name"></span>' recovery job now?
+        <sl-button id="recovery_dialog_confirm" slot="footer" variant="primary">Yes, submit</sl-button>
+        <sl-button id="recovery_dialog_deny" slot="footer" variant="neutral">Close</sl-button>
+    </sl-dialog>
+    <script>
+        $("#recovery_dialog_deny").on("click", function(){
+            const dialog = document.querySelector('.dialog-deny-close');
+            dialog.hide();
+        });
+        function confirm_recovery_launch(id, name){
+            $("#recovery_name").html(name);
+            $("#recovery_name").data("id", id);
+            $("#recovery_dialog_confirm").off("click");
+            const dialog = document.querySelector('.dialog-deny-close');
+            dialog.show();
+            $("#recovery_dialog_confirm").on("click", function(){
+                var url = `{{pomspath}}/launch_recovery_for/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&submission_id={{submission.submission_id}}&recovery_type=${id}`;
+                window.location.href=url;
+            })
+        }
+    </script>
+   
 {% else %}
     Re-Launch Submission on dataset {{dataset}} <button onclick="confirm_call('Are you sure you want to launch jobs now?',
     {% if submission.recovery_tasks_parent %}
         '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}&parent_submission_id={{submission.recovery_tasks_parent}}'
     {% else %}
         '{{pomspath}}/launch_jobs/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&dataset_override={{dataset}}'
-    {% endif %}
+    {% endif %})">Relaunch</button><br>
 {% endif %}
-
-)">Relaunch</button><br>
 
 {%if history[-1].status_id >= 7000 %}
 Launch Recovery for Submission

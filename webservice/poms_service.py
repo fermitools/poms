@@ -207,7 +207,19 @@ class PomsService:
         p=[{"p": "can_modify", "t": "Experimenter", "item_id": "username"}],
     )
     def data_dispatcher_overview(self, ctx, **kwargs):
-        if not ctx.dmr_service.services_logged_in or not ctx.dmr_service.services_logged_in.get("data_dispatcher", False):
+        if not self.permissions.is_superuser(ctx):
+            raise cherrypy.HTTPRedirect("%s/index/%s/%s" % (self.path, ctx.experiment, ctx.role))
+        print("experiment = %s" % ctx.experiment)
+        if ctx.experiment not in cherrypy.config.get("Shrek", {}):
+            return {
+                "method": "index",
+                "login_method" : "Not Currently Onboarded",
+                "login_status": 'N/A', 
+                "experiment": ctx.experiment, 
+                "dd_username":"poms", 
+                "timestamp":datetime.datetime.now()
+            }
+        if not cherrypy.session["Shrek"]["services_logged_in"] or not cherrypy.session["Shrek"]["services_logged_in"].get("data_dispatcher", False):
             ctx.dmr_service.begin_services("data_dispatcher")
         retval = ctx.dmr_service.session_status()[1]
         retval['method'] = 'index'
@@ -253,7 +265,7 @@ class PomsService:
     @poms_method(rtype="json")
     def restart_project(self, ctx, **kwargs):
         if ctx.dmr_service.session_status()[0]:
-            return ctx.dmr_service.restart_project(kwargs.get("project_id"))
+            return ctx.dmr_service.restart_handles(kwargs.get("project_id"))
         else:
             retval = {"exception": "Failed to get handles for project | id = %s" % kwargs["project_id"]}
             return {"project_handles": retval, "msg": "Fail"}
@@ -318,6 +330,7 @@ class PomsService:
     @poms_method(p=[{"p": "is_superuser"}], t="raw_tables.html", help_page="experimenters_corner/raw_tables_help")
     def raw_tables(self, **kwargs):
         return {"tlist": list(self.tablesPOMS.admin_map.keys())}
+    
 
     #
     # h4. experiment_list
@@ -414,7 +427,19 @@ class PomsService:
     def campaign_overview(self, **kwargs):
         c, d, sl, dd_projects = self.campaignsPOMS.campaign_overview(**kwargs)
         return {"s": c, "svgdata": d, "slist": sl, "data_dispatcher_projects": dd_projects}
+    
+    @poms_method(
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], rtype="json"
+    )
+    def get_data_handling_service(self, **kwargs):
+        return self.campaignsPOMS.get_data_handling_service(**kwargs)
 
+    @poms_method(
+        p=[{"p": "can_view", "t": "Campaign", "name": "campaign_name"}], rtype="json"
+    )
+    def update_data_handling_service(self, **kwargs):
+        return self.campaignsPOMS.update_data_handling_service(**kwargs)
+    
     @poms_method(
         p=[{"p": "can_view", "t": "Experiment"}], t="show_watching.html", help_page="experimenters_corner/campaign_deps_help"
     )
@@ -556,6 +581,7 @@ class PomsService:
         need_er=True,
     )
     def gui_wf_edit(self, experiment, role, *args, **kwargs):
+        return self.campaignsPOMS.get_ui_editor_items(**kwargs)
         return {} #CampaignsPOMS.gui_wf_edit(self, kwargs)
 
     # h4. gui_wf_clone
@@ -570,7 +596,12 @@ class PomsService:
         need_er=True,
     )
     def gui_wf_clone(self, experiment, role, *args, **kwargs):
-        return {}
+        assert "to" in kwargs and "ctx" in kwargs and ("campaign_id" in kwargs  or "from" in kwargs), "Not enough data was provided to clone this campaign, please try again."
+        ctx = kwargs["ctx"]
+        new_campaign_name = kwargs["to"]
+        campaign_id = kwargs.get("campaign_id", None)
+        existing_campaign_name = kwargs.get("from", None)
+        return self.campaignsPOMS.clone_campaign(ctx, experiment, role, new_campaign_name, campaign_id, existing_campaign_name)
 
     # h4. sample_workflows
 
@@ -886,14 +917,18 @@ class PomsService:
             cl = None
         return self.submissionsPOMS.running_submissions(kwargs["ctx"], cl)
 
-    @poms_method(rtype="json", p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
-    def calculate_dd_project_completion(self, **kwargs):
-        if kwargs.get("ctx", None) and kwargs.get("dd_submissions", None):
-            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_ids=kwargs["dd_submissions"])
-        elif kwargs.get("ctx", None) and kwargs.get("dd_submission", None):
-            return kwargs["ctx"].dmr_service.calculate_dd_project_completion(dd_submission_id=kwargs.get("dd_submission"))
+    @poms_method(a=["X-Poms-Agent"], p=[{"p": "can_view", "t": "Experiment", "item_id": "experiment"}])
+    def calculate_dd_project_completion(self, ctx, **kwargs):
+        agent_header = cherrypy.request.headers.get("X-Poms-Agent", None)
+        if not agent_header:
+            raise cherrypy.HTTPError(403, "Unauthorized.")
+        if ctx and kwargs.get("dd_submissions", None):
+            resp = ctx.dmr_service.calculate_dd_project_completion(ctx, agent_header, dd_submission_ids=kwargs["dd_submissions"])
+        elif ctx and kwargs.get("dd_submission", None):
+            resp = ctx.dmr_service.calculate_dd_project_completion(ctx, agent_header, dd_submission_id=kwargs.get("dd_submission"))
         else:
-            return {}
+            resp = {}
+        return json.dumps(resp)
 
 
     # see &l=webservice/SubmissionsPOMS.py#running_submissions&
@@ -1062,9 +1097,9 @@ class PomsService:
     # h4. launch_recovery_for
     @poms_method(
         p=[{"p": "can_do", "t": "CampaignStage", "item_id": "campaign_stage_id"}],
-        u=["outdir", "outfile", "outfullpath"],
+        u=["outdir", "outfile", "outfullpath", "sid"],
         rtype="redirect",
-        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s",
+        redirect="%(poms_path)s/list_launch_file/%(experiment)s/%(role)s?campaign_stage_id=%(campaign_stage_id)s&fname=%(outfile)s&submission_id=%(sid)s",
     )
     def launch_recovery_for(self, **kwargs):
         return self.submissionsPOMS.launch_recovery_for(**kwargs)

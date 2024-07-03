@@ -8,6 +8,7 @@ poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
 from __future__ import division
+import copy
 import glob
 import importlib
 import json
@@ -76,6 +77,179 @@ class CampaignsPOMS:
         """
         camp = ctx.db.query(Campaign).filter(Campaign.campaign_id == campaign_id, Campaign.experiment == ctx.experiment).scalar()
         return camp.name if camp else None
+    
+    def get_data_handling_service(self, **kwargs):
+        try:
+            assert ("name" in kwargs or "stage_name" in kwargs) and "campaign_id" in kwargs and "ctx" in kwargs, "Invalid Request"
+            ctx = kwargs["ctx"]
+            
+            if "name" in kwargs:
+                camp = ctx.db.query(Campaign).filter(Campaign.campaign_id == int(kwargs["campaign_id"])).first()
+                retval = {"currently_using": camp.data_handling_service}
+                service_settings = camp.defaults.get("defaults", {})
+                if type(service_settings) == type(dict()) and camp.data_handling_service in service_settings:
+                    retval["defaults"] = dict(service_settings)
+                else:
+                    retval["defaults"] = {
+                        "sam": {
+                            "dataset_or_split_data": None
+                        },
+                        "data_dispatcher": {
+                            "data_dispatcher_idle_timeout": 259200,
+                            "data_dispatcher_worker_timeout": None,
+                            "data_dispatcher_project_id": None,
+                            "data_dispatcher_dataset_query": None,
+                            "data_dispatcher_project_virtual": False,
+                            "data_dispatcher_stage_methodology": "standard",
+                            "data_dispatcher_recovery_mode": "standard",
+                            "data_dispatcher_load_limit": None,
+                        }
+                    }
+            elif "stage_name" in kwargs:
+                stage = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == int(kwargs["campaign_id"]) and CampaignStage.name == kwargs["stage_name"]).first()
+                if stage:
+                    retval = {"currently_using": str(stage.campaign_obj.data_handling_service)}
+                    if retval["currently_using"] == "data_dispatcher":
+                        retval["stage_data"] = dict(stage.data_dispatcher_settings)
+                    elif retval["currently_using"] == "sam":
+                        retval["stage_data"] = {"dataset_or_split_data": stage.dataset}
+            
+            return retval
+        except AssertionError as e:
+            raise e
+        except IntegrityError as e:
+            message = "Integrity error: " "You are most likely using a name " "which already exists in database."
+            logit.log(" ".join(e.args))
+            ctx.db.rollback()
+            raise message
+        
+        
+    
+    def update_data_handling_service(self, **kwargs):
+        try:
+            assert "service" in kwargs and "id" in kwargs and "type" in kwargs and "ctx" in kwargs, "Invalid Request"
+            ctx = kwargs["ctx"]
+            service_updated = "N/A"
+            if kwargs["type"] == "campaign":
+                camp = ctx.db.query(Campaign).filter(Campaign.campaign_id == int(kwargs["id"])).first()
+                if camp:
+                    # Get current campaign defaults
+                    camp.data_handling_service = kwargs["service"]
+                    defaults_copy = copy.deepcopy(camp.defaults) if camp.defaults else {"defaults": {}}
+                    if "defaults" not in defaults_copy:
+                        defaults_copy["defaults"] = {}
+                    defaults = defaults_copy["defaults"]
+                    
+                    # Add default settings if they do not exist
+                    if "data_handling_service" not in defaults or type(defaults["data_handling_service"]) != type(dict()):
+                        defaults["data_handling_service"] = {
+                            "sam": {
+                                "dataset_or_split_data": ""
+                            },
+                            "data_dispatcher": {
+                                "data_dispatcher_idle_timeout": 259200,
+                                "data_dispatcher_worker_timeout": None,
+                                "data_dispatcher_project_id": None,
+                                "data_dispatcher_dataset_query": None,
+                                "data_dispatcher_project_virtual": False,
+                                "data_dispatcher_stage_methodology": "standard",
+                                "data_dispatcher_recovery_mode": "standard",
+                                "data_dispatcher_load_limit": None,
+                            }
+                        }
+                    # Get default settings for service being updated
+                    service_settings = defaults["data_handling_service"][kwargs["service"]]
+                    
+                    # refactor if service settings exist in the previous format
+                    for item in ["data_dispatcher_idle_timeout", "data_dispatcher_worker_timeout",
+                                "data_dispatcher_project_id", "data_dispatcher_dataset_query", "data_dispatcher_project_virtual",
+                                "data_dispatcher_stage_methodology", "data_dispatcher_recovery_mode", "data_dispatcher_load_limit"]:
+                        if item in defaults:
+                            # types in defaults are immutable, so no need to do a copy on them before deleting
+                            # service_settings[item] = copy.deepcopy(defaults[item])
+                            defaults["data_handling_service"]["data_dispatcher"][item] = defaults[item]
+                            del defaults[item]
+                    if "dataset_or_split_data" in defaults:
+                        defaults["data_handling_service"]["sam"]["dataset_or_split_data"] = defaults["dataset_or_split_data"]
+                        del defaults["dataset_or_split_data"]
+                            
+                    if kwargs["service"] == "sam":
+                        service_settings["dataset_or_split_data"] = kwargs.get("dataset_or_split_data", "")
+                        service_updated = "Campaign | sam"
+                    else:
+                        # Handle integer parsing errors, set to None or default where relevant
+                        for item in ["data_dispatcher_idle_timeout", "data_dispatcher_worker_timeout", "data_dispatcher_project_id", "data_dispatcher_load_limit"]:
+                            try:
+                                if item in kwargs and kwargs[item] == 'NaN':
+                                    service_settings[item] = 259200 if item == "data_dispatcher_idle_timeout" else None
+                                else:
+                                    service_settings[item] = int(kwargs[item]) if item in kwargs else None
+                            except TypeError as e:
+                                service_settings[item] = None
+                            except ValueError as e:
+                                service_settings[item] = 259200 if item == "data_dispatcher_idle_timeout" else None
+                        # convert string to bool
+                        if "data_dispatcher_project_virtual" in kwargs and kwargs["data_dispatcher_project_virtual"] in (True, "true", "True"):
+                            service_settings["data_dispatcher_project_virtual"] = True 
+                        else:
+                            service_settings["data_dispatcher_project_virtual"] = False
+
+                        service_settings["data_dispatcher_dataset_query"] = kwargs.get("data_dispatcher_dataset_query", None)
+                        service_settings["data_dispatcher_stage_methodology"] = kwargs.get("data_dispatcher_stage_methodology", "standard")
+                        service_settings["data_dispatcher_recovery_mode"] = kwargs.get("data_dispatcher_recovery_mode", "standard")
+                        service_updated = "Campaign | data_dispatcher"
+                    defaults["data_handling_service"][kwargs["service"]] = service_settings
+                    print("defaults: " + str(defaults_copy))
+                    
+                    camp.defaults = defaults_copy
+                    ctx.db.add(camp)
+                    ctx.db.commit()
+                    print("New Defaults: " + str(camp.defaults))
+            elif kwargs["type"] == "campaign_stage":
+                assert "stage" in kwargs, "No stage defined"
+                stage = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == int(kwargs["id"]) and CampaignStage.name == kwargs["stage"]).first()
+                if stage:
+                    if kwargs["service"] == "sam":
+                        stage.dataset = kwargs.get("dataset_or_split_data", "")
+                        service_updated = "Campaign Stage | sam"
+                    elif kwargs["service"] == "data_dispatcher":
+                        for item in ["data_dispatcher_idle_timeout", "data_dispatcher_worker_timeout", "data_dispatcher_project_id", "data_dispatcher_load_limit"]:
+                                try:
+                                    if item in kwargs and kwargs[item] == 'NaN':
+                                        setattr(stage, item, 259200 if item == "data_dispatcher_idle_timeout" else None)
+                                    else:
+                                        setattr(stage, item, int(kwargs[item]))
+                                except Exception as e:
+                                    setattr(stage, item, 259200 if item == "data_dispatcher_idle_timeout" else None)
+                        stage.data_dispatcher_project_virtual = True if kwargs.get("data_dispatcher_project_virtual", "eek") in (True, "true", "True") else False
+                        stage.data_dispatcher_dataset_query = kwargs.get("data_dispatcher_dataset_query", None)
+                        stage.data_dispatcher_stage_methodology = kwargs.get("data_dispatcher_stage_methodology", "standard")
+                        stage.data_dispatcher_recovery_mode = kwargs.get("data_dispatcher_recovery_mode", "standard")
+                        stage.data_dispatcher_load_limit = kwargs.get("data_dispatcher_load_limit", None)
+                        stage.data_dispatcher_settings = {
+                            "idle_timeout": stage.data_dispatcher_idle_timeout,
+                            "worker_timeout": stage.data_dispatcher_worker_timeout,
+                            "project_id": stage.data_dispatcher_project_id,
+                            "dataset_query": stage.data_dispatcher_dataset_query,
+                            "virtual": stage.data_dispatcher_project_virtual,
+                            "stage_methodology": stage.data_dispatcher_stage_methodology,
+                            "recovery_mode": stage.data_dispatcher_recovery_mode,
+                            "load_limit": stage.data_dispatcher_load_limit
+                        }
+                        service_updated = "Campaign Stage | data_dispatcher"
+                    ctx.db.add(stage)
+                    ctx.db.commit()
+            return {"status": "success", "updated": service_updated}
+        except AssertionError as e:
+            raise e
+        except IntegrityError as e:
+            message = "Integrity error: " "You are most likely using a name " "which already exists in database."
+            logit.log(" ".join(e.args))
+            ctx.db.rollback()
+            raise message
+        except Exception as e:
+            logit.log("Campaign Service | update_data_handling_service | exception: %s" % e)
+            raise cherrypy.HTTPError(500, "Failed to update")
 
     # h3. campaign_add_name
     def campaign_add_name(self, ctx, **kwargs):
@@ -85,10 +259,10 @@ class CampaignsPOMS:
         experimenter = ctx.get_experimenter()
         data = {}
         name = kwargs.get("campaign_name")
-        metadata_service = kwargs.get("service")
+        data_handling_service = kwargs.get("service", "SAM")
         data["message"] = "ok"
         try:
-            camp = Campaign(name=name, metadata_service=service, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
+            camp = Campaign(name=name, data_handling_service=data_handling_service, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
             ctx.db.add(camp)
             ctx.db.commit()
             c_s = CampaignStage(
@@ -760,10 +934,10 @@ class CampaignsPOMS:
                     res.append("vo_role=%s" % defaults.get("vo_role"))
                     # res.append("state=%s" % defaults.get("state"))
                     res.append("software_version=%s" % defaults.get("software_version"))
-                    res.append("sam_dataset_or_split_data=%s" % defaults.get("dataset"))
-                    res.append("data_dispatcher_dataset_query=%s" % defaults.get("data_dispatcher_dataset_query" or None))
-                    res.append("data_dispatcher_project_id=%s" % defaults.get("data_dispatcher_project_id" or None))
-                    res.append("data_handling_service=%s" % defaults.get("data_handling_service") or "sam")
+                    #res.append("dataset_or_split_data=%s" % defaults.get("dataset"))
+                    #res.append("data_dispatcher_dataset_query=%s" % defaults.get("data_dispatcher_dataset_query" or None))
+                    #res.append("data_dispatcher_project_id=%s" % defaults.get("data_dispatcher_project_id" or None))
+                    res.append("data_handling_service=%s" % the_campaign.data_handling_service or 'sam')
                     res.append("cs_split_type=%s" % defaults.get("cs_split_type"))
                     res.append("test_split_type=%s" % defaults.get("test_split_type"))
                     res.append("default_clear_cronjob=%s" % "True")
@@ -777,8 +951,31 @@ class CampaignsPOMS:
                     res.append("stage_type=%s" % (defaults.get("stage_type") or "regular"))
                     res.append("output_ancestor_depth=%s" % (defaults.get("output_ancestor_depth") or "1"))
                     res.append("")
+                    
+                    if "data_handling_service" in defaults:
+                        if 'sam' in defaults["data_handling_service"]:
+                            sam_defaults = defaults["data_handling_service"]["sam"]
+                            res.append("[sam_defaults]")
+                            res.append("dataset_or_split_data=%s" % sam_defaults.get("dataset"))
+                            res.append("")
+                            
+                        if 'data_dispatcher' in defaults["data_handling_service"]:
+                            if not isinstance(defaults["data_handling_service"], dict):
+                                dd_defaults = defaults
+                            else:
+                                dd_defaults = defaults["data_handling_service"]["data_dispatcher"]
+                            res.append("[data_dispatcher_defaults]")
+                            res.append("idle_timeout=%s" % dd_defaults.get("data_dispatcher_idle_timeout", 259200))
+                            res.append("worker_timeout=%s" % dd_defaults.get("data_dispatcher_worker_timeout", None))
+                            res.append("query=%s" % dd_defaults.get("data_dispatcher_dataset_query", None) or None)
+                            res.append("project_id=%s" % dd_defaults.get("data_dispatcher_project_id", None))
+                            res.append("virtual=%s" % dd_defaults.get("data_dispatcher_project_vitual", False))
+                            res.append("recovery_mode=%s" % dd_defaults.get("data_dispatcher_recovery_mode", "standard"))
+                            res.append("stage_methodology=%s" % dd_defaults.get("data_dispatcher_stage_methodology", "standard"))
+                            res.append("load_limit=%s" % dd_defaults.get("data_dispatcher_load_limit", None) or None)
+                            res.append("")
                 else:
-                    defaults = {}
+                    defaults = {"defaults": {}}
 
             if full in ("1", "y", "Y", "t", "T"):
                 if positions:
@@ -786,30 +983,66 @@ class CampaignsPOMS:
                     for (n, (k, v)) in enumerate(positions.items()):
                         res.append('nxy{}=["{}", {}, {}]'.format(n, k, v["x"], v["y"]))
                     res.append("")
+              
+        
 
         for c_s in campaign_stages:
             res.append("[campaign_stage %s]" % c_s.name)
             # res.append("name=%s" % c_s.name)
+            data_handling_defaults = defaults.get("data_handling_service", {})
+            if not isinstance(data_handling_defaults, dict):
+                data_handling_defaults = defaults
+
+            default_data_dispatcher_settings = {}
+            for key, val in data_handling_defaults.get('data_dispatcher', data_handling_defaults).items():
+                if "virtual" in key:
+                    use_key = "virtual"
+                elif "data_dispatcher" in key:
+                    use_key = key.replace("data_dispatcher_", "")
+                else:
+                    continue
+                default_data_dispatcher_settings[use_key] = val
+            
+            stage_data_dispatcher_settings = c_s.data_dispatcher_settings or {
+                "idle_timeout": c_s.data_dispatcher_idle_timeout,
+                "worker_timeout": c_s.data_dispatcher_worker_timeout,
+                "project_id": c_s.data_dispatcher_project_id,
+                "dataset_query": c_s.data_dispatcher_dataset_query,
+                "virtual": c_s.data_dispatcher_project_virtual,
+                "stage_methodology": c_s.data_dispatcher_stage_methodology,
+                "recovery_mode": c_s.data_dispatcher_recovery_mode,
+                "load_limit": c_s.data_dispatcher_load_limit
+            }
+            
             if c_s.vo_role != defaults.get("vo_role"):
                 res.append("vo_role=%s" % c_s.vo_role)
             if c_s.software_version != defaults.get("software_version"):
                 res.append("software_version=%s" % c_s.software_version)
             if c_s.output_ancestor_depth != defaults.get("output_ancestor_depth", 1):
                 res.append("output_ancestor_depth=%s" % c_s.output_ancestor_depth)
-            if c_s.dataset != defaults.get("sam_dataset_or_split_data" or "") or defaults.get("dataset_or_split_data" or ""):
-                res.append("sam_dataset_or_split_data=%s" % c_s.dataset)
+            if the_campaign.data_handling_service == 'sam':
+                dataset_or_split_data = c_s.dataset if c_s.dataset else data_handling_defaults.get("sam", {}).get("dataset_or_split_data", None)
+                res.append("sam_settings=%s" % json.dumps({"dataset_or_split_data" : dataset_or_split_data}))
+            elif the_campaign.data_handling_service == 'data_dispatcher':
+                if default_data_dispatcher_settings and stage_data_dispatcher_settings:
+                    success = False
+                    for key, val in stage_data_dispatcher_settings.items():
+                        if val and default_data_dispatcher_settings.get(key) != val:
+                            success = True
+                            res.append("data_dispatcher_settings=%s" % json.dumps(stage_data_dispatcher_settings))
+                            break
+                    if not success:
+                        res.append("data_dispatcher_settings=%s" % json.dumps(stage_data_dispatcher_settings))
+                else:
+                    res.append("data_dispatcher_settings=%s" % json.dumps(stage_data_dispatcher_settings))
+                    
+                
             if c_s.cs_split_type != defaults.get("cs_split_type"):
                 res.append("cs_split_type=%s" % c_s.cs_split_type)
             if c_s.test_split_type != defaults.get("test_split_type", None):
                 res.append("test_split_type=%s" % c_s.test_split_type)
             if c_s.completion_type != defaults.get("completion_type"):
                 res.append("completion_type=%s" % c_s.completion_type)
-            if c_s.campaign_obj.data_handling_service != defaults.get("data_handling_service"):
-                res.append("data_handling_service=%s" % c_s.campaign_obj.data_handling_service)
-            if c_s.data_dispatcher_dataset_query != defaults.get("data_dispatcher_dataset_query" or None):
-                res.append("data_dispatcher_dataset_query=%s" % c_s.data_dispatcher_dataset_query)
-            if c_s.data_dispatcher_project_id != defaults.get("data_dispatcher_project_id" or None):
-                res.append("data_dispatcher_project_id=%s" % c_s.data_dispatcher_project_id)
             if str(c_s.completion_pct) != defaults.get("completion_pct"):
                 res.append("completion_pct=%s" % c_s.completion_pct)
             if json.dumps(c_s.param_overrides) != defaults.get("param_overrides"):
@@ -1248,7 +1481,7 @@ class CampaignsPOMS:
 
         # Now process all stages
         campaign_clean = campaign.get("clean")
-        defaults = campaign.get("form")
+        defaults = campaign.get("form", {})
         campaign_keywords_json = defaults.get("campaign_keywords", "")
         if not campaign_keywords_json:
             campaign_keywords_json = "{}"
@@ -1263,6 +1496,41 @@ class CampaignsPOMS:
         the_campaign = ctx.db.query(Campaign).filter(Campaign.name == c_old_name, Campaign.experiment == ctx.experiment).scalar()
         if the_campaign:
             # the_campaign.defaults = defaults    # Store the defaults unconditionally as they may be not stored yet
+            data_handling_defaults = the_campaign.defaults.get("defaults", {}) if the_campaign.defaults else {}
+            if data_handling_defaults.get("data_handling_service") and isinstance(data_handling_defaults["data_handling_service"], dict):
+                defaults["data_handling_service"] = data_handling_defaults["data_handling_service"]
+            elif data_handling_defaults.get("data_handling_service") and isinstance(data_handling_defaults["data_handling_service"], str) and not isinstance(data_handling_defaults, str):
+                defaults["data_handling_service"] = {
+                   "sam": {
+                        "dataset_or_split_data": data_handling_defaults.get("dataset_or_split_data", None),
+                    },
+                    "data_dispatcher": {
+                        "data_dispatcher_idle_timeout": data_handling_defaults.get("data_dispatcher_idle_timeout", 259200),
+                        "data_dispatcher_worker_timeout": data_handling_defaults.get("data_dispatcher_worker_timeout", None),
+                        "data_dispatcher_project_id": data_handling_defaults.get("data_dispatcher_project_id", None),
+                        "data_dispatcher_dataset_query": data_handling_defaults.get("data_dispatcher_dataset_query", None),
+                        "data_dispatcher_project_virtual": data_handling_defaults.get("data_dispatcher_project_virtual", False),
+                        "data_dispatcher_stage_methodology": data_handling_defaults.get("data_dispatcher_stage_methodology", "standard"),
+                        "data_dispatcher_recovery_mode": data_handling_defaults.get("data_dispatcher_recovery_mode", "standard"),
+                        "data_dispatcher_load_limit": data_handling_defaults.get("data_dispatcher_load_limit", None)
+                    }
+                }
+            else:
+                defaults["data_handling_service"] = {
+                   "sam": {
+                        "dataset_or_split_data": None
+                    },
+                    "data_dispatcher": {
+                        "data_dispatcher_idle_timeout": 259200,
+                        "data_dispatcher_worker_timeout": None,
+                        "data_dispatcher_project_id": None,
+                        "data_dispatcher_dataset_query": None,
+                        "data_dispatcher_project_virtual": False,
+                        "data_dispatcher_stage_methodology": "standard",
+                        "data_dispatcher_recovery_mode": "standard",
+                        "data_dispatcher_load_limit": None
+                    }
+                }
             the_campaign.defaults = {
                 "defaults": defaults,
                 "positions": position,
@@ -1342,12 +1610,24 @@ class CampaignsPOMS:
             split_type = form.pop("cs_split_type", None)
             test_split_type = form.pop("test_split_type", None)
             default_clear_cronjob = form.pop("default_clear_cronjob", True)
-            if "sam_dataset_or_split_data" in form:
-                dataset = form.pop("sam_dataset_or_split_data")
-            else:
-                dataset = form.pop("dataset_or_split_data")
-            data_dispatcher_dataset_query = form.pop("data_dispatcher_dataset_query", None)
-            data_dispatcher_project_id = form.pop("data_dispatcher_project_id", None)
+            data_dispatcher_settings = None
+            dataset = None
+            if "sam_settings" in form and form["sam_settings"] != "":
+                dataset = form.pop("sam_settings", {})
+                if isinstance(dataset, str):
+                    dataset = json.loads(dataset)
+                dataset = dataset.get("dataset_or_split_data", None)
+                
+            elif "data_dispatcher_settings" in form and form["data_dispatcher_settings"] != "":
+                data_dispatcher_settings = form.pop("data_dispatcher_settings", {
+                    "idle_timeout": 259200,
+                    "worker_timeout": None,
+                    "project_id": None,
+                    "dataset_query": None,
+                    "virtual": False,
+                    "stage_methodology": "standard",
+                    "recovery_mode":  "standard"
+                })
             job_type = form.pop("job_type")
             print("################ job_type: '{}'".format(job_type))
             login_setup = form.pop("login_setup")
@@ -1416,9 +1696,21 @@ class CampaignsPOMS:
                     obj.cs_split_type = split_type
                     obj.test_split_type = test_split_type
                     obj.default_clear_cronjob = default_clear_cronjob not in (False, "False", "false")
-                    obj.dataset = dataset
-                    obj.data_dispatcher_dataset_query = data_dispatcher_dataset_query
-                    obj.data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None
+                    if dataset:
+                        obj.dataset = dataset or ""
+                    if data_dispatcher_settings:
+                        if not isinstance(data_dispatcher_settings, dict):
+                            data_dispatcher_settings = json.loads(data_dispatcher_settings)
+                        obj.data_dispatcher_settings = data_dispatcher_settings
+                        obj.data_dispatcher_idle_timeout = data_dispatcher_settings.get("idle_timeout", None)
+                        obj.data_dispatcher_worker_timeout = data_dispatcher_settings.get("worker_timeout", None)
+                        obj.data_dispatcher_project_id = data_dispatcher_settings.get("project_id", None)
+                        obj.data_dispatcher_dataset_query = data_dispatcher_settings.get("dataset_query", None)
+                        obj.data_dispatcher_project_virtual = data_dispatcher_settings.get("virtual", None)
+                        obj.data_dispatcher_load_limit = data_dispatcher_settings.get("load_limit", None)
+                        obj.data_dispatcher_stage_methodology = data_dispatcher_settings.get("stage_methodology", None)
+                        obj.data_dispatcher_recovery_mode = data_dispatcher_settings.get("recovery_mode", None)
+                        
                     obj.job_type_id = job_type_id
                     obj.login_setup_id = login_setup_id
                     obj.param_overrides = param_overrides
@@ -1446,9 +1738,17 @@ class CampaignsPOMS:
                     cs_split_type=split_type,
                     test_split_type=test_split_type,
                     default_clear_cronjob = default_clear_cronjob not in (False, "False", "false"),
-                    dataset=dataset,
-                    data_dispatcher_dataset_query = data_dispatcher_dataset_query,
-                    data_dispatcher_project_id = data_dispatcher_project_id if data_dispatcher_project_id not in (None, "None") else None,
+                    dataset=dataset if dataset else "",
+                    data_dispatcher_settings=data_dispatcher_settings if data_dispatcher_settings else {
+                        "idle_timeout": 259200,
+                        "worker_timeout": None,
+                        "project_id": None,
+                        "dataset_query": None,
+                        "virtual": False,
+                        "stage_methodology": "standard",
+                        "recovery_mode": "standard",
+                        "load_limit": None
+                    },
                     job_type_id=job_type_id,
                     login_setup_id=login_setup_id,
                     param_overrides=param_overrides,
@@ -1514,6 +1814,7 @@ class CampaignsPOMS:
             "campaign_stage_ids": [(x.campaign_stage_id, x.name) for x in the_campaign.stages],
         }
 
+
     # h3. mark_campaign_active
     def mark_campaign_active(self, ctx, campaign_id=None, is_active=None, camp_l=None, clear_cron=False):
         logit.log("camp_l={}; is_active='{}'".format(camp_l, is_active))
@@ -1542,3 +1843,187 @@ class CampaignsPOMS:
         ctx.db.commit()
 
         return auth_error
+    
+    
+    def clone_campaign(self, ctx, exp, role, new_campaign_name, campaign_id=None, existing_campaign_name=None):
+        try:
+            campaign_to_clone = None
+            if campaign_id:
+                campaign_to_clone = ctx.db.query(Campaign).filter(and_(
+                    Campaign.experiment == exp,
+                    Campaign.campaign_id == campaign_id
+                )).first()
+            elif existing_campaign_name:
+                exp = ctx.experiment
+                campaign_to_clone = ctx.db.query(Campaign).filter(and_(
+                    Campaign.experiment == exp, Campaign.creator_role == role, 
+                    Campaign.name == existing_campaign_name
+                )).first()
+            
+            if not campaign_to_clone:
+                raise LookupError("Campaign not found with the values provided.")
+            
+            experimenter = ctx.get_experimenter_id()
+            # Get the existing stages and dependencies linked to the original campaign
+            existing_stages = { 
+                stage.campaign_stage_id: stage 
+                for stage 
+                in ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == campaign_to_clone.campaign_id).all()
+            }
+            
+            existing_dependencies = ctx.db.query(CampaignDependency).filter(or_(
+                CampaignDependency.needs_campaign_stage_id.in_(existing_stages.keys()),
+                CampaignDependency.provides_campaign_stage_id.in_(existing_stages.keys()))).all()
+            
+            # Begin cloning
+            new_campaign = campaign_to_clone.__dict__.copy()
+            # strip the keys we don't want
+            for key in ['campaign_id', '_sa_instance_state']:
+                new_campaign.pop(key, None)
+            new_campaign:Campaign = Campaign(**new_campaign)
+            
+            # Replace the relevant fields
+            new_campaign.name = new_campaign_name
+            new_campaign.active = True
+            new_campaign.created = datetime.now(utc)
+            new_campaign.updated = datetime.now(utc)
+            new_campaign.updater = experimenter
+            # If made by {experiment}pro account, leave it
+            # Otherwise, the user who cloned the campaign is the new creator
+            if not ctx.is_production_experiment(new_campaign.creator):
+                new_campaign.creator = experimenter
+                
+            # save this id for later so we dont need to check again
+            creator_id = new_campaign.creator
+            creator_role = ctx.get_vo_role(creator_id)
+            if creator_role.lower() in "production-shifter":
+                creator_role = campaign_to_clone.creator_role
+            new_campaign.creator_role = creator_role
+            vo_role = creator_role.capitalize()
+            
+            # Create the new campaign and save to get the new campaign_id
+            ctx.db.add(new_campaign)
+            ctx.db.commit()
+            new_campaign_id = new_campaign.campaign_id
+            
+            # Now do the same for the campaign stages
+            stage_index = {}
+            for stage in existing_stages.values():
+                # Hold on to this campaign_stage_id, we will use it for the stage index
+                old_id = int(stage.campaign_stage_id)
+                
+                # Clone it
+                cloned_stage = stage.__dict__.copy()
+                for key in ['campaign_stage_id', '_sa_instance_state']:
+                    cloned_stage.pop(key, None)
+                cloned_stage:CampaignStage = CampaignStage(**cloned_stage)
+                
+                cloned_stage.creator = creator_id
+                cloned_stage.created = datetime.now(utc)
+                cloned_stage.updated = datetime.now(utc)
+                cloned_stage.creator_role = creator_role
+                cloned_stage.vo_role = vo_role
+                # Set campaign id to the new one
+                cloned_stage.campaign_id = new_campaign_id
+                # dereference existing splits
+                cloned_stage.cs_last_split = None
+                # index the old stage with the new stage
+                stage_index[old_id] = cloned_stage
+            
+            # Store the cloned stages
+            ctx.db.add_all(stage_index.values())
+            ctx.db.commit()
+            
+            # We dont need the full new stage anymore, just the new campaign_stage_id
+            stage_index = { 
+                previous_campaign_stage_id : clone.campaign_stage_id 
+                for previous_campaign_stage_id, clone 
+                in stage_index.items()
+            }
+            
+            # Finally, lets clone the dependencies
+            for dep in existing_dependencies:
+                # Clone it
+                cloned_dep = dep.__dict__.copy()
+                for key in ['campaign_dep_id', '_sa_instance_state']:
+                    cloned_dep.pop(key, None)
+                cloned_dep:CampaignDependency = CampaignDependency(**cloned_dep)
+                
+                # Now use our nifty index to swap the campaign_stage_id's
+                needs = stage_index.get(dep.needs_campaign_stage_id, None)
+                provides = stage_index.get(dep.needs_campaign_stage_id, None)
+                if needs and provides:
+                    cloned_dep.needs_campaign_stage_id = needs
+                    cloned_dep.provides_campaign_stage_id = provides
+                    ctx.db.add(cloned_dep)
+            
+            ctx.db.commit()
+            return self.get_ui_editor_items(ctx=ctx, campaign_id=new_campaign_id)
+        except IntegrityError as e:
+            ctx.db.rollback()
+        
+        raise cherrypy.HTTPError(500, "An error occurred while cloning this campaign.")
+            
+        
+        
+        
+        
+        
+        
+        
+
+    def get_ui_editor_items(self, **kwargs):
+        ctx = kwargs["ctx"]
+        campaign_id = kwargs.get("campaign_id", 0)
+        cstages = (ctx.db.query(CampaignStage).join(CampaignStage.campaign_obj).filter(CampaignStage.campaign_id == campaign_id).all())
+        c = cstages[0].campaign_obj
+        print(c.defaults)
+        job_types =  {jt.name: jt for jt in ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment, JobType.creator_role == ctx.role, JobType.active == True).all()}
+        def get_dd_settings(stages):
+            for c_s in stages:
+                c_s.data_dispatcher_settings = c_s.data_dispatcher_settings or {
+                    "idle_timeout": c_s.data_dispatcher_idle_timeout,
+                    "worker_timeout": c_s.data_dispatcher_worker_timeout,
+                    "project_id": c_s.data_dispatcher_project_id,
+                    "dataset_query": c_s.data_dispatcher_dataset_query,
+                    "virtual": c_s.data_dispatcher_project_virtual,
+                    "stage_methodology": c_s.data_dispatcher_stage_methodology,
+                    "recovery_mode": c_s.data_dispatcher_recovery_mode,
+                    "load_limit": c_s.data_dispatcher_load_limit
+                }
+                ctx.db.add(c_s)
+            ctx.db.commit()
+            return stages
+        cstages = get_dd_settings(cstages)
+        data_handling_defaults = None
+        if c.defaults:
+            data_handling_defaults = c.defaults.get("defaults", {}).get("data_handling_service", {})
+        if not c.defaults or not data_handling_defaults or isinstance(data_handling_defaults, str):
+            if isinstance(data_handling_defaults, str):
+                data_handling_defaults = c.defaults.get("defaults", {})
+            data_handling_defaults = {
+                "sam": {
+                    "dataset_or_split_data": data_handling_defaults.get("dataset_or_split_data", None) if data_handling_defaults else None,
+                },
+                "data_dispatcher": {
+                    "data_dispatcher_idle_timeout": data_handling_defaults.get("data_dispatcher_idle_timeout", 259200) if data_handling_defaults else 259200,
+                    "data_dispatcher_worker_timeout": data_handling_defaults.get("data_dispatcher_worker_timeout", None) if data_handling_defaults else None,
+                    "data_dispatcher_project_id": data_handling_defaults.get("data_dispatcher_project_id", None) if data_handling_defaults else None,
+                    "data_dispatcher_dataset_query": data_handling_defaults.get("data_dispatcher_dataset_query", None) if data_handling_defaults else None,
+                    "data_dispatcher_project_virtual": data_handling_defaults.get("data_dispatcher_project_virtual", False) if data_handling_defaults else False,
+                    "data_dispatcher_stage_methodology": data_handling_defaults.get("data_dispatcher_stage_methodology", "standard") if data_handling_defaults else "standard",
+                    "data_dispatcher_recovery_mode": data_handling_defaults.get("data_dispatcher_recovery_mode", "standard")  if data_handling_defaults else "standard",
+                    "data_dispatcher_load_limit": data_handling_defaults.get("data_dispatcher_load_limit", None) if data_handling_defaults else None
+                }
+            }
+        retval = {
+            "cd": c.defaults if c.defaults else {},
+            "data_handling_service": c.data_handling_service,
+            "cdh": data_handling_defaults,
+            "campaign_keywords": c.campaign_keywords,
+            "stages": cstages,
+            "jt":job_types
+            }
+        return retval
+    
+        

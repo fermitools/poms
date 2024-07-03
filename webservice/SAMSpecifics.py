@@ -138,7 +138,7 @@ class sam_specifics:
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
-            rname = "poms_recover_%s_%d_%d" % (str(uuid.uuid4()), s.submission_id, s.recovery_position)
+            rname = "poms_recover_%d_%d" % (s.submission_id, s.recovery_position)
 
             logit.log(
                 "launch_recovery_if_needed: creating dataset for exp=%s name=%s dims=%s"

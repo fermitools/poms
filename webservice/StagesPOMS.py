@@ -22,6 +22,7 @@ import re
 
 import cherrypy
 from crontab import CronTab
+import poms.webservice.DMRService as shrek
 from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
@@ -170,6 +171,7 @@ class StagesPOMS:
             logit.log("campaign_stage_edit: add or edit case")
             name = kwargs.pop("ae_stage_name")
             data_handling_service = kwargs.pop("ae_data_handling_service", "sam")
+            
             if isinstance(name, str):
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
@@ -178,10 +180,16 @@ class StagesPOMS:
             default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
             vo_role = kwargs.pop("ae_vo_role", ctx.role )
             software_version = kwargs.pop("ae_software_version", None)
-            dataset = kwargs.pop("ae_dataset", "None")
+            dataset = kwargs.pop("ae_dataset", None)
             campaign_type = kwargs.pop("ae_campaign_type", "test")
             dd_dataset_query = kwargs.pop("ae_dd_dataset_query", None) 
-            dd_project_id_override = kwargs.pop("ae_dd_project_id", None) 
+            dd_project_id_override = kwargs.pop("ae_dd_project_id", None)
+            dd_project_stage_methodology = kwargs.pop("ae_dd_stage_methodology", "standard") 
+            dd_project_recovery_mode = kwargs.pop("ae_dd_recovery_mode", "standard") 
+            dd_project_virtual = kwargs.pop("ae_dd_virtual", False) 
+            dd_project_load_limit = kwargs.pop("ae_dd_load_limit", None)
+            dd_project_idle_timeout = kwargs.pop("ae_dd_idle_timeout", 259200) 
+            dd_project_worker_timeout = kwargs.pop("ae_dd_worker_timeout", None) 
 
             completion_type = kwargs.pop("ae_completion_type", "located" if data_handling_service == "sam" else "complete")
             completion_pct = kwargs.pop("ae_completion_pct")
@@ -286,6 +294,22 @@ class StagesPOMS:
                             dataset=dataset,
                             data_dispatcher_dataset_query = dd_dataset_query,
                             data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None,
+                            data_dispatcher_project_virtual = dd_project_virtual,
+                            data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                            data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                            data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                            data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                            data_dispatcher_load_limit = dd_project_load_limit,
+                            data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit,
+                            },
                             test_param_overrides=test_param_overrides,
                             param_overrides=param_overrides,
                             login_setup_id=login_setup_id,
@@ -321,6 +345,22 @@ class StagesPOMS:
                         cs.test_param_overrides = test_param_overrides
                         cs.data_dispatcher_dataset_query = dd_dataset_query
                         cs.data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None
+                        cs.data_dispatcher_project_virtual = dd_project_virtual,
+                        cs.data_dispatcher_load_limit = dd_project_load_limit,
+                        cs.data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                        cs.data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                        cs.data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                        cs.data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                        cs.data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
                         cs.job_type_id = job_type_id
                         cs.login_setup_id = login_setup_id
                         cs.updated = datetime.now(utc)
@@ -344,6 +384,22 @@ class StagesPOMS:
                             "test_param_overrides": test_param_overrides,
                             "data_dispatcher_dataset_query": dd_dataset_query,
                             "data_dispatcher_project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                            "data_dispatcher_project_virtual": dd_project_virtual,
+                            "data_dispatcher_load_limit": dd_project_load_limit,
+                            "data_dispatcher_stage_methodology": dd_project_stage_methodology,
+                            "data_dispatcher_recovery_mode":dd_project_recovery_mode,
+                            "data_dispatcher_idle_timeout": dd_project_idle_timeout,
+                            "data_dispatcher_worker_timeout": dd_project_worker_timeout,
+                            "data_dispatcher_settings": {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
                             "job_type_id": job_type_id,
                             "login_setup_id": login_setup_id,
                             "updated": datetime.now(utc),
@@ -986,34 +1042,8 @@ class StagesPOMS:
 
         subhist = aliased(SubmissionHistory)
         subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
-
         launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
-        sam_subs = {sub.submission_id: sub for sub in ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()}
-        dd_submissions = {dd_sub.submission_id: dd_sub for dd_sub in ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.campaign_stage_id.in_(campaign_stage_ids)).all()}
         
-        for key in dd_submissions:
-            if key in sam_subs:
-                del sam_subs[key]
-                
-
-        try:
-            for sub in sam_subs.values():
-                if not sub.project:
-                    project = None
-                    logit.log("sam project: %s" % sub.submission_id)
-                    for projre in launch_commands:
-                        m = re.search(projre, sub.command_executed)
-                        if m:
-                            project = m.group(1)
-                            logit.log("project name: %s" % project)
-                            break
-                    if project:
-                        sub.project = project
-                        ctx.db.add(sub)
-                        ctx.db.flush()
-        except Exception as e:
-            logit.log("Error fetching/saving project name: %s" % repr(e))
-            
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
             .join(Submission.experimenter_creator_obj)
@@ -1027,8 +1057,64 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(SubmissionHistory.submission_id)
+            .order_by(desc(SubmissionHistory.submission_id))
         ).all()
+        
+        sam_subs = dict({ sub.Submission.submission_id : sub.Submission for sub in tuples })
+        
+        dd_submissions =  (ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                )
+                .join(CampaignStage, CampaignStage.campaign_stage_id == DataDispatcherSubmission.campaign_stage_id)
+                .filter(DataDispatcherSubmission.submission_id.in_(sam_subs.keys())).all())
+        
+        if dd_submissions:
+            dd_output = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
+            submission_ids_dd = set(sub.submission_id for sub in dd_submissions if sub.submission_id)
+            for entry in submission_ids_dd:
+                if entry in sam_subs:
+                    del sam_subs[entry]
+                    
+        if sam_subs:
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                sam_output_files,
+                sam_output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_subs.values(), ctx.experiment, just_output=True)
+                
+        try:
+            changes_made = False
+            for sub in sam_subs.values():
+                if not sub.project:
+                    project = None
+                    for projre in launch_commands:
+                        m = re.search(projre, sub.command_executed)
+                        if m:
+                            project = m.group(1)
+                            break
+                    if project:
+                        sub.project = project
+                        logit.log(f"Setting project for submission: {sub.submission_id}")
+                        changes_made = True
+            if changes_made:
+                ctx.db.add_all(sam_subs.values())
+                ctx.db.commit()
+                        
+        except Exception as e:
+            logit.log("Error fetching/saving project name: %s" % repr(e))
+            
 
         # figure dependency depth
         depends = {}
@@ -1036,7 +1122,15 @@ class StagesPOMS:
         darrow = {}
         sids = []
         slist = []
+        submissions = []
+        
+        dd_output = [] if not dd_submissions else dd_output
+        submission_ids_dd = set() if not dd_submissions else submission_ids_dd
+        
+        sam_output_list = [] if not sam_subs else sam_output_list
+        sam_output_files = [] if not sam_subs else sam_output_files
 
+        i = 0
         for tup in tuples:
             sid = tup.Submission.submission_id
             pd = tup.Submission.submission_params.get("dataset", "")
@@ -1054,76 +1148,61 @@ class StagesPOMS:
                 depends[sid] = None
                 darrow[sid] = ""
             depth[sid] = 0
-        sids.sort()
-        for sid in sids:
-            if depends[sid] and depends[sid] in depth:
-                depth[sid] = depth[depends[sid]] + 1
-        data["depends"] = depends
-        data["depth"] = depth
-        data["darrow"] = darrow
-        sam_output_list = []
-        sam_output_files = []
-        dd_output_list = []
-        dd_output_files = []
-        submissions = []
-        if len(sam_subs) > 0:
-            (
-                summary_list,
-                some_kids_decl_needed,
-                some_kids_needed,
-                base_dim_list,
-                sam_output_files,
-                sam_output_list,
-                all_kids_decl_needed,
-                some_kids_list,
-                some_kids_decl_list,
-                all_kids_decl_list,
-            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_subs.values(), ctx.experiment, just_output=True)
-        if len(dd_submissions) > 0:
-            (dd_output) = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions.values())
-
-        i = 0
-        for tup in tuples:
-            if tup.Submission.submission_id in sam_subs:
-                submission = sam_subs[tup.Submission.submission_id]
-                is_sam = True
+            
+            # Define output
+            handler= "Unknown"
+            if sid in sam_subs:
+                handler = "SAM"
                 output = sam_output_files[i]
                 output_length = sam_output_list[i]
-            if tup.Submission.submission_id in dd_submissions:
-                submission = dd_submissions[tup.Submission.submission_id]
-                is_sam = False
-                output = dd_output[tup.Submission.submission_id]["query"]
-                output_length = dd_output[tup.Submission.submission_id]["length"]
+            elif sid in submission_ids_dd and "query" in dd_output[sid]:
+                handler = "Data Dispatcher"
+                output = dd_output[sid]["query"]
+                output_length = dd_output[sid]["length"]
             else:
                 continue
-            jjid = submission.jobsub_job_id
+            
+             # Define jobsub details
+            jjid = tup.Submission.jobsub_job_id
             full_jjid = jjid
             if not jjid:
-                jjid = "s" + str(submission.submission_id)
+                jjid = "s" + str(sid)
                 full_jjid = "unknown.0@unknown.un.known"
             else: 
                 jjid = "s%s<br>%s" % (
-                    str(submission.submission_id),
+                    str(sid),
                     str(jjid).replace("fifebatch", "").replace(".fnal.gov", ""),
                 )
-
+                
+            # Define table row for UI 
             row = {
-                "submission_id": submission.submission_id,
-                "jobsub_job_id": submission.jobsub_job_id,
-                "created": submission.created,
-                "creator": submission.experimenter_creator_obj.username ,
-                "status": tup.SubmissionStatus.status if is_sam else submission.status,
+                "submission_id": sid,
+                "jobsub_job_id": tup.Submission.jobsub_job_id,
+                "created": tup.Submission.created,
+                "creator": tup.Submission.experimenter_creator_obj.username ,
+                "status": tup.SubmissionStatus.status,
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],
-                "campaign_stage_name": submission.campaign_stage_obj.name,
+                "campaign_stage_name": tup.Submission.campaign_stage_obj.name,
                 "available_output": output_length,
                 "output_dims": output,
-                "handler": "sam" if is_sam else "data_dispatcher",
+                "handler": handler,
             }
             submissions.append(row)
-            data["submissions"] = submissions
-            if is_sam:
+            if handler == "SAM":
                 i = i + 1
+            
+        sids.sort()
+        
+        for sid in sids:
+            if depends[sid] and depends[sid] in depth:
+                depth[sid] = depth[depends[sid]] + 1
+                
+        data["depends"] = depends
+        data["depth"] = depth
+        data["darrow"] = darrow    
+        data["submissions"] = submissions
+        
         return data
 
     # h3. get_dataset_for
@@ -1168,9 +1247,11 @@ class StagesPOMS:
         modname = split_type[0:p1]
         
         splitter = None
+        
         if camp.campaign_obj.data_handling_service == "data_dispatcher":
             mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
             split_class = getattr(mod, modname)
+            assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
             splitter = split_class(ctx, camp, use_test)
         else:
             mod = importlib.import_module("poms.webservice.split_types." + modname)
@@ -1179,6 +1260,7 @@ class StagesPOMS:
         
         try:
             if do_data_dispatcher:
+                assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
                 res = splitter.next()
             else:
                 res = splitter.next()
@@ -1189,7 +1271,13 @@ class StagesPOMS:
             raise AssertionError("No more splits in this campaign.")
 
         return res
-
+    
+    def init_shrek_if_needed(self, ctx):
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session ["Shrek"]:
+            dmr_service = shrek.DMRService()
+            dmr_service.initialize_session(ctx)
+        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session ["Shrek"])
+    
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
         """

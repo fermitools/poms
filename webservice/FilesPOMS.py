@@ -12,8 +12,12 @@
 
 from collections import deque, defaultdict
 import os
+import re
+import json
 import glob
 import uuid
+import base64
+from filelock import FileLock
 from datetime import datetime, timedelta
 import time
 from sqlalchemy.orm import joinedload
@@ -24,7 +28,7 @@ from .utc import utc
 from .SAMSpecifics import sam_specifics
 import shutil
 from urllib.parse import unquote
-
+from cryptography.fernet import Fernet
 class FilesStatus:
     """
         File related routines
@@ -179,10 +183,27 @@ class FilesStatus:
                 datarows.append(row)
                 
         elif data_handling_service == "data_dispatcher":
-            dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
-                    DataDispatcherSubmission.experiment == cs.experiment,
-                    DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
-                ).all()
+            #dd_submissions = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,
+            #        DataDispatcherSubmission.experiment == cs.experiment,
+            #        DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl])
+            #    ).all()
+            dd_submissions =  (ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.project_id.label("project_name"),
+                    DataDispatcherSubmission.created.label("created"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    DataDispatcherSubmission.jobsub_job_id.label("jobsub_job_id"),
+                    CampaignStage.name.label("campaign_stage_name"), 
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                )
+                .join(DataDispatcherSubmission.campaign_stage_obj)
+                .join(DataDispatcherSubmission.submission_obj)
+                .filter(DataDispatcherSubmission.submission_id.in_([sub.submission_id for sub in tl]))
+                .all())
+            
             submission_info = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions)
             
             columns = [
@@ -210,7 +231,7 @@ class FilesStatus:
             datarows = deque()
             for s in dd_submissions:
                 logit.log("task %d" % s.submission_id)
-                task_jobsub_job_id = s.jobsub_job_id
+                task_jobsub_job_id = s.jobsub_job_id or None
                 if task_jobsub_job_id is None:
                     task_jobsub_job_id = "s%s" % s.submission_id
                 details = submission_info.get(s.submission_id, None)
@@ -221,7 +242,7 @@ class FilesStatus:
                 if details:
                     row = [
                         [
-                            s.campaign_stage_obj.name,
+                            s.campaign_stage_name,
                             "../../campaign_stage_info/%s/%s?campaign_stage_id=%s" % (ctx.experiment, ctx.role, s.campaign_stage_id),
                         ],
                         [ 
@@ -262,19 +283,19 @@ class FilesStatus:
             fdict = None
             data_handler = "sam"
             info = ""
+            if querying and isinstance (querying, str):
+                querying = querying.capitalize()
             if dims:
                 flist = sam_specifics(ctx).list_files(dims)
             else:
-                info = "%s files in project_id%s" % (querying.capitalize(), ": %s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
+                info = "%s files in project_id%s" % (querying, ": %s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_id, unquote(mc_query)) if project_id else "x:%s<br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button>" % (project_idx, unquote(mc_query)))
             if project_id:
                 data_handler = "data_dispatcher"
-                querying = querying.capitalize()
                 fdict, did_all = ctx.dmr_service.list_file_urls(project_id=project_id, mc_query=mc_query)
                 if did_all:
                     info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
             elif project_idx:
                 data_handler = "data_dispatcher"
-                querying = querying.capitalize()
                 fdict, did_all = ctx.dmr_service.list_file_urls(project_idx=project_idx, mc_query=mc_query)
                 if did_all:
                     info = "'%s' files <br><code class='query-code' id='queryText'>%s</code><br><button id='copyButton'>Copy to Clipboard</button><br>Returned with zero results. Displaying All" % (querying, unquote(mc_query))
@@ -477,7 +498,7 @@ class FilesStatus:
             stage_name = "-"
         
         if submission_id:
-            result = (
+            result:Submission = (
                 ctx.db.query(Submission)
                 .filter(Submission.submission_id == submission_id)
                 .first()
@@ -498,12 +519,16 @@ class FilesStatus:
             else:
                 lf = None
         else:
+            result = None
             if login_setup_id:
                 dirname = "{}/private/logs/poms/launches/template_tests_{}".format(os.environ["HOME"], login_setup_id)
             else:
                 dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
             lf = open("{}/{}".format(dirname, fname), "r", encoding="utf-8", errors="replace")
+        
         if lf:
+            file_path = lf.name
+            
             sb = os.fstat(lf
                           .fileno())
             lines = lf.readlines()
@@ -515,8 +540,209 @@ class FilesStatus:
                 refresh = 10
             else:
                 refresh = 0
+            
+            if not submission_id:
+                submission_id = extract_job_info(lines, "task_id")
+                result:Submission = (
+                    ctx.db.query(Submission)
+                    .filter(Submission.submission_id == submission_id)
+                    .first()
+                ) if not result and submission_id else None
+                
+            if result:
+                if not result.jobsub_job_id:
+                    job_id = extract_job_info(lines, "job_id", campaign_stage_id, submission_id)
+                    if job_id:
+                        self.poms_service.submissionsPOMS.update_submission(ctx, submission_id, job_id)
+                        self.poms_service.submissionsPOMS.update_submission_status(ctx, submission_id, "Idle", datetime.now(utc))
+                        ctx.db.commit()
+                        
+                        # This is a recently submitted job, we will initialize our new queue system which
+                        # is monitored by the submission_agent. 
+                        queue = LocalJsonQueue(ctx.web_config.get("POMS", "submission_records_path"))
+                        # Enqueue an item
+                        queue.enqueue({"pomsTaskID": submission_id, "id": job_id, "group": ctx.experiment, "queued_at": str(datetime.now(utc))})
+                        
+                    else:
+                        if len(result.status_history) < 2:
+                            # Reopen after status check
+                            lf = open(file_path, "r", encoding="utf-8", errors="replace")
+                            status = extract_failure_status(lf)
+                            if status and status == "fail":
+                                last_modified_timestamp = os.path.getmtime(file_path)
+                                last_modified_datetime = datetime.fromtimestamp(last_modified_timestamp, utc)
+                                self.poms_service.submissionsPOMS.update_submission_status(ctx, submission_id, "LaunchFailed", last_modified_datetime)
+                                ctx.db.commit()
         else:
             lines = ["No log records exist for this submission"]
             refresh = 0
         
         return lines, refresh, campaign_name, stage_name
+    
+
+def extract_job_info(lines, type="job_id", campaign_stage_id=None, submission_id=None):
+    # Define the regex pattern for matching the job id
+    # Adjust the pattern if the format varies
+    if type == "job_id":
+        job_id_pattern = r'Use job id (\d+\.0@jobsub[0-9]+\.fnal\.gov) to retrieve output'
+        msg = "to extract job id from output"
+        if campaign_stage_id:
+            msg += f" | campaign_stage_id: {campaign_stage_id}"
+        if submission_id:
+            msg += f" | submission_id: {submission_id}"
+        print(f"Attempting {msg}")
+        try:
+            job_id = None
+            for line in lines:
+                # Search for the job id in the file content
+                match = re.search(job_id_pattern, line)
+                if match:
+                    # Extract the job id from the matched pattern
+                    job_id = match.group(1)
+                    print(f"Found job id: {job_id}")
+                elif "Use job id" in line and " to retrieve output" in line:
+                    print(f"Found job id: {job_id}")
+                    job_id = line.replace("Use job id ", "").replace(" to retrieve output", "")
+                if job_id:
+                    return job_id
+            print("Job id not found in the file.")
+            return None
+        except FileNotFoundError:
+            return None
+    elif type == "task_id":
+        print("Attempting to extract submission_id from output")
+        for line in lines:
+            if  "export POMS_TASK_ID=" in line:
+                submission_id = line.replace("export POMS_TASK_ID=", "").replace(";", "")
+                if submission_id and submission_id.isnumeric():
+                    print(f"submission_id found: {submission_id}")
+                    return int(submission_id)
+        print("submission_id not found")
+        return None
+
+
+
+def extract_failure_status(file):
+    # Define the regex pattern to match the JSON string
+    json_pattern = r'posting elasticsearch data: (\{.*?\})\s+% Total'
+    complete_pattern = r'== completed: (\d+) =='
+    try:
+        with file:
+            file_content = file.read()
+            # Find all matches of JSON strings in the content
+            matches_complete = re.findall(complete_pattern, file_content, re.DOTALL)
+            if matches_complete:
+                return "fail"
+            
+            matches_json = re.findall(json_pattern, file_content, re.DOTALL)
+            for match in matches_json:
+                # Parse the JSON string into a Python dictionary
+                data = json.loads(match)
+                # Check if the 'STATUS' key exists and its value indicates failure
+                if 'STATUS' in data:
+                    return data['STATUS'].strip().lower()  # Return True and the data dict if failure is found
+            # If we get here, no failure status was found in any JSON string
+            return None
+    except FileNotFoundError:
+        return None
+    
+    
+class LocalJsonQueue:
+    def __init__(self, filepath):
+        self.queue_path = f"{filepath}/queue.json"
+        self.results_path = f"{filepath}/results.json"
+        self.queue_lock = FileLock(f"{filepath}/queue.json.lock")
+        self.results_lock = FileLock(f"{filepath}/results.json.lock")
+        
+    def enqueue(self, item):
+        with self.queue_lock:
+            if os.path.exists(self.queue_path):
+                with open(self.queue_path, "r+", encoding="utf-8") as file:
+                    data = json.load(file)
+                    queue = data.get("queued", [])
+                    queue.append(item)
+                    file.seek(0)
+                    json.dump(data, file, indent=4)
+                    file.truncate()
+            else:
+                with open(self.queue_path, "w", encoding="utf-8") as file:
+                    json.dump({"queued": [item]}, file)
+    
+    def dequeue(self):
+        with self.queue_lock:
+            if not os.path.exists(self.queue_path):
+                return None
+            with open(self.queue_path, "r+", encoding="utf-8") as file:
+                data = json.load(file)
+                if not data:
+                    return None
+                queue = data.get("queued", [])
+                item = queue.pop(0) if queue and len(queue) > 0 else None
+                file.seek(0)
+                json.dump(data, file, indent=4)
+                file.truncate()
+                return item
+            
+    def fetch_session(self):
+        file_session_data = {
+            "queue": None,
+            "results": None
+        }
+        for path, lock in { self.queue_path: self.queue_lock, self.results_path: self.results_lock}.items():
+            with lock:
+                if not os.path.exists(path):
+                    raise AssertionError("Failed to set session info")
+                try:
+                    with open(path, "r+", encoding="utf-8") as file:
+                        file_data = json.load(file)
+                        if path == self.queue_path:
+                            file_session_data["queue"] = file_data.get("_session", None)
+                        elif path == self.results_path:
+                            file_session_data["results"] = file_data.get("_session", None)
+                        file.seek(0)
+                        file.close()
+                except Exception as e:
+                    print("Submission Agent | set_instance | Exception: %s" % e)
+                    exit(1)
+        return file_session_data
+    
+    def authorize_agent(self, ctx, agent_header):
+        keypath = ctx.web_config.get("POMS", "agent_key")
+        host = ctx.web_config.get("POMS", "POMS_HOST")
+        session = self.fetch_session()
+        with open(keypath, 'rb') as keyfile:
+            key = keyfile.read()
+            cipher_suite = Fernet(key)
+            if not (key and cipher_suite):
+                return False
+        
+        agent_id = base64.b64decode(agent_header)
+        agent_id = cipher_suite.decrypt(agent_id)
+        agent_id = agent_id.decode('utf-8')
+        
+        secret = ctx.web_config.get("POMS", "agent_secret")
+        evaluate = {
+            "username": "submission_agent",
+            "agent_id": agent_id,
+            "host": host,
+            "secret": secret
+        }
+        
+        for key, val in session.items():
+            
+            session_info = base64.b64decode(val)
+            session_info = cipher_suite.decrypt(session_info)
+            session_info = session_info.decode('utf-8')
+            session_info = json.loads(session_info)
+            if "secret" in session_info:
+                session_info["secret"] = base64.b64decode(session_info["secret"])
+                session_info["secret"] = cipher_suite.decrypt(session_info["secret"])
+                session_info["secret"] = session_info["secret"].decode('utf-8')
+            for key, val in evaluate.items():
+                if not (key in session_info and session_info[key] == val):
+                    print("Failed to authorize agent")
+                    return False
+        
+        return True
+    
+    

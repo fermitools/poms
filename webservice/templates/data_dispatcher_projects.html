@@ -1,7 +1,7 @@
 {% if data_dispatcher_projects and (("projects_active_count" in data_dispatcher_projects and data_dispatcher_projects.projects_active_count > 0) or ("projects_inactive_count" in data_dispatcher_projects and data_dispatcher_projects.projects_inactive_count > 0) or ("projects_done_count" in data_dispatcher_projects and data_dispatcher_projects.projects_done_count > 0) or ( "projects_failed_count" in data_dispatcher_projects and data_dispatcher_projects.projects_failed_count > 0) or ("projects_cancelled_count" in data_dispatcher_projects and data_dispatcher_projects.projects_cancelled_count > 0) or ("projects_abandoned_count" in data_dispatcher_projects and data_dispatcher_projects.projects_abandoned_count > 0)) %}
-    <h3 style="text-align: center;">All Projects<span style='display:inline-block; width: 50%;'></span>Project Handles</h3>
+    <h3 style="text-align: center;">All Projects</h3>
     <div class="ui horizontal segments">
-        <div class="ui segment raised" style="max-width: 50%;">
+        <div class="ui segment raised">
             <div class="ui horizontal segments">
                 <div class="ui segment raised" style="max-width: 15%;">
                     <b>Filter Options: </b>
@@ -25,70 +25,100 @@
                     </select>
                 </div>
             </div>
-            <div class="dd-results-box" id="all_project_result" style="min-height:650px">
+            <div class="dd-results-box" id="all_project_result" style="min-height:750px">
                 {% for data_dispatcher_projects_key, data_dispatcher_projects_values  in data_dispatcher_projects.items() if not 'count' in data_dispatcher_projects_key and not "poms_attributes" in data_dispatcher_projects_key %}
                     {% if not 'count' in data_dispatcher_projects_key %}
                         <div class="dd-results-row dd-row-toggle-inactive project_row" id="{{data_dispatcher_projects_key}}" style="display: none;">
                             {% for item in data_dispatcher_projects_values %}
-                                <div class="dd-results-card">
-                                    <div class="dd-results-card-header">
+                                <sl-card class="dd-results-card">
+                                    <div slot="header" class="dd-results-card-header">
                                         <p>Project ID: <span class="{{data_dispatcher_projects_key}}-project-id">{{item.project_id}}</span></p>
+                                        <sl-tooltip content="Archive project: {{item.project_id}}">
+                                            <sl-icon-button  name="archive"></sl-icon-button>
+                                        </sl-tooltip>
                                     </div>
                                     <div class="dd-results-card-body">
+                                        <sl-details summary="Project Details" open>
                                         {% for key, value in item.items() %}
                                             {% if (not (key == "name" or key == "file_handles" or key == "project_id")) and value or value == 0 %}
                                                 {% if (key == "idle_timeout" or key == "created_timestamp" or key == "worker_timeout") %}
-                                                    <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' ><script>document.write(get_readable('{{value}}'))</script></span></a><br/>
+                                                    * {{key|replace("_", " ")|title }}: 
+                                                    <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' >
+                                                        <script>document.write(get_readable('{{value}}'))</script>
+                                                    </span>
+                                                    <br/>
                                                 {% else %}
                                                     {% if key == "attributes" %}
-                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' ><br/><script>document.write(JSON.stringify("{{value}}", customReplacer,2).replaceAll('"',""))</script></span></a><br/>
+                                                        * {{key|replace("_", " ")|title }}: 
+                                                        <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' >
+                                                            <br/>
+                                                            <script>document.write(JSON.stringify("{{value}}", customReplacer,2).replaceAll('"',""))</script>
+                                                        </span>
+                                                        <br/>
                                                     {% else %}
-                                                        <a>* {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' >{{value}}</span></a><br/>
+                                                        * {{key|replace("_", " ")|title }}: <span class='{{data_dispatcher_projects_key}}-project-{{key|replace("_", "-")}}' >{{value}}</span>
+                                                        <br/>
                                                     {% endif %}
                                                 {% endif %}
                                             {% endif %}
                                         {% endfor %}
+                                        </sl-details>
                                         {% if "poms_attributes" in data_dispatcher_projects.keys() and item.project_id in data_dispatcher_projects["poms_attributes"] %}
-                                            <br/><a>POMS attributes:<hr/>{{data_dispatcher_projects["poms_attributes"][item.project_id]}}</a>
+                                            <br/>
+                                            <sl-details summary="POMS Attributes">
+                                                {{data_dispatcher_projects["poms_attributes"][item.project_id]}}
+                                            </sl-details>
                                         {% endif %}
                                     </div>
-                                    <div class="dd-results-card-footer" onclick='getProjectHandles(this, "{{item.project_id}}")'>View Handles</div>
-                                </div>
+                                    <sl-button slot="footer"  class="dd-results-card-footer" onclick='getProjectHandles(this, "{{item.project_id}}")'>View Handles</sl-button>
+                                </sl-card>
                             {% endfor %}
                         </div>
                     {% endif %}
                 {% endfor %}
             </div>
         </div>
-        <div class="ui segment raised" style="max-width: 50%;">
-            <div class="ui horizontal segments">
-                <div class="ui segment raised" style="max-width: 15%;">
-                    <b>Filter Options: </b>
+        <sl-drawer label="Project Handles" class="drawer-overview" style="--size: 50%;" contained>
+            <div slot="header-actions" class="dd-file-statuses" style="margin-top:5%; justify-content: space-evenly;">
+                <b>States: </b>
+                <sl-badge class="initial" pill>initial</sl-badge>
+                <sl-badge class="reserved" pill>reserved</sl-badge>
+                <sl-badge class="failed" pill>failed</sl-badge>
+                <sl-badge class="done" pill>done</sl-badge>
+            </div>
+            <b>Filter Options: </b>
+            <br/>
+            <div style="display:grid; grid-template-columns: auto auto auto;">
+                <div class="dd-search-container">
+                    <label for="handle-name">Name: </label>
+                    <sl-input class="dd-search" type="text" id="handle-name"></sl-input>
+                    <div class="dd-search-result-icon"></div>
                 </div>
-                <div class="ui segment raised" style="max-width: 85%;">
-                    <div class="dd-search-container">
-                        <label for="handle-name">Name: </label>
-                        <input class="dd-search" type="text" id="handle-name">
-                        <div class="dd-search-result-icon"></div>
-                    </div>
-                    <div class="dd-search-container">
-                        <label for="handle-namespace">Namespace: </label>
-                        <input class="dd-search" type="text" id="handle-namespace">
-                        <div class="dd-search-result-icon"></div>
-                    </div>
-                    <div class="dd-search-container">
-                        <label for="handle-state">State: </label>
-                        <input class="dd-search" type="text" id="handle-state">
-                        <div class="dd-search-result-icon"></div>
-                    </div>
+                <div class="dd-search-container">
+                    <label for="handle-namespace">Namespace: </label>
+                    <sl-input class="dd-search" type="text" id="handle-namespace"></sl-input>
+                    <div class="dd-search-result-icon"></div>
+                </div>
+                <div class="dd-search-container">
+                    <label for="handle-state">State: </label>
+                    <sl-input class="dd-search" type="text" id="handle-state"></sl-input>
+                    <div class="dd-search-result-icon"></div>
                 </div>
             </div>
+            <br/><hr/><br/>
             <div class="dd-results-row-header">
-                <div class="dd-results-row-label dd-toggle-active project_handle_label"><h2 id="project_handle_count">No project selected</h2></div>
+                <br>
+                <div class="dd-results-row-label dd-toggle-active project_handle_label">
+                    <h2 id="project_handle_count">No project selected</h2>
+                </div>
             </div>
-            <div id="active_project_handles" class="dd-results-row dd-row-toggle-inactive project_handle_row" style="display: none;"></div>
-        </div>
+            <div style="height: 700px; width:100% border: dashed 2px var(--sl-color-neutral-200); padding: 0 1rem;">
+                <div id="active_project_handles" class="dd-results-row dd-row-toggle-inactive project_handle_row" style="display: none;"></div>
+            </div>
+            <sl-button slot="footer" variant="primary" id="close-drawer">Close</sl-button>
+        </sl-drawer>
     </div>
+    
     <script type="text/javascript">
         // Set initial state to active
         $(document).ready(function() {
@@ -96,7 +126,7 @@
             $("#projects_active").removeClass(`dd-row-toggle-inactive`).addClass(`dd-row-toggle-active`);
             setTimeout(() => {
                 $("#projects_active").slideDown(`0.5s`, complete=function(){
-                    makeElementsUniform($("#projects_active").children(`.dd-results-card`));
+                   // makeElementsUniform($("#projects_active").children(`.dd-results-card`));
                 });
             },1);
         });

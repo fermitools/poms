@@ -160,8 +160,7 @@
     display: inline-block;
     padding: 2px 16px;
     width: 100%;
-    min-height:650px;
-    max-height: 800px;
+    max-height: 750px;
 }
 .dd-results-row-header{
   display: flex;
@@ -176,13 +175,17 @@
   border-color: black;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
-  max-height: 600px;
+  max-height: 700px;
   overflow-y: scroll;
   grid-auto-flow: dense;
   grid-auto-rows: minmax(100px,max-content);
 }
+#active_project_handles{
+  max-height: 600px !important;
+  grid-template-columns: 100%;
+}
 .dd-row-toggle-active .dd-results-card{
-  opacity: 1;
+  opacity: 1; 
 }
 .dd-row-toggle-inactive .dd-results-card{
   opacity: 0;
@@ -194,36 +197,76 @@
     border-radius: 10px;
     margin-right: 5px;
     position: relative;
-    flex-direction: column;
+    flex-direction: row;
+    width: 350px;
     margin-bottom: 10px;
     border: 1px solid #ccc;
+    width: 100% !important;
   }
 
-  .initial{
-    background-color: rgba(255, 165, 0, 0.9) !important;
+  sl-card::part(header) {
+    font-weight: bold;
+    background-color: #00B5AD;
+    color: #fff;
+  }
+  sl-details::part(header) {
+    font-weight: bold !important;
+    border: 1px solid #00B5AD;
+  }
+  sl-details.initial::part(header) {
+    color: black !important;
     background-color: rgba(255, 255, 0, 0.9) !important;
   }
-  .done{
+  sl-details.done::part(header) {
     background-color: rgba(81, 178, 172, 0.9) !important;
   }
-  .failed{
+  sl-details.failed::part(header) {
     background-color: rgba(255, 0, 0, 0.9) !important;
     color: whitesmoke !important;
   }
-  .reserved{
+  sl-details.reserved::part(header) {
+    color: black !important;
     background-color: rgba(255, 165, 0, 0.9) !important;
   }
-
+  sl-badge::part(base) {
+    font-weight: bold;
+    width: 65px;
+  }
+  sl-badge.initial::part(base) {
+    color: black !important;
+    background-color: rgba(255, 255, 0, 0.9) !important;
+  }
+  sl-badge.done::part(base) {
+    background-color: rgba(81, 178, 172, 0.9) !important;
+  }
+  sl-badge.failed::part(base) {
+    background-color: rgba(255, 0, 0, 0.9) !important;
+    color: white !important;
+  }
+  sl-badge.reserved::part(base) {
+    color: black !important;
+    background-color: rgba(255, 165, 0, 0.9) !important;
+  }
+  sl-card {
+    --sl-card-background-color: #fff; /* Adjust based on your dd-results-card background */
+    --sl-card-border-color: #ccc; /* Your .dd-results-card border color */
+    --sl-card-border-radius: 10px; /* Matched to your dd-results-card */
+    --sl-card-border-width: 1px; /* Your dd-results-card border width */
+    --sl-card-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow similar to dd-results-card */
+  }
+  sl-drawer::part(panel) {
+    position: fixed;
+    border: 1px solid #000;
+    width: 765px;
+  }
+  
   .dd-results-card-header {
-    position: relative;
-    top: 0;
+    grid-template-columns: 90% 10%;
+    display: grid;
     overflow-wrap: break-word;
     flex-wrap: wrap;
     text-align: center;
     font-weight: bold;
-    padding: 5px;
-    width: 100%;
-    background-color: rgba(81, 178, 172, 0.9);
   }
   
 
@@ -234,7 +277,6 @@
     display: inline-block;
     flex-grow: 1;
     padding: 10px;
-    height: max-content;
   }
   .dd-results-card-body a span {
     word-break: break-word;
@@ -249,7 +291,6 @@
     width: 100%;
     box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.2);
     bottom: 0;
-    position: absolute;
     padding: 5px;
   }
   .dd-results-card-footer:hover {
