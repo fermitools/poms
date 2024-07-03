@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "poms_jobsub_info: starting... "
-#set -x
+set -x
 : poms_jobsub_info: args: $*
 
 JOBSUB_JOB_ID=$1
@@ -24,7 +24,7 @@ done
 : GROUP=$GROUP
 export GROUP
 
-BEARER_TOKEN_FILE=$(/opt/jobsub_lite/lib/fake_ifdh.py getToken)
+BEARER_TOKEN_FILE=$(/opt/jobsub_lite/lib/fake_ifdh.py getToken | tail -1)
 : BEARER_TOKEN_FILE=$BEARER_TOKEN_FILE
 
 extra=""
@@ -80,39 +80,29 @@ then
     WEB_CONFIG=$POMS_CLIENT_DIR/bin/client.cfg
 fi
 
-base="base_"
-inst="$POMS_INST"
-
-if [ "x$BEARER_TOKEN_FILE" != "x" ] 
-then
-    suffix="_ssl_tokens"
-else
-    suffix="_ssl"
-fi
-
-baseurl=$(awk -F "=" '$1 == "'"$base$inst$suffix"'" {print $2}' "$WEB_CONFIG")
-echo $baseurl
+case "x$POMS_TEST" in
+xint*) baseurl=$(awk -F "=" '/base_int_ssl_tokens/ {print $2}' $WEB_CONFIG) ;;
+x1*)   baseurl=$(awk -F "=" '/base_dev_ssl_tokens/ {print $2}' $WEB_CONFIG) ;;
+x*)    baseurl=$(awk -F "=" '/base_prod_tokens/ {print $2}' $WEB_CONFIG) ;;
+esac
 
 reporturl="$baseurl/update_submission"
 submission_url="$baseurl/submission_details?submission_id=$POMS_TASK_ID"
 
-X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
+export X509_USER_PROXY=${X509_USER_PROXY:-/tmp/x509up_u`id -u`}
 
 if [ "x$JOBSUB_JOB_ID" != "x" ] 
 then
     JOBSUB_JOB_ID=`echo $JOBSUB_JOB_ID | sed -e 's/\.0@/@/'`
-    if [ "x$suffix" != "_tokens" ] 
-    then
-        curl -o - -H "Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})" "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New";
-    else
-        wget -O - --no-check-certificate  --certificate=$X509_USER_PROXY --ca-certificate=$X509_USER_PROXY --ca-directory=/etc/grid-security/certificates --private-key=$X509_USER_PROXY "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New";
-    fi
+    curl -o - -H "Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})" "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New" 
+
     submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;'`
     echo "For Status, use URL: $submission_url"
     add_item "STATUS: success"
 else
     add_item "STATUS: fail"
 fi
+
 
 #
 # finish up data to elasticsearch, and post
