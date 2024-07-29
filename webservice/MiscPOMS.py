@@ -645,6 +645,24 @@ class MiscPOMS:
         rlist = l
 
         return rlist
+    
+    def get_recovery_param_overrides(self, ctx, parent_submission_id):
+        rlist = (
+            ctx.db.query(Submission, CampaignRecovery)
+            .join(CampaignStage, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
+            .join(CampaignRecovery, CampaignStage.job_type_id == CampaignRecovery.job_type_id)
+            .filter(Submission.submission_id == parent_submission_id)
+            .all()
+        )
+        if rlist:
+            for r in rlist:
+                logit.log(f"get_recovery_param_overrides | position {r[0].recovery_position} | order {r[1].recovery_order}")
+                if r[0].recovery_position == r[1].recovery_order:
+                    logit.log(f"get_recovery_param_overrides job_type_id: {r[1].job_type_id}")
+                    logit.log(f"get_recovery_param_overrides submission_id: {parent_submission_id}")
+                    logit.log(f"get_recovery_param_overrides param_overrides: {r[1].param_overrides}")
+                    return r[1].param_overrides
+        return None
 
     # h3. snapshot_parts
     # h3. snapshot_parts

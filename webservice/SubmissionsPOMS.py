@@ -1172,11 +1172,15 @@ class SubmissionsPOMS:
         current_s = s
         if s.parent_obj:
             s = s.parent_obj
-        logit.log("launch_recovery_if_needed: current_s: %s" % repr(current_s))
-        logit.log("launch_recovery_if_needed: s: %s" %repr(s))
-
-        if s.recovery_position is None:
+        logit.log("launch_recovery_if_needed: current_s: %s" % current_s.submission_id)
+        logit.log("launch_recovery_if_needed: s: %s" % s.submission_id)
+        
+        if s.recovery_position == None:
             s.recovery_position = 0
+            iterate = False
+        else:
+            iterate = True
+        logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
 
         if recovery_type_override is not None:
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
@@ -1194,7 +1198,7 @@ class SubmissionsPOMS:
         else:
             rlist = self.poms_service.miscPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
-        logit.log("recovery list %s" % rlist)
+        logit.log("submission: %s | recovery list %s" % (s.submission_id, rlist))
 
         while s.recovery_position is not None and s.recovery_position < len(rlist):
             logit.log("recovery position %d" % s.recovery_position)
@@ -1211,7 +1215,8 @@ class SubmissionsPOMS:
             else:
                 nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
 
-            s.recovery_position = s.recovery_position + 1
+            if iterate:
+                s.recovery_position = s.recovery_position + 1
 
             if nfiles > 0:
 
@@ -1451,7 +1456,7 @@ class SubmissionsPOMS:
         **kwargs,
     ):
 
-        logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
+        logit.log("Entering launch_jobs(%s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides))
 
         if launcher == None:
             launcher = ctx.username
@@ -1461,6 +1466,18 @@ class SubmissionsPOMS:
         e = ctx.get_experimenter()
         role = ctx.role
         
+        if parent_submission_id:
+            recovery_param_overrides = self.poms_service.miscPOMS.get_recovery_param_overrides(ctx, parent_submission_id)
+            logit.log("launch_jobs -- recovery_param_overrides: %s" % recovery_param_overrides)
+            if param_overrides is None:
+                param_overrides = recovery_param_overrides
+            elif isinstance(param_overrides, list):
+                param_overrides += recovery_param_overrides
+            else:
+                logit.log("launch_jobs -- param_overrides type: %s" % type(param_overrides))
+            
+        logit.log("launch_jobs -- param_overrides: %s" % param_overrides)
+            
 
         # at the moment we're inconsistent about whether we pass
         # launcher as ausername or experimenter_id or if its a string
@@ -1566,6 +1583,10 @@ class SubmissionsPOMS:
                 c_param_overrides = []
 
             c_param_overrides += cs.param_overrides
+            if param_overrides:
+                c_param_overrides += param_overrides
+                
+            logit.log("launch_jobs (%s) -- c_param_overrides: %s" % (parent_submission_id, c_param_overrides))
 
             # if it is a test launch, add in the test param overrides
             # and flag the task as a test (secretly relies on poms_client
@@ -1738,8 +1759,9 @@ class SubmissionsPOMS:
             vaultfile = ""
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
-        if role == "production" and ctx.experiment == "samdev": 
+        if role == "production" and ctx.experiment == "samdev" and False: 
             # samdev doesn't have a managed token...
+            # ... but for now we're pretending it does...
             htgettokenopts = "-a %s -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),vaultfile, experimenter_login)
         elif role == "analysis":
              htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),group, vaultfile, experimenter_login)
@@ -1819,9 +1841,15 @@ class SubmissionsPOMS:
             # proxy file has to belong to us, apparently, so...
             "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
             % (uu, uu),
-            "source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
-            "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
-            else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
+             
+            #"source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
+            #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
+            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
+            # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
+            # save our spack root in SSR1 for later..
+            "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
+            "spack load fife-utils@3.7.2 os=fe;",
+            "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
                 % {
@@ -1841,10 +1869,11 @@ class SubmissionsPOMS:
             cmdl.extend(token_logic)
             
         cmdl.extend([
-            'setup jobsub_client v_lite;' if do_tokens else "",
-            'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, -j poms_client -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
-            else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            "ups active;",
+            #'setup jobsub_client v_lite;' if do_tokens else "",
+            #'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, -j poms_client -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
+            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
+            # "ups active;",
+
             # POMS4 'properly named' items for poms_jobsub_wrapper
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
             'export POMS4_CAMPAIGN_STAGE_NAME="%s";' % csname,
@@ -1862,6 +1891,13 @@ class SubmissionsPOMS:
             "export POMS_TEST=%s;" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
             "export JOBSUB_GROUP=%s;" % group,
+            # have to spack load this *after* POMS4_XXX variables are set so we can set the JOBSUB_xxx variables
+            # but with the old spack root we saved... so we don't mess up the spack environment they may 
+            # have laoded in their launch_setup.
+            "SSR2=$SPACK_ROOT;",
+            "SPACK_ROOT=$SSR1;",
+            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=fe);",
+            "SPACK_ROOT=$SSR2;",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
             ("vtk=%s" % vaultfile) if vaultfile and role == "analysis" else "",

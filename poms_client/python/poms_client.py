@@ -8,6 +8,9 @@ import sys
 import warnings
 
 import requests
+import ssl
+from requests.adapters import HTTPAdapter
+from urllib3.poolmanager import PoolManager
 
 ZERO = datetime.timedelta(0)
 class UTC(datetime.tzinfo):
@@ -18,6 +21,22 @@ class UTC(datetime.tzinfo):
         return "UTC"
     def dst(self, dt):
         return ZERO
+
+class TLSAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+        self.ssl_context.minimum_version = ssl.TLSVersion.TLSv1_3
+        self.ssl_context.maximum_version = ssl.TLSVersion.TLSv1_3
+        super().__init__(*args, **kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs['ssl_context'] = self.ssl_context
+        return super().init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, *args, **kwargs):
+        kwargs['ssl_context'] = self.ssl_context
+        return super().proxy_manager_for(*args, **kwargs)
+    
 utc = UTC()
 
 try:
@@ -25,7 +44,9 @@ try:
 except:
     import ConfigParser
 
+
 rs = requests.Session()
+rs.mount('https://', TLSAdapter())
 
 
 def show_campaigns(test=None, **kwargs):
