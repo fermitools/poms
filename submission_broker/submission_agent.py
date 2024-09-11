@@ -92,7 +92,7 @@ class Agent:
         self.strikes = {}
         self.poll_interval = 120
 
-        htr = self.psess.get("%s/experiment_list"%self.poms_uri)
+        htr = self.psess.get("%s/experiment_list" % self.poms_uri)
         self.elist = htr.json()
         self.elist.sort()
         htr.close()
