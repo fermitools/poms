@@ -136,6 +136,8 @@ class sam_specifics:
 
         logit.log("recovery files count %d" % nfiles)
         if nfiles > 0:
+            if not s.recovery_position:
+                s.recovery_position = 0
             rname = "poms_recover_%s_%d_%d" % (str(uuid.uuid4()), s.submission_id, s.recovery_position)
 
             logit.log(

@@ -204,10 +204,12 @@ def augment_params():
     if len(pathv) >= 4:
         session_experiment = pathv[2]
         session_role = pathv[3]
+        samexp = session_experiment
     else:
         # pick saved experiment/role
         session_experiment = None
         session_role = None
+        samexp = "web"
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
@@ -226,7 +228,7 @@ def augment_params():
             pomspath=root.path,
             docspath=root.docspath,
             poms_servicenow_url = root.poms_servicenow_url,
-            sam_base = root.sam_base,
+            sam_base = root.sam_base.replace("web",samexp).replace("samsamdev","samdev"),
             landscape_base = root.landscape_base,
             fifemon_base = root.fifemon_base,
             all_roles=roles,

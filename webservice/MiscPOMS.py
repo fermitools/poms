@@ -662,7 +662,7 @@ class MiscPOMS:
                     logit.log(f"get_recovery_param_overrides submission_id: {parent_submission_id}")
                     logit.log(f"get_recovery_param_overrides param_overrides: {r[1].param_overrides}")
                     return r[1].param_overrides
-        return None
+        return []
 
     # h3. snapshot_parts
     # h3. snapshot_parts

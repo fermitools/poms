@@ -129,7 +129,7 @@ class samweb_lite:
             return -1
 
         res = None
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/definitions/name/%s/snapshot" % (base, experiment, defname)
         retries = 3
         for i in range(retries + 1):
@@ -163,7 +163,7 @@ class samweb_lite:
         if not experiment or not projid or projid == "None":
             return ""
 
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
@@ -181,7 +181,7 @@ class samweb_lite:
         if self.have_cache(experiment, projid):
             return self.proj_cache[experiment + projid]
 
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, experiment, projid)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
@@ -203,7 +203,7 @@ class samweb_lite:
             base = "%s" % config.get("SAM", "sam_base").replace("\"", "")
             urls = [
                 "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
-                % (base, s.campaign_stage_snapshot_obj.experiment, s.project)
+                % (base.replace("web",s.campaign_stage_snapshot_obj.experiment).replace("samsamdev","samdev"), s.campaign_stage_snapshot_obj.experiment, s.project)
                 if s.project and s.project != "None"
                 else None
                 for s in task_list
@@ -278,7 +278,7 @@ class samweb_lite:
             del info["processes"]
 
     def update_project_description(self, experiment, projname, desc):
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/projects/%s/%s/description" % (base, experiment, experiment, projname)
         res = None
         r1 = None
@@ -319,7 +319,7 @@ class samweb_lite:
         return dims
 
     def get_metadata(self, experiment, filename):
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev"),
         url = "%s/sam/%s/api/files/name/%s/metadata?format=json" % (base, experiment, filename)
         res = requests.get(url, verify=False)
         try:
@@ -328,7 +328,7 @@ class samweb_lite:
             return {}
 
     def plain_list_files(self, experiment, dims):
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = []
         dims = self.cleanup_dims(dims)
@@ -346,7 +346,7 @@ class samweb_lite:
         return flist
 
     def list_files(self, experiment, dims, dbhandle=None):
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/files/list" % (base, experiment)
         flist = deque()
         dims = self.cleanup_dims(dims)
@@ -361,7 +361,7 @@ class samweb_lite:
 
     def count_files(self, experiment, dims, dbhandle=None):
         logit.log("INFO", "count_files(experiment=%s, dims=%s)" % (experiment, dims))
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/files/count" % (base, experiment)
         dims = self.cleanup_dims(dims)
         count = -1
@@ -399,7 +399,7 @@ class samweb_lite:
         base = "%s" % config.get("SAM", "sam_base").replace("\"", "")
         urls = [
             "%s/sam/%s/api/files/count?%s"
-            % (base, experiment[i], urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])}))
+            % (base.replace("web",experiment[i]).replace("samsamdev","samdev"), experiment[i], urllib.parse.urlencode({"dims": self.cleanup_dims(dims_list[i])}))
             for i in range(len(dims_list))
         ]
         replies = None
@@ -432,7 +432,7 @@ class samweb_lite:
 
     def create_definition(self, experiment, name, dims):
         logit.log("INFO", "create_definition( %s, %s, %s )" % (experiment, name, dims))
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         path = "/sam/%s/api/definitions/create" % experiment
         url = "%s%s" % (base, path)
         res = None
@@ -463,7 +463,7 @@ class samweb_lite:
                 logit.log("ERROR", "Exception creating definition: url %s args %s exception %s" % (url, pdict, e.args))
                 # 409 error means its already defined..
                 # check if the definition exists and remove it
-                if e.args[0][0:3] == "409":
+                if e.args and e.args[0] and e.args[0][0:3] == "409":
                     # delete the existing SAM definition
                     self.remove_existing_definition(experiment, name)
                     # recreate the SAM definition with updated dimensions
@@ -478,7 +478,7 @@ class samweb_lite:
 
     def remove_existing_definition(self, experiment, name):
         logit.log("INFO", "remove_existing_definition( %s, %s )" % (experiment, name))
-        base = "%s" % config.get("SAM", "sam_base")
+        base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         path = "/sam/%s/api/definitions/name/%s" % (experiment, name)
         url = "%s%s" % (base, path)
         res = None

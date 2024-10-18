@@ -399,7 +399,7 @@ class SubmissionsPOMS:
                 submission_details["dependency_file_patterns"].append(str(submission_details["output_file_patterns"].split(",")))
             # get urls for these, for later use
             if submission_details.get("project", "None") != "None":
-                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base, submission_details["experiment"], submission_details["project"])
+                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]).replace("samsamdev","samdev"), submission_details["experiment"], submission_details["project"])
                 urls.append(submission_details["url"])
         
         logit.log(logit.DEBUG, f"wrapup_tasks | got urls: {urls}")  
@@ -1199,7 +1199,6 @@ class SubmissionsPOMS:
             rlist = self.poms_service.miscPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
         logit.log("submission: %s | recovery list %s" % (s.submission_id, rlist))
-
         while s.recovery_position is not None and s.recovery_position < len(rlist):
             logit.log("recovery position %d" % s.recovery_position)
 
@@ -1217,6 +1216,9 @@ class SubmissionsPOMS:
 
             if iterate:
                 s.recovery_position = s.recovery_position + 1
+            else:
+                # Skip the first iteration since recovery position was set from None to 0 on this round.
+                iterate = True
 
             if nfiles > 0:
 
@@ -1542,7 +1544,7 @@ class SubmissionsPOMS:
             ra = ctx.headers_get("Remote-Addr", None)
             exp = cs.experiment
             vers = cs.software_version
-            launch_script = cd.launch_script
+            launch_script = str(cd.launch_script)
             csid = cs.campaign_stage_id
             cid = cs.campaign_id
 
@@ -1764,23 +1766,42 @@ class SubmissionsPOMS:
             # ... but for now we're pretending it does...
             htgettokenopts = "-a %s -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),vaultfile, experimenter_login)
         elif role == "analysis":
-             htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),group, vaultfile, experimenter_login)
+             htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"), group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"),group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
+            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"), group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
 
          # add token logic if not already in login_setup:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
-                                         and "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
-                                         and "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
+                                         or "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
+                                         or "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
+        
+        if cs.login_setup_obj.launch_setup:
+            lines = cs.login_setup_obj.launch_setup.split(";")
+            pos = 0
+            new_lines = []
+            extra_line = None
+            if len(lines) > 0:
+                try:
+                    for line in lines:
+                        if line and line.strip() and "TOKENOPTS_EXTRA" in line:
+                            extra_line = str(line)
+                            extra_opts = line.split("=")[1].replace("[", "").replace("]", "").split(",")
+                            if extra_opts and len(extra_opts) > 0:
+                                for extra_opt in extra_opts:
+                                    htgettokenopts += " %s" % extra_opt.replace("\'", "")
+                        else:
+                            new_lines += [line] 
+                        pos += 1
+                except:
+                    pass
+            launch_script = launch_script.replace(extra_line, "") if extra_line else launch_script
+                    
+            
         #ifdhc_version = "ifdhc v2_6_10," if "ifdhc " not in cs.login_setup_obj.launch_setup else ""
         
         # token logic if not defined in launch script
         token_logic = [
             ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export EXPERIMENT=%s;" % ctx.experiment if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_VTOKEN=%s;" % vaultfilename if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export POMS_CREDKEY=%s;" % ctx.username if role == "analysis" or ctx.experiment == "samdev" else "",
-            #"export XDG_RUNTIME_DIR=/tmp/;" if role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
@@ -1848,7 +1869,7 @@ class SubmissionsPOMS:
             # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
             # save our spack root in SSR1 for later..
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.2 os=fe;",
+            "spack load fife-utils@3.7.3 os=fe;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
@@ -1865,7 +1886,7 @@ class SubmissionsPOMS:
         ]
         
        
-        if not tokens_defined_in_login_setup and do_tokens:
+        if do_tokens:
             cmdl.extend(token_logic)
             
         cmdl.extend([
