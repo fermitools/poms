@@ -138,7 +138,7 @@ Landscape (disabled, no info found) <br>
 {%endif%}
 
 {%if submission.project %}
-View the <a href="{{sam_base}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
+View the <a href="{{sam_base|replace('web',session_experiment)}}/station_monitor/sam{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
 {%endif%}
 
 {%if submission.jobsub_job_id %}
