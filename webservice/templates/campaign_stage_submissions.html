@@ -64,6 +64,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <th>Jobsub Id</th>
                 <th>Availble Output</th>
                 <th>Commands</th>
+                <th>Handler</th>
                 <th>Status (History/Current)</th>
                 <th>Submitted</th>
                 <th>Submitter</th>
@@ -80,9 +81,15 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 </a>
             </td>
             <td>
-               <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
-               {{rec.available_output}}
-               </a>
+                {% if rec.handler == 'sam' %}
+                    <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
+                        {{rec.available_output}}
+                    </a>
+                {% elif rec.handler == 'data_dispatcher' %}
+                    <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?{{rec.output_dims}}">
+                        {{rec.available_output}}
+                    </a>
+                {% endif %}
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
@@ -117,6 +124,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <span>
             {% endif %}
             </td>
+            <td>{{rec.handler}}</td>
             <td>
                 <button class="teal tiny ui button" onclick="get_status_history({{rec.submission_id}})">
                         <i class="history icon"></i>

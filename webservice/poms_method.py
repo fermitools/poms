@@ -50,6 +50,16 @@ from . import (
 
 error_counter = Counter("poms_webservice_response_errors_total", "Number of error reponses", ["error", "code"])
 
+DMR_PAGES = {
+    "data_dispatcher_overview.html":True,
+    "campaign_overview.html":True,
+    "campaign_stage_info.html": True,
+    "submission_details.html": True,
+    "launch_jobs.html":True,
+    "list_launch_file.html":True,
+    "campaign_stage_submissions.html":True,
+    "campaign_task_files.html":True
+}
 
 def error_rewrite(f):
     def wrapper(*args, **kwargs):
@@ -144,6 +154,7 @@ req_histogram = Histogram("poms_webservice_response_time_seconds", "Time spent h
 
     
 def poms_method(
+    a=[],
     p=[],
     t=None,
     help_page="user_documentation",
@@ -187,6 +198,7 @@ def poms_method(
 
         @timer.time()
         def method(self, *args, **kwargs):
+            
             if not call_args:
                 for i in range(len(args)):
                     if i > 2:
@@ -200,7 +212,10 @@ def poms_method(
             for k in cargs:
                 if k in kwargs and not (need_er and k in ("experiment", "role")):
                     del kwargs[k]
-
+            
+            for header in a:
+                if header not in cherrypy.request.headers:
+                    raise cherrypy.HTTPError(403, "Unauthorized")
             # make permission checks
             for perm in p:
                 pargs = {"ctx": ctx}

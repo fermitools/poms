@@ -1,14 +1,15 @@
 # coding: utf-8
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, text, Float
 
 # from sqlalchemy import Table
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Query, Session
 from sqlalchemy.dialects.postgresql.json import JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.dialects.postgresql import UUID
 
 import uuid
+import os
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -39,12 +40,17 @@ class Campaign(Base):
     campaign_id = Column(Integer, primary_key=True, server_default=text("nextval('campaigns_campaign_id_seq'::regclass)"))
     experiment = Column(ForeignKey("experiments.experiment"), nullable=False, index=True)
     name = Column(Text, nullable=False)
+    data_handling_service=Column(Text, nullable=False, server_default=text("sam"))
     active = Column(Boolean, nullable=False, server_default=text("true"))
     defaults = Column(JSON)
+    created = Column(DateTime(True), nullable=True,  server_default=text("now()"))
     creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
     creator_role = Column(Text, nullable=False)
+    updated = Column(DateTime(True), nullable=True,  server_default=text("now()"))
+    updater = Column(ForeignKey("experimenters.experimenter_id"), nullable=True, index=True)
     campaign_type = Column(Text, nullable=True)
     campaign_keywords = Column(JSON)
+    
 
     tags = relationship(Tag, secondary="campaigns_tags", lazy="dynamic")
     stages = relationship("CampaignStage", back_populates="campaign_obj", lazy="dynamic")
@@ -73,6 +79,7 @@ class CampaignStage(Base):
 
     vo_role = Column(Text, nullable=False)
     cs_last_split = Column(Integer, nullable=True)
+    last_split_test = Column(Integer, nullable=True)
     cs_split_type = Column(Text, nullable=True)
     cs_split_dimensions = Column(Text, nullable=True)
     dataset = Column(Text, nullable=False)
@@ -90,7 +97,16 @@ class CampaignStage(Base):
     merge_overrides = Column(Boolean, nullable=True)
     output_ancestor_depth = Column(Integer, server_default="1")
     default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)
-
+    data_dispatcher_dataset_query = Column(Text, nullable=True)
+    data_dispatcher_project_id = Column(Integer, nullable=True)
+    data_dispatcher_dataset_only = Column(Boolean, server_default=text("false"), nullable=False)
+    data_dispatcher_project_virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    data_dispatcher_load_limit = Column(Integer, nullable=True)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_idle_timeout = Column(Integer,  nullable=True)
+    data_dispatcher_worker_timeout = Column(Integer, nullable=True)
+    data_dispatcher_settings = Column(JSON, nullable=True)
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=True, index=True)
 
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="CampaignStage.creator == Experimenter.experimenter_id")
@@ -111,7 +127,66 @@ class CampaignStage(Base):
         backref="consumers",
     )
 
+class FilterOutArchived(Query):
+    _sa_instance_state = "FilterOutArchived"
+    _added_archive_filter = False
+    def filter(self, *criterion):
+        if any("data_dispatcher_submissions" in str(c) for c in criterion):
+            if not self._added_archive_filter:
+                #criterion += (DataDispatcherSubmission.archive == False,)
+                self._added_archive_filter = True
+        return super(FilterOutArchived, self).filter(*criterion)
 
+ 
+
+    
+class DataDispatcherSubmission(Base):
+    __tablename__ = "data_dispatcher_submissions"
+
+    data_dispatcher_project_idx = Column(Integer, primary_key=True, server_default="")
+    project_id = Column(Integer, nullable=False)
+    project_name = Column(Text)
+    experiment = Column(Text, nullable=False)
+    vo_role = Column(Text, nullable=False)
+    campaign_id = Column(Integer)
+    campaign_stage_id = Column(ForeignKey("campaign_stages.campaign_stage_id"), nullable=True, index=True)
+    campaign_stage_snapshot_id = Column(ForeignKey("campaign_stage_snapshots.campaign_stage_snapshot_id"), nullable=True, index=True)
+    submission_id = Column(ForeignKey("submissions.submission_id"), nullable=True, index=True)
+    job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
+    split_type = Column(Text, nullable=True)
+    last_split = Column(Integer, nullable=True)
+    depends_on_submission = Column(ForeignKey("submissions.submission_id"),  nullable=True, index=True)
+    depends_on_project = Column(Integer)
+    recovery_type_id = Column(Integer)
+    recovery_tasks_parent_submission = Column(Integer)
+    recovery_tasks_parent_project = Column(Integer)
+    recovery_position = Column(Integer)
+    creator = Column(ForeignKey("experimenters.experimenter_id"), nullable=False, index=True)
+    created = Column(DateTime(True), nullable=False, default="now()")
+    updater = Column(ForeignKey("experimenters.experimenter_id"), index=True)
+    updated = Column(DateTime(True))
+    worker_timeout = Column(Integer)
+    idle_timeout = Column(Integer)
+    active = Column(Boolean, nullable=False, default=True)
+    jobsub_job_id = Column(Text)
+    named_dataset = Column(Text)
+    pct_complete = Column(Float, nullable=False,default=0)
+    status = Column(Text)
+    splits_reset = Column(Boolean,nullable=False, default=False) # tells poms not to use files from these splits
+    archive = Column(Boolean,nullable=False, default=False) # dont show in poms
+    
+    virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    load_limit = Column(Integer, nullable=True)
+    recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    
+    submission_obj = relationship("Submission", foreign_keys=submission_id)
+    campaign_stage_obj = relationship("CampaignStage", foreign_keys=campaign_stage_id)
+    campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
+    job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
+    experimenter_creator_obj = relationship("Experimenter", primaryjoin="DataDispatcherSubmission.creator == Experimenter.experimenter_id")
+
+    
 class Experimenter(Base):
     __tablename__ = "experimenters"
 
@@ -150,7 +225,7 @@ class Experiment(Base):
 class ExperimentersWatching(Base):
     __tablename__ = "experimenters_watching"
 
-    experimenters_watching_id = Column(experimenters_watching_id = UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    experimenters_watching_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     experimenter_id = Column(ForeignKey("experimenters.experimenter_id"),nullable=False, index=True)
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)
@@ -232,8 +307,8 @@ class Submission(Base):
     job_type_snapshot_id = Column(ForeignKey("job_type_snapshots.job_type_snapshot_id"), nullable=True, index=True)
     recovery_position = Column(Integer)
     recovery_tasks_parent = Column(ForeignKey("submissions.submission_id"), index=True)
-    jobsub_job_id = Column(Text, nullable=False)
-
+    jobsub_job_id = Column(Text)
+    data_dispatcher_project_idx = Column(ForeignKey("data_dispatcher_submissions.data_dispatcher_project_idx"), nullable=True, index=True)
     campaign_stage_obj = relationship("CampaignStage")
     experimenter_creator_obj = relationship("Experimenter", primaryjoin="Submission.creator == Experimenter.experimenter_id")
     experimenter_updater_obj = relationship("Experimenter", primaryjoin="Submission.updater == Experimenter.experimenter_id")
@@ -242,7 +317,11 @@ class Submission(Base):
     campaign_stage_snapshot_obj = relationship("CampaignStageSnapshot", foreign_keys=campaign_stage_snapshot_id)
     job_type_snapshot_obj = relationship("JobTypeSnapshot", foreign_keys=job_type_snapshot_id)
     status_history = relationship("SubmissionHistory", primaryjoin="Submission.submission_id == SubmissionHistory.submission_id")
-
+    pct_complete = Column(Float, nullable=False,default=0)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_submission_obj = relationship("DataDispatcherSubmission", foreign_keys=data_dispatcher_project_idx)
+    
 
 class SubmissionHistory(Base):
     __tablename__ = "submission_histories"
@@ -251,6 +330,7 @@ class SubmissionHistory(Base):
     created = Column(DateTime(True), primary_key=True, nullable=False)
     status_id = Column(ForeignKey("submission_statuses.status_id"), nullable=False, index=True)
 
+    submission_obj = relationship("Submission", foreign_keys=submission_id)
     status_type = relationship("SubmissionStatus", primaryjoin="SubmissionHistory.status_id == SubmissionStatus.status_id")
 
 
@@ -283,9 +363,21 @@ class CampaignStageSnapshot(Base):
     updater = Column(Integer)
     updated = Column(DateTime(True))
     cs_last_split = Column(Integer)
+    last_split_test = Column(Integer, nullable=True)
     cs_split_type = Column(Text)
+    test_split_type = Column(Text, nullable=False, server_default=text(""))
     cs_split_dimensions = Column(Text)
     completion_type = Column(Text, nullable=False, server_default=text("located"))
+    data_dispatcher_dataset_query = Column(Text, nullable=True)
+    data_dispatcher_project_id = Column(Integer, nullable=True)
+    data_dispatcher_dataset_only = Column(Boolean, server_default=text("false"), nullable=False)
+    data_dispatcher_project_virtual = Column(Boolean, server_default=text("false"), nullable=True)
+    data_dispatcher_load_limit = Column(Integer, nullable=True)
+    data_dispatcher_stage_methodology = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_recovery_mode = Column(Text, server_default=text("standard"), nullable=True)
+    data_dispatcher_idle_timeout = Column(Integer,  nullable=True)
+    data_dispatcher_worker_timeout = Column(Integer, nullable=True)
+    data_dispatcher_settings = Column(JSON, nullable=True)
     # completion_pct = Column(Text, nullable=False, server_default="95")
     completion_pct = Column(Integer, nullable=False, server_default="95")
     default_clear_cronjob = Column(Boolean, server_default=text("true"), nullable=False)

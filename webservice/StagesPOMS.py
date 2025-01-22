@@ -22,9 +22,11 @@ import re
 
 import cherrypy
 from crontab import CronTab
+import poms.webservice.DMRService as shrek
 from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
+from sqlalchemy.orm.attributes import flag_modified
 
 from . import logit
 from .poms_model import (
@@ -42,6 +44,7 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
+    DataDispatcherSubmission
 )
 from .utc import utc
 from .SAMSpecifics import sam_specifics
@@ -115,7 +118,7 @@ class StagesPOMS:
         # email is the info we know about the ctx.username in POMS DB.
         pc_username = kwargs.pop("pc_username", None)
         campaign_id = kwargs.pop("ae_campaign_id", None)
-
+        
         if action == "delete":
             name = kwargs.get("ae_stage_name", kwargs.get("name", None))
             self.poms_service.permissions.can_modify(
@@ -167,17 +170,28 @@ class StagesPOMS:
         elif action in ("add", "edit"):
             logit.log("campaign_stage_edit: add or edit case")
             name = kwargs.pop("ae_stage_name")
+            data_handling_service = kwargs.pop("ae_data_handling_service", "sam")
+            
             if isinstance(name, str):
                 name = name.strip()
             # active = (kwargs.pop('ae_active') in ('True', 'true', '1', 'Active', True, 1))
             split_type = kwargs.pop("ae_split_type", None)
+            test_split_type = kwargs.pop("ae_test_split_type", None)
             default_clear_cronjob = (kwargs.pop('ae_cronjob') in ('True', 'true', '1', 'Active', True, 1))
-            vo_role = kwargs.pop("ae_vo_role")
-            software_version = kwargs.pop("ae_software_version")
-            dataset = kwargs.pop("ae_dataset")
+            vo_role = kwargs.pop("ae_vo_role", ctx.role )
+            software_version = kwargs.pop("ae_software_version", None)
+            dataset = kwargs.pop("ae_dataset", None)
             campaign_type = kwargs.pop("ae_campaign_type", "test")
+            dd_dataset_query = kwargs.pop("ae_dd_dataset_query", None) 
+            dd_project_id_override = kwargs.pop("ae_dd_project_id", None)
+            dd_project_stage_methodology = kwargs.pop("ae_dd_stage_methodology", "standard") 
+            dd_project_recovery_mode = kwargs.pop("ae_dd_recovery_mode", "standard") 
+            dd_project_virtual = kwargs.pop("ae_dd_virtual", False) 
+            dd_project_load_limit = kwargs.pop("ae_dd_load_limit", None)
+            dd_project_idle_timeout = kwargs.pop("ae_dd_idle_timeout", 259200) 
+            dd_project_worker_timeout = kwargs.pop("ae_dd_worker_timeout", None) 
 
-            completion_type = kwargs.pop("ae_completion_type")
+            completion_type = kwargs.pop("ae_completion_type", "located" if data_handling_service == "sam" else "complete")
             completion_pct = kwargs.pop("ae_completion_pct")
             depends = kwargs.pop("ae_depends", "[]")
 
@@ -252,13 +266,14 @@ class StagesPOMS:
                 depends["campaign_stages"] = depends["campaigns"]
 
             # fail if they're setting up a trivial infinite loop
-            if split_type in [None, "None", "none", "Draining"] and name in [x[0] for x in depends["campaign_stages"]]:
+            for split in [split_type, test_split_type]:
+                if split in [None, "None", "none", "Draining"] and name in [x[0] for x in depends["campaign_stages"]]:
 
-                raise cherrypy.HTTPError(
-                    404,
-                    "This edit would make an infinite loop. "
-                    "Go Back in your browser and set cs_split_type or remove self-dependency.",
-                )
+                    raise cherrypy.HTTPError(
+                        404,
+                        "This edit would make an infinite loop. "
+                        "Go Back in your browser and set cs_split_type or remove self-dependency.",
+                    )
 
             try:
                 if action == "add":
@@ -274,8 +289,27 @@ class StagesPOMS:
                             default_clear_cronjob=default_clear_cronjob,
                             # active=active,
                             cs_split_type=split_type,
+                            test_split_type=test_split_type,
                             software_version=software_version,
                             dataset=dataset,
+                            data_dispatcher_dataset_query = dd_dataset_query,
+                            data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None,
+                            data_dispatcher_project_virtual = dd_project_virtual,
+                            data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                            data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                            data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                            data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                            data_dispatcher_load_limit = dd_project_load_limit,
+                            data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit,
+                            },
                             test_param_overrides=test_param_overrides,
                             param_overrides=param_overrides,
                             login_setup_id=login_setup_id,
@@ -292,33 +326,91 @@ class StagesPOMS:
                         ctx.db.commit()
                         campaign_stage_id = c_s.campaign_stage_id
                 elif action == "edit":
-                    columns = {
-                        "name": name,
-                        "vo_role": vo_role,
-                        # "active": active,
-                        "cs_split_type": split_type,
-                        "default_clear_cronjob":default_clear_cronjob,
-                        "software_version": software_version,
-                        "dataset": dataset,
-                        "param_overrides": param_overrides,
-                        "test_param_overrides": test_param_overrides,
-                        "job_type_id": job_type_id,
-                        "login_setup_id": login_setup_id,
-                        "updated": datetime.now(utc),
-                        "updater": experimenter_id,
-                        "completion_type": completion_type,
-                        "completion_pct": completion_pct,
-                        "campaign_id": campaign_id,
-                    }
-
-                    if c_s and split_type != c_s.split_type:
-                        # clear last split if changing split type
-                        columns["cs_last_split"] = None
-                    if c_s and dataset != c_s.dataset:
-                        # clear last split if changing dataset
-                        columns["cs_last_split"] = None
-
-                    ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                    logit.log("Attempting to campaign stage: %s" % campaign_stage_id)
+                    cs = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).first()
+                    if cs:
+                        if ((split_type != cs.cs_split_type) or 
+                            (cs.campaign_obj.data_handling_service == "sam" and dataset != cs.dataset) or
+                            (cs.campaign_obj.data_handling_service == "data_dispatcher" and dd_dataset_query != cs.data_dispatcher_dataset_query)
+                            ):
+                            cs.cs_last_split = None
+                            cs.last_split_test = None
+                        cs.vo_role = vo_role
+                        cs.cs_split_type = split_type
+                        cs.test_split_type = test_split_type
+                        cs.default_clear_cronjob =default_clear_cronjob
+                        cs.software_version = software_version
+                        cs.dataset = dataset
+                        cs.param_overrides = param_overrides
+                        cs.test_param_overrides = test_param_overrides
+                        cs.data_dispatcher_dataset_query = dd_dataset_query
+                        cs.data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None
+                        cs.data_dispatcher_project_virtual = dd_project_virtual,
+                        cs.data_dispatcher_load_limit = dd_project_load_limit,
+                        cs.data_dispatcher_stage_methodology= dd_project_stage_methodology,
+                        cs.data_dispatcher_recovery_mode= dd_project_recovery_mode,
+                        cs.data_dispatcher_idle_timeout= dd_project_idle_timeout,
+                        cs.data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                        cs.data_dispatcher_settings = {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
+                        cs.job_type_id = job_type_id
+                        cs.login_setup_id = login_setup_id
+                        cs.updated = datetime.now(utc)
+                        cs.updater = experimenter_id
+                        cs.completion_type = completion_type
+                        cs.completion_pct = completion_pct
+                        ctx.db.add(cs)
+                        ctx.db.commit()
+                        logit.log("Updated campaign stage: %s" % campaign_stage_id)
+                    else:
+                        columns = {
+                            "name": name,
+                            "vo_role": vo_role,
+                            # "active": active,
+                            "cs_split_type": split_type,
+                            "test_split_type": test_split_type,
+                            "default_clear_cronjob":default_clear_cronjob,
+                            "software_version": software_version,
+                            "dataset": dataset,
+                            "param_overrides": param_overrides,
+                            "test_param_overrides": test_param_overrides,
+                            "data_dispatcher_dataset_query": dd_dataset_query,
+                            "data_dispatcher_project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                            "data_dispatcher_project_virtual": dd_project_virtual,
+                            "data_dispatcher_load_limit": dd_project_load_limit,
+                            "data_dispatcher_stage_methodology": dd_project_stage_methodology,
+                            "data_dispatcher_recovery_mode":dd_project_recovery_mode,
+                            "data_dispatcher_idle_timeout": dd_project_idle_timeout,
+                            "data_dispatcher_worker_timeout": dd_project_worker_timeout,
+                            "data_dispatcher_settings": {
+                                "idle_timeout": dd_project_idle_timeout,
+                                "worker_timeout": dd_project_worker_timeout,
+                                "project_id": int(dd_project_id_override) if dd_project_id_override else None,
+                                "dataset_query": dd_dataset_query,
+                                "virtual": dd_project_virtual,
+                                "stage_methodology": dd_project_stage_methodology,
+                                "recovery_mode": dd_project_recovery_mode,
+                                "load_limit": dd_project_load_limit
+                            },
+                            "job_type_id": job_type_id,
+                            "login_setup_id": login_setup_id,
+                            "updated": datetime.now(utc),
+                            "updater": experimenter_id,
+                            "completion_type": completion_type,
+                            "completion_pct": completion_pct,
+                            "campaign_id": campaign_id,
+                        }
+                        ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).update(columns)
+                        logit.log("Updated campaign stage with update(): %s" % campaign_stage_id)
+                    
                 # now redo dependencies
                 (
                     ctx.db.query(CampaignDependency)
@@ -681,7 +773,7 @@ class StagesPOMS:
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
 
     # h3. reset_campaign_split
-    def reset_campaign_split(self, ctx, campaign_stage_id):
+    def reset_campaign_split(self, ctx, campaign_stage_id, test=False):
         """
             reset a campaign_stages cs_last_split field so the sequence
             starts over
@@ -689,7 +781,14 @@ class StagesPOMS:
         campaign_stage_id = int(campaign_stage_id)
 
         c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
-        c_s.cs_last_split = None
+        split = "%s" % (c_s.cs_split_type if not test else c_s.test_split_type)
+        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == split).all()
+        for sub in dd_subs:
+            sub.splits_reset = True
+        if not test:
+            c_s.cs_last_split = None
+        else:
+            c_s.last_split_test = None
         ctx.db.commit()
 
     # h3. update_campaign_split
@@ -730,6 +829,9 @@ class StagesPOMS:
             logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not belong to this campaign")
             raise AssertionError("Requested campaign stage snapshot does not belong to this campaign")
         if c_s.cs_split_type != c_s_s.cs_split_type:
+            logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
+            raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
+        if c_s.test_split_type != c_s_s.test_split_type:
             logit.log(logit.ERROR, "update_campaign_split: requested campaign stage snapshot does not match the split type of this campaign stage")
             raise AssertionError("Requested campaign stage snapshot does not match the split type of this campaign stage")
         
@@ -810,14 +912,22 @@ class StagesPOMS:
         campaign_stage = campaign_stage_info[0]
         counts = {}
         counts_keys = {}
-        dirname = "{}/private/logs/poms/launches/campaign_{}".format(os.environ["HOME"], campaign_stage_id)
-        launch_flist = glob.glob("{}/*".format(dirname))
-
-        if len(launch_flist) > 500:
-            launch_flist = launch_flist[:500]
-
-        launch_flist = list(map(os.path.basename, launch_flist))
-
+        base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
+        recent_launch_outputs = (
+            ctx.db.query(Submission)
+            .filter(Submission.campaign_stage_id == campaign_stage_id)
+            .filter(Submission.created > datetime.now() - timedelta(days=6*30))
+            .order_by(desc(Submission.created))
+            .limit(500)
+        )
+        launch_flist = {}
+        for result in recent_launch_outputs:
+            date = result.created.strftime('%A, %b %d, %Y')
+            tuple = (result.submission_id, result.created.strftime('%H:%M:%S %p'), result.experimenter_creator_obj.username)
+            if date not in launch_flist:
+                launch_flist[date] = []
+            launch_flist[date].append(tuple)
+        
         recent_submission_list = (
             ctx.db.query(Submission.submission_id, func.max(SubmissionHistory.status_id))
             .filter(SubmissionHistory.submission_id == Submission.submission_id)
@@ -837,7 +947,10 @@ class StagesPOMS:
         kibana_link = campaign_kibana_link_format.format(campaign_stage_id)
 
         dep_svg = self.poms_service.campaignsPOMS.campaign_deps_svg(ctx, campaign_stage_id=campaign_stage_id)
-
+        data_dispatcher_projects = None
+        if campaign_stage.campaign_obj.data_handling_service == "data_dispatcher":
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign_stage.campaign_obj.campaign_id, campaign_stage_id=campaign_stage_id)
+        
         return (
             campaign_stage_info,
             time_range_string,
@@ -857,7 +970,8 @@ class StagesPOMS:
             dep_svg,
             last_activity,
             recent_submissions,
-            campaign_stage_snapshots
+            campaign_stage_snapshots,
+            data_dispatcher_projects
         )
 
     # h3. campaign_stage_submissions
@@ -928,28 +1042,8 @@ class StagesPOMS:
 
         subhist = aliased(SubmissionHistory)
         subq = ctx.db.query(func.max(subhist.created)).filter(SubmissionHistory.submission_id == subhist.submission_id)
-
         launch_commands = ctx.web_config.get("launch_commands","projre").split(",")
         
-        try:
-            subs = ctx.db.query(Submission).filter(Submission.campaign_stage_id.in_(campaign_stage_ids)).all()
-            for sub in subs:
-                if not sub.project:
-                    logit.log("no project: %s" % sub.submission_id)
-                    project = None
-                    for projre in launch_commands:
-                        logit.log("command executed: %s" % sub.command_executed)
-                        m = re.search(projre, sub.command_executed)
-                        if m:
-                            project = m.group(1)
-                            logit.log("project name: %s" % project)
-                            break
-                    if project:
-                        sub.project = project
-                        ctx.db.add(sub)
-                        ctx.db.flush()
-        except Exception as e:
-            logit.log("Error fetching/saving project name: %s" % repr(e))
         tuples = (
             ctx.db.query(Submission, SubmissionHistory, SubmissionStatus)
             .join(Submission.experimenter_creator_obj)
@@ -963,8 +1057,64 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(SubmissionHistory.submission_id)
+            .order_by(desc(SubmissionHistory.submission_id))
         ).all()
+        
+        sam_subs = dict({ sub.Submission.submission_id : sub.Submission for sub in tuples })
+        
+        dd_submissions =  (ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                )
+                .join(CampaignStage, CampaignStage.campaign_stage_id == DataDispatcherSubmission.campaign_stage_id)
+                .filter(DataDispatcherSubmission.submission_id.in_(sam_subs.keys())).all())
+        
+        if dd_submissions:
+            dd_output = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
+            submission_ids_dd = set(sub.submission_id for sub in dd_submissions if sub.submission_id)
+            for entry in submission_ids_dd:
+                if entry in sam_subs:
+                    del sam_subs[entry]
+                    
+        if sam_subs:
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                sam_output_files,
+                sam_output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_subs.values(), ctx.experiment, just_output=True)
+                
+        try:
+            changes_made = False
+            for sub in sam_subs.values():
+                if not sub.project:
+                    project = None
+                    for projre in launch_commands:
+                        m = re.search(projre, sub.command_executed)
+                        if m:
+                            project = m.group(1)
+                            break
+                    if project:
+                        sub.project = project
+                        logit.log(f"Setting project for submission: {sub.submission_id}")
+                        changes_made = True
+            if changes_made:
+                ctx.db.add_all(sam_subs.values())
+                ctx.db.commit()
+                        
+        except Exception as e:
+            logit.log("Error fetching/saving project name: %s" % repr(e))
+            
 
         # figure dependency depth
         depends = {}
@@ -972,7 +1122,15 @@ class StagesPOMS:
         darrow = {}
         sids = []
         slist = []
+        submissions = []
+        
+        dd_output = [] if not dd_submissions else dd_output
+        submission_ids_dd = set() if not dd_submissions else submission_ids_dd
+        
+        sam_output_list = [] if not sam_subs else sam_output_list
+        sam_output_files = [] if not sam_subs else sam_output_files
 
+        i = 0
         for tup in tuples:
             sid = tup.Submission.submission_id
             pd = tup.Submission.submission_params.get("dataset", "")
@@ -990,71 +1148,82 @@ class StagesPOMS:
                 depends[sid] = None
                 darrow[sid] = ""
             depth[sid] = 0
-        sids.sort()
-        for sid in sids:
-            if depends[sid] and depends[sid] in depth:
-                depth[sid] = depth[depends[sid]] + 1
-        data["depends"] = depends
-        data["depth"] = depth
-        data["darrow"] = darrow
-
-        (
-            summary_list,
-            some_kids_decl_needed,
-            some_kids_needed,
-            base_dim_list,
-            output_files,
-            output_list,
-            all_kids_decl_needed,
-            some_kids_list,
-            some_kids_decl_list,
-            all_kids_decl_list,
-        ) = sam_specifics(ctx).get_file_stats_for_submissions(slist, ctx.experiment, just_output=True)
-
-        submissions = []
-        i = 0
-        for tup in tuples:
+            
+            # Define output
+            handler= "Unknown"
+            if sid in sam_subs:
+                handler = "SAM"
+                output = sam_output_files[i]
+                output_length = sam_output_list[i]
+            elif sid in submission_ids_dd and "query" in dd_output[sid]:
+                handler = "Data Dispatcher"
+                output = dd_output[sid]["query"]
+                output_length = dd_output[sid]["length"]
+            else:
+                continue
+            
+             # Define jobsub details
             jjid = tup.Submission.jobsub_job_id
             full_jjid = jjid
             if not jjid:
-                jjid = "s" + str(tup.Submission.submission_id)
+                jjid = "s" + str(sid)
                 full_jjid = "unknown.0@unknown.un.known"
-            else:
+            else: 
                 jjid = "s%s<br>%s" % (
-                    str(tup.Submission.submission_id),
+                    str(sid),
                     str(jjid).replace("fifebatch", "").replace(".fnal.gov", ""),
                 )
-
+                
+            # Define table row for UI 
             row = {
-                "submission_id": tup.Submission.submission_id,
+                "submission_id": sid,
                 "jobsub_job_id": tup.Submission.jobsub_job_id,
                 "created": tup.Submission.created,
-                "creator": tup.Submission.experimenter_creator_obj.username,
+                "creator": tup.Submission.experimenter_creator_obj.username ,
                 "status": tup.SubmissionStatus.status,
                 "jobsub_cluster": full_jjid[: full_jjid.find("@")],
                 "jobsub_schedd": full_jjid[full_jjid.find("@") + 1 :],
                 "campaign_stage_name": tup.Submission.campaign_stage_obj.name,
-                "available_output": output_list[i],
-                "output_dims": output_files[i],
+                "available_output": output_length,
+                "output_dims": output,
+                "handler": handler,
             }
             submissions.append(row)
-            data["submissions"] = submissions
-            i = i + 1
+            if handler == "SAM":
+                i = i + 1
+            
+        sids.sort()
+        
+        for sid in sids:
+            if depends[sid] and depends[sid] in depth:
+                depth[sid] = depth[depends[sid]] + 1
+                
+        data["depends"] = depends
+        data["depth"] = depth
+        data["darrow"] = darrow    
+        data["submissions"] = submissions
+        
         return data
 
     # h3. get_dataset_for
-    def get_dataset_for(self, ctx, camp, test_launch):
+    def get_dataset_for(self, ctx, camp, test_launch, do_data_dispatcher=False):
         """
             use the split_type modules to get the next dataset for
             launch for a given campaign
         """
-        if test_launch and camp.test_split_type:
+        use_test = bool(test_launch)
+        if test_launch and camp.test_split_type and camp.test_split_type not in [None, "", "None", "none"]:
             split_type = camp.test_split_type
         else:
+            use_test = False
             split_type = camp.cs_split_type
+        
 
         if not split_type or split_type == "None" or split_type == "none":
-            return camp.dataset
+            if do_data_dispatcher:
+                return None
+            else:
+                return camp.dataset, None
 
         # clean up split_type -- de-white-space it
         split_type = split_type.replace(" ", "")
@@ -1076,14 +1245,26 @@ class StagesPOMS:
             p1 = len(split_type)
 
         modname = split_type[0:p1]
-
-        mod = importlib.import_module("poms.webservice.split_types." + modname)
-        split_class = getattr(mod, modname)
-
-        splitter = split_class(camp, ctx.sam, ctx.db)
-
+        
+        splitter = None
+        
+        if camp.campaign_obj.data_handling_service == "data_dispatcher":
+            mod = importlib.import_module("poms.webservice.dd_split_types." + modname)
+            split_class = getattr(mod, modname)
+            assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
+            splitter = split_class(ctx, camp, use_test)
+        else:
+            mod = importlib.import_module("poms.webservice.split_types." + modname)
+            split_class = getattr(mod, modname)
+            splitter = split_class(camp, ctx.sam, ctx.db, use_test)
+        
         try:
-            res = splitter.next()
+            if do_data_dispatcher:
+                assert self.init_shrek_if_needed(ctx), "There seems to be an issue with the Metacat service, please contact the POMS administrator."
+                res = splitter.next()
+            else:
+                res = splitter.next()
+                
         except StopIteration:
             if camp.default_clear_cronjob:
                 self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
@@ -1113,9 +1294,14 @@ class StagesPOMS:
                     pass
             raise AssertionError("No more splits in this campaign.")
 
-        ctx.db.commit()
         return res
-
+    
+    def init_shrek_if_needed(self, ctx):
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session ["Shrek"]:
+            dmr_service = shrek.DMRService()
+            dmr_service.initialize_session(ctx)
+        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session ["Shrek"])
+    
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
         """

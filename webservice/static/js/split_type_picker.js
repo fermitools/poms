@@ -26,8 +26,11 @@ split_type_picker.fix_custom_edit = function (split_type_id) {
     if (!e) {
         return
     }
-    console.log("fix_custom_edit: value: " + e.value)
-    if (e && split_type_edit_map[e.value]) {
+    if (e && e.value === "None"){
+        e.value = null;
+    }
+    console.log("fix_custom_edit: id: "+ split_type_id + " |  value: " + e.value)
+    if (e != null && e.value != null && split_type_edit_map !== 'undefined' && split_type_edit_map[e.value]) {
         how = 'inline';
     } else {
         how = 'none';
@@ -41,7 +44,7 @@ split_type_picker.fix_custom_edit = function (split_type_id) {
     }
 }
 
-split_type_picker.start = function (id) {
+split_type_picker.start = function (id, test_id=null) {
     var rlist, form_id, sel_id, e, current_val, current_type, i, j;
     form_id = 'split_type_edit_' + id;
     sel_id = form_id + '_sel';
@@ -103,7 +106,7 @@ split_type_picker.start = function (id) {
             rlist.push("<i>None</i>")
         }
         for (i in split_type_param_map[split_type]) {
-            param = split_type_param_map[split_type][i]
+            param = split_type_param_map[split_type][i];
             if (param[param.length - 1] == '=') {
                 val = '';
                 console.log("looking for " + param + " by name")
@@ -122,8 +125,14 @@ split_type_picker.start = function (id) {
                 val = ' value = "' + current_params[i] + '" '
             }
             rlist.push(param + ":");
-            rlist.push('<input id="' + form_id + '_' + split_type + '_' + param + '"' + val + '>');
+            rlist.push('<input class="nfiles_input" id="' + form_id + '_' + split_type + '_' + param + '"' + val + '>');
             rlist.push('<br>');
+            //if (["drainingn", "nfiles", "limitn"].includes(split_type) && test_id){
+            //    val = ' value = "' + document.getElementById(test_id).value + '" ';
+            //    rlist.push(param + " for testing:");
+            //    rlist.push('<input placeholder="'+ current_params[i] + ' (default)" class="nfiles_input" id="test_' + form_id + '_' + split_type + '_' + param + '"' + val + '>');
+            //    rlist.push('<br>');
+            //}   
         }
         rlist.push('</div>');
         rlist.push('</div>');
@@ -173,6 +182,19 @@ split_type_picker.save = function (form_id) {
         id_inp = form_id + '_' + split_type + '_' + param;
         console.log("trying to get data from " + id_inp);
         e_inp = document.getElementById(id_inp);
+
+        //if (["drainingn", "limitn", "nfiles"].includes(split_type) && (id_inp.includes("drainingn") || id_inp.includes("limitn") || id_inp.includes("nfiles"))){
+        //    e_inp_test = document.getElementById("test_"+id_inp);
+        //    if (e_inp_test){
+        //        e_parent = document.getElementById(form_id.substr(16).replace('cs_split_type', 'split_nfiles_test'));
+        //        e_parent.value = e_inp_test.value;
+        //    }   
+        //}
+        //else{
+        //    e_parent = document.getElementById(form_id.substr(16).replace('cs_split_type', 'split_nfiles_test'));
+        //    e_parent.value=null;
+        //    e_parent.disabled = true;
+        //}
         if (param[param.length - 1] == '=') {
             res = res + sep + param + e_inp.value
         } else {

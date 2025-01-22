@@ -1,4 +1,3 @@
-import uuid
 class list:
     """
        This split type assumes you have been given a comma-separated list 
@@ -6,7 +5,8 @@ class list:
        submit each one separately
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.list = cs.dataset.split(",")
         self.id = uuid.uuid4()
