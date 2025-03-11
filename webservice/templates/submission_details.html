@@ -139,6 +139,10 @@ Landscape (disabled, no info found) <br>
 {%endif%}
 
 {%if submission.project %}
+{%if submission.data_dispatcher_submission_obj.project_id %}
+View the <a href="https://metacat.fnal.gov:9443/mu2e_dd_prod/gui/P/project?project_id={{submission.data_dispatcher_submission_obj.project_id}}">DataDispatcher Project</a> <br>
+{%endif%}
+{%else%}
 View the <a href="{{sam_base}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
 {%endif%}
 
