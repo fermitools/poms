@@ -192,7 +192,7 @@ def augment_params():
             version=root.version,
             pomspath=root.path,
             docspath=root.docspath,
-            sam_base = root.sam_base,
+            sam_base = root.sam_base.replace("web",exp).replace("samsamdev","samdev"),
             landscape_base = root.landscape_base,
             fifemon_base = root.fifemon_base,
             hostname=socket.gethostname(),
