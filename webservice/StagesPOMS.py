@@ -1297,10 +1297,10 @@ class StagesPOMS:
         return res
     
     def init_shrek_if_needed(self, ctx):
-        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session ["Shrek"]:
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"]:
             dmr_service = shrek.DMRService()
             dmr_service.initialize_session(ctx)
-        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session ["Shrek"])
+        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session["Shrek"])
     
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):

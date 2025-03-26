@@ -4,20 +4,36 @@ function json_field_editor() {
     ;
 }
 
-json_field_editor.recovery_start = function (id) {
+json_field_editor.recovery_start = function (id, dd=true) {
     var e, e_text, r, i, j, k, si;
     var hang_onto, recoveries;
 
     console.log("recovery_start(" + id + ")")
 
-    recoveries = {
+    const sam_recoveries = {
         '-': '',
         'added_files': 'Include files added to definition since previous job ran',
         'consumed_status': 'Include files from the total dataset which were not flagged "consumed" by the original job',
         'delivered_not_consumed': 'Include only delivered files which were not "consumed" by the original job',
         'pending_files': 'Include files from total dataset which do not have suitable children declared for this version of software',
-        'process_status': 'Like consumed status, but also include files from that were processed by jobs that say they failed'
+        'process_status': 'Like consumed status, but also include files from that were processed by jobs that say they failed',
     }
+
+    const dd_recoveries = {
+        '-': '',
+        'added_files': 'Include files added to definition since previous job ran',
+        'state_failed': 'Reset files that failed during processing, and resubmit.',
+        'state_not_done': 'Reset files with a reserved or failed state, and resubmit.',
+        'reprocess_orphans': 'Reset files that have completed with a "done" state, but did not produce children.',
+        'reprocess_all': 'Reset and resubmit the entire project.'
+    }
+    const dd_match = {
+        'consumed_status': 'state_not_done',
+        'process_status': 'state_failed'
+    }
+
+    recoveries = dd ? dd_recoveries: sam_recoveries;
+
     e = document.getElementById(id);
     e_text = document.getElementById(id + '_text');
     if (e_text) {
@@ -43,10 +59,12 @@ json_field_editor.recovery_start = function (id) {
         res.push('<tr>');
         res.push('<td><select id="' + fid + '_s' + si + '">');
         for (k in recoveries) {
-
-            if (i < j.length && j[i][0] == k) {
+            console.log(j, i, 0)
+            const rtype = (i < j.length) ? (dd ? (j[i][0] in dd_match ? dd_match[j[i][0]]:j[i][0]): j[i][0]) : k;
+            if (i < j.length && rtype == k) {
                 res.push('<option value="' + k + '" selected>' + k + ' - ' + recoveries[k] + '</option>');
-            } else {
+            }
+            else {
                 res.push('<option value="' + k + '">' + k + ' - ' + recoveries[k] + '</option>');
             }
         }

@@ -1098,7 +1098,7 @@ class SubmissionsPOMS:
             .filter(SubmissionStatus.status.in_(status_list), SubmissionHistory.created == sq.c.latest)
             .all()
         )
-        running_sids = [x[0] for x in running_sids]
+        running_sids = [x[0] for x in running_sids_results]
 
         if cl and cl != "None":
 
@@ -1403,6 +1403,7 @@ class SubmissionsPOMS:
                 logit.log("Not launching recovery because submission is not marked Located")
                 return
 
+        do_data_dispatcher = s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
         current_s = s
@@ -1493,7 +1494,7 @@ class SubmissionsPOMS:
 
         # return lcmd, cs, campaign_stage_id, outdir, outfile
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
-
+        print(res)
         if res:
             if isinstance(res, int) and res == 1:
                 raise AssertionError("Recovery submissions are currently disabled.")
@@ -1724,7 +1725,7 @@ class SubmissionsPOMS:
         **kwargs,
     ):
 
-        logit.log("Entering launch_jobs(%s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides))
+        logit.log("Entering launch_jobs(%s, %s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides, launcher))
 
         if launcher == None:
             launcher = ctx.username
@@ -1790,12 +1791,15 @@ class SubmissionsPOMS:
                 joinedload(CampaignStage.job_type_obj),
             ).one()
 
-            ctx.role = cs.creator_role
-
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
             else:
                 role = cs.vo_role.lower()
+
+            # update ctx bookkeping we might need for DMR later
+            ctx.role = cs.creator_role
+            ctx.username = launcher_experimenter.username
+            ctx.experiment = cs.experiment
                 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1925,7 +1929,8 @@ class SubmissionsPOMS:
         #             or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
 
         
-        proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
+        #proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
+        proxyheld = False
         if allheld or csheld or proxyheld:
 
             errnum = 423

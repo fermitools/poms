@@ -355,7 +355,7 @@ class CampaignsPOMS:
         else:
             lead = None
 
-        exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
+        exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).scalar()
 
         #
         # for now we're skipping multiparam datasets
@@ -1976,7 +1976,7 @@ class CampaignsPOMS:
         ctx = kwargs["ctx"]
         campaign_id = kwargs.get("campaign_id", 0)
         cstages = (ctx.db.query(CampaignStage).join(CampaignStage.campaign_obj).filter(CampaignStage.campaign_id == campaign_id).all())
-        c = cstages[0].campaign_obj
+        c = cstages[0].campaign_obj if cstages and len(cstages) > 0 else None
         print(c.defaults)
         job_types =  {jt.name: jt for jt in ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment, JobType.creator_role == ctx.role, JobType.active == True).all()}
         def get_dd_settings(stages):
@@ -1994,6 +1994,7 @@ class CampaignsPOMS:
                 ctx.db.add(c_s)
             ctx.db.commit()
             return stages
+        
         cstages = get_dd_settings(cstages)
         data_handling_defaults = None
         if c.defaults:

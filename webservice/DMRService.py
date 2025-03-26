@@ -65,7 +65,7 @@ class DMRService:
         self.config = config
         
     
-    def initialize_session(self, ctx, agent_session=None):
+    def initialize_session(self, ctx, agent_session=None, cron_session=False):
         needs_new = False
         session_id_only = False
         if agent_session:
@@ -104,7 +104,7 @@ class DMRService:
                     }
             self.db = ctx.db if not self.db and ctx.db else cherrypy.request.db
             if cherrypy.session["Shrek"]["onboarded"]:
-                return self.set_configuration()
+                return self.set_configuration(cron_session)
         cherrypy.session["Shrek"]["user"] = ctx.username
         cherrypy.session["Shrek"]["role"] = ctx.role
     
@@ -127,7 +127,7 @@ class DMRService:
         self.test = None
         
     
-    def set_configuration(self):
+    def set_configuration(self, cron_session=False):
         # SET DATA_DISPATCHER CREDS
         experiment = cherrypy.session["Shrek"]["current_experiment"]
         self.dd_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_URL"]
@@ -147,6 +147,9 @@ class DMRService:
         try:
             self.set_data_dispatcher_client()
             self.set_metacat_client()
+            if cron_session:
+                self.dd_client = cherrypy.session.get("Shrek", {}).get("dd_client")
+                self.metacat_client = cherrypy.session.get("Shrek", {}).get("mc_client")
             
             return True
         except Exception as e:
@@ -1269,8 +1272,8 @@ class DMRService:
                                                 project_name=project_name,
                                                 campaign_id=project.campaign_id, 
                                                 campaign_stage_id=project.campaign_stage_id,
-                                                split_type=project.cs_split_type,
-                                                last_split=project.cs_last_split,
+                                                split_type=project.cs_split_type if hasattr(project, 'cs_split_type') else project.split_type,
+                                                last_split=project.cs_last_split if hasattr(project, 'cs_last_split') else project.last_split,
                                                 campaign_stage_snapshot_id=snapshot.campaign_stage_snapshot_id if snapshot else None,
                                                 recovery_position=recovery_position,
                                                 creator=submission.experimenter_creator_obj.experimenter_id,

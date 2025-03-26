@@ -17,6 +17,7 @@ class drainingn:
     """
     def __init__(self, ctx, cs, test=False):
         self.test = test
+        self.ctx = ctx
         self.cs = cs
         self.db = ctx.db
         self.cs.data_dispatcher_dataset_only = False
@@ -32,12 +33,19 @@ class drainingn:
         return ["nfiles"]
 
     def peek(self):
+
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"]:
+            self.dmr_service = shrek.DMRService()
+            self.dmr_service.initialize_session(self.ctx, cron_session=True)
+        if 'mc_client' in cherrypy.session["Shrek"]:
+            self.dmr_service.metacat_client = cherrypy.session["Shrek"]['mc_client']
+
         dont_use = []
         if not self.last_split:
             self.last_split = 0
             project_name = ("TEST | " if self.test else "") + "%s | draining(%d) | First Run" % (self.cs.name, self.n)
             query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-            all_files = list(cherrypy.session["Shrek"]["mc_client"].query(query, with_metadata=True))
+            all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
         else:
             previous_subs = [submission.project_id for submission in self.db.query(DataDispatcherSubmission).filter(
                 DataDispatcherSubmission.experiment == self.cs.experiment, 
@@ -53,18 +61,18 @@ class drainingn:
                 query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(list(set(dont_use))), self.n)
             else:
                 query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-        all_files = list(cherrypy.session["Shrek"]["mc_client"].query(query, with_metadata=True))
-        
+        all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
+
         if len(all_files) == 0:
             raise StopIteration
-        
+
         project_files = [file for file in all_files[0:min(self.n, len(all_files))] if file.get("fid", "") not in dont_use]
-        
+
         return self.create_project(project_name, project_files, named_dataset = query)
 
     def next(self):
         dd_project = self.peek()
-        
+
         if self.test:
             self.cs.last_split_test = dd_project.project_id
         else:
@@ -74,11 +82,11 @@ class drainingn:
         return dd_project
 
     def len(self):
-        return cherrypy.session["Shrek"]["mc_client"].query(self.cs.data_dispatcher_dataset_query, summary="count").get("count",0) / self.n + 1
+        return self.dmr_service.metacat_client.query(self.cs.data_dispatcher_dataset_query, summary="count").get("count", 0) / self.n + 1
 
     def edit_popup(self):
         return "null"
-    
+
     def create_project(self, project_name, project_files, named_dataset):
         dd_project = self.dmr_service.create_project(username=self.cs.experimenter_creator_obj.username, 
                                         files=project_files,
