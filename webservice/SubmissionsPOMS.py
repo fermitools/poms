@@ -1498,7 +1498,7 @@ class SubmissionsPOMS:
         if res:
             if isinstance(res, int) and res == 1:
                 raise AssertionError("Recovery submissions are currently disabled.")
-            return res[3], res[4], "%s/%s" % (res[3], res[4])
+            return res[3], res[4], "%s/%s" % (res[3], res[4]), res[5]
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
@@ -1989,7 +1989,6 @@ class SubmissionsPOMS:
             if do_data_dispatcher and dd_project_idx and not dd_project_override:
                 # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
                 dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
-                
         else:
             if not do_data_dispatcher:
                 dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
@@ -2154,7 +2153,7 @@ class SubmissionsPOMS:
                 if dd_project.depends_on_submission and not dd_project.depends_on_project:
                     dd_project.depends_on_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).first()
                 if dd_project.recovery_tasks_parent_submission and not dd_project.recovery_tasks_parent_project:
-                    dd_project.recovery_tasks_parent_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none()
+                    dd_project.recovery_tasks_parent_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none().project_id
                 
             else:
                 stage_name = submission.campaign_stage_obj.name

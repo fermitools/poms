@@ -254,7 +254,7 @@ def poms_method(
             # unpack values into dictionary
             if u:
                 vdict = {}
-                for i in range(len(u)):
+                for i in range(min(len(u), len(values))):
                     vdict[u[i]] = values[i]
                 values = vdict
 
