@@ -434,7 +434,7 @@ class DMRService:
             raise e
         return {"project_handles": retval, "msg": msg, "stats": self.get_project_stats(handles=retval), "project_details": {k: project_info[k] for k in set(list(project_info.keys())) - set(["file_handles"])}}
     
-    deft get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
+    def get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
         files = []
         if project_id:
             project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
