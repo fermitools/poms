@@ -434,7 +434,7 @@ class DMRService:
             raise e
         return {"project_handles": retval, "msg": msg, "stats": self.get_project_stats(handles=retval), "project_details": {k: project_info[k] for k in set(list(project_info.keys())) - set(["file_handles"])}}
     
-    def get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
+    deft get_file_info_from_project_id(self, project_id=None, project_idx=None, metadata=False, hierarchy=False):
         files = []
         if project_id:
             project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
@@ -1282,7 +1282,9 @@ class DMRService:
                                                 virtual=campaign_stage.data_dispatcher_project_virtual,
                                                 stage_methodology=campaign_stage.data_dispatcher_stage_methodology,
                                                 recovery_mode=campaign_stage.data_dispatcher_recovery_mode,
-                                                project_settings=project.data_dispatcher_settings)
+                                                 
+                                                project_settings=campaign_stage.data_dispatcher_settings
+                                                )
                     
             if dd_project and dd_project.data_dispatcher_project_idx:
                 if methodology == "standard":
