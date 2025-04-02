@@ -19,11 +19,12 @@ CVS
 poms.dbs
 *.swp
 *.ini
+
 *.conf
 *.cfg
-
 .DS_Store
 __pycache__
+
 poms.egg-info/
 
 tmp
@@ -48,7 +49,6 @@ test/set_hypot_config_shrek
 /poms_client/bin/setup.cfg
 /poms_client/bin/client.cfg
 
-/submission_broker/submission_agent.cfg
 submission_broker/submission_broker_uwsgi.ini
 submission_broker/config/submission_broker_uwsgi_config.ini
 submission_broker/config/submission_agent.cfg

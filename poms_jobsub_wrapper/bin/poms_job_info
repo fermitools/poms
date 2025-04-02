@@ -24,6 +24,7 @@ done
 : GROUP=$GROUP
 export GROUP
 
+
 BEARER_TOKEN_FILE=$(/opt/jobsub_lite/lib/fake_ifdh.py getToken | tail -1)
 : BEARER_TOKEN_FILE=$BEARER_TOKEN_FILE
 
@@ -81,9 +82,9 @@ then
 fi
 
 case "x$POMS_TEST" in
-xint*) baseurl=$(awk -F "=" '/base_int_ssl_tokens/ {print $2}' $WEB_CONFIG) ;;
-x1*)   baseurl=$(awk -F "=" '/base_dev_ssl_tokens/ {print $2}' $WEB_CONFIG) ;;
-x*)    baseurl=$(awk -F "=" '/base_prod_tokens/ {print $2}' $WEB_CONFIG) ;;
+xint*) baseurl=$(awk -F "=" '/base_url_int/ {print $2}' $WEB_CONFIG) ;;
+x1*)   baseurl=$(awk -F "=" '/base_url_dev/ {print $2}' $WEB_CONFIG) ;;
+x*)    baseurl=$(awk -F "=" '/base_url_prod/ {print $2}' $WEB_CONFIG) ;;
 esac
 
 reporturl="$baseurl/update_submission"
