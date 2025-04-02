@@ -450,7 +450,7 @@ class CampaignsPOMS:
                         total += sub.files_generated
         
 
-            logit.log("campaign_overview: total: %d" % total)
+            logit.log(logit.DEBUG, "campaign_overview: total: %d" % total)
 
            
 
@@ -469,9 +469,9 @@ class CampaignsPOMS:
                 consumed_map[r[0]] = r[1]
                 generated_map[r[0]] = r[2]
 
-            logit.log("show_watching: sub_list: %s" % repr(sp_list))
-            logit.log("show_watching: consumed_map: %s" % repr(consumed_map))
-            logit.log("show_watching: generated_map: %s" % repr(generated_map))
+            logit.log(logit.DEBUG, "show_watching: sub_list: %s" % sp_list)
+            logit.log(logit.DEBUG, "show_watching: consumed_map: %s" % consumed_map)
+            logit.log(logit.DEBUG, "show_watching: generated_map: %s" % generated_map)
 
 
             #csl = campaign.stages
@@ -861,19 +861,16 @@ class CampaignsPOMS:
             campaign = None
 
         if campaign_stage_id is not None:
-            cidl1 = (
-                ctx.db.query(CampaignDependency.needs_campaign_stage_id)
-                .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
+            s = set([cs[0] if cs[1] == campaign_stage_id else cs[1]  for cs in  (
+                ctx.db.query(CampaignDependency.needs_campaign_stage_id, CampaignDependency.provides_campaign_stage_id)
+                .filter(or_(
+                    CampaignDependency.provides_campaign_stage_id == campaign_stage_id,
+                    CampaignDependency.needs_campaign_stage_id == campaign_stage_id
+                ))
                 .all()
-            )
-            cidl2 = (
-                ctx.db.query(CampaignDependency.provides_campaign_stage_id)
-                .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
-                .all()
-            )
-            s = set([campaign_stage_id])
-            s.update(cidl1)
-            s.update(cidl2)
+            )])
+            s.add(campaign_stage_id)
+            
             csl = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id.in_(s)).all()
 
         c_ids = deque()

@@ -253,7 +253,6 @@ def poms_method(
             #if values and values.get('rtype_override'):
              #   self.rtype = values['rtype_override']
               #  values = values['html']
-
             logit.log("after call: values = %s" % repr(values))
 
             # stop Chrome from offering to translate half our pages..
@@ -291,7 +290,6 @@ def poms_method(
                 templ = t or values["template"]
                 if confirm and kwargs.get("confirm", None) == None:
                     templ = templ.replace(".html", "_confirm.html")
-                logit.log("values: %s" % repr(values))
                 if not values:
                     values = kwargs
                 if not values.get("exp_obj", None):

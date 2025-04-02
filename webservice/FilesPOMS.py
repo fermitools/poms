@@ -144,7 +144,7 @@ class FilesStatus:
                 [
                     s.project,
                     "%s/station_monitor/%s/stations/%s/projects/%s"
-                    % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project),
+                    % (ctx.web_config.get("SAM", "sam_base").replace("web",cs.experiment).replace("samsamdev","samdev"), cs.experiment, cs.experiment, s.project),
                 ],
                 [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
                 [s.created.strftime("%Y-%m-%d %H:%M"), None],
@@ -296,7 +296,7 @@ class FilesStatus:
         
 
     # h3. list_launch_file
-    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None):
+    def list_launch_file(self, ctx, campaign_stage_id, fname, login_setup_id=None, submission_id=None):
         """
             get launch output file and return the lines as a list
         """

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#. ${SETUPS_DIR:-/grid/fermiapp/products/common/etc}/setups
+. ${SETUPS_DIR:-/cvmfs/fermilab.opensciencegrid.org/products/common/etc}/setups
 
 cmd="$0 $*"
 
