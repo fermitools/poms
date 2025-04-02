@@ -20,13 +20,14 @@ poms.dbs
 *.swp
 *.ini
 /poms_client/bin/setup.cfg
+/poms_client/bin/client.cfg
 /submission_broker/submission_agent.cfg
-/poms_config
 *.conf
+/poms_config
 /test/data/*
 poms.egg-info/
 tmp
 .DS_Store
 __pycache__
 alma9_setup
-poms_client/bin/client.cfg
+fife_wrap.py

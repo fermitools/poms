@@ -150,7 +150,7 @@ class Experiment(Base):
 class ExperimentersWatching(Base):
     __tablename__ = "experimenters_watching"
 
-    experimenters_watching_id = Column(experimenters_watching_id = UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    experimenters_watching_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     experimenter_id = Column(ForeignKey("experimenters.experimenter_id"),nullable=False, index=True)
     campaign_id = Column(ForeignKey("campaigns.campaign_id"), nullable=False, index=True)
     created = Column(DateTime(True), nullable=False)

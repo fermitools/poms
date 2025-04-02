@@ -1814,7 +1814,15 @@ class SubmissionsPOMS:
             #("poms_condor_vault_storer -v %s_default; ") % ctx.experiment,
         ]
         # END TOKEN LOGIC
-        
+        formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
+        input_dict = {
+            "dataset": dataset % formatdict if "%(" in dataset and ")s" in dataset else dataset,
+            "parameter": dataset % formatdict if "%(" in dataset and ")s" in dataset else dataset,
+            "version": vers % formatdict if "%(" in vers and ")s" in vers else vers,
+            "group": group % formatdict if "%(" in group and ")s" in group else group,
+            "experimenter": experimenter_login,
+            "experiment": exp,
+        }
         cmdl = [
             "exec 2>&1;",
             "set -x;",
@@ -1823,14 +1831,7 @@ class SubmissionsPOMS:
             scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
             tok_permissions if do_tokens else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
-            % {
-                "dataset": dataset,
-                "parameter": dataset,
-                "experiment": exp,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-            },
+            % input_dict,
             
             "echo == process_id: $$ ==;",
             "export UPLOADS='%s';" % sandbox,
@@ -1873,14 +1874,7 @@ class SubmissionsPOMS:
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
-                % {
-                    "dataset": dataset,
-                    "parameter": dataset,
-                    "experiment": exp,
-                    "version": vers,
-                    "group": group,
-                    "experimenter": experimenter_login,
-                }
+                % input_dict
             ).replace("'", """'"'"'"""),
             "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
         ]
@@ -1964,16 +1958,7 @@ class SubmissionsPOMS:
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
         formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
-        formatdict.update(
-            {
-                "dataset": dataset,
-                "parameter": dataset,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-                "experiment": exp,
-            }
-        )
+        formatdict.update(input_dict)
 
         lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")
