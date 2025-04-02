@@ -416,8 +416,8 @@ class DMRService:
         try:
             project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, with_replicas=True)
             retval = project_info.get("file_handles", []) if project_info else None
-            state = [state] if state and not isinstance(state, Array) else state
-            not_state = [not_state] if not_state and not isinstance(not_state, Array) else not_state
+            state = [state] if state and not isinstance(state, list) else state
+            not_state = [not_state] if not_state and not isinstance(not_state, list) else not_state
             print(retval)
             print("State = %s" % state)
             print("NOT State = %s" % not_state)
