@@ -1144,6 +1144,12 @@ class StagesPOMS:
             if m:
                 depends[sid] = int(m.group(3)) if long else int(m.group(2))
                 darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
+            elif tup.Submission.depends_on:
+                depends[sid] = tup.Submission.depends_on
+                darrow[sid] = "&#x21b3;" 
+            elif tup.Submission.recovery_tasks_parent:
+                depends[sid] = tup.Submission.recovery_tasks_parent
+                darrow[sid] = "&#x21ba;"
             else:
                 depends[sid] = None
                 darrow[sid] = ""
