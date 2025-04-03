@@ -876,11 +876,11 @@ class SubmissionsPOMS:
                 ctx.db.flush()
 
         qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'"
-
         dq = text(qt % ("depends", submission_id)).columns(submission_id=Integer)
         depend_ids = [x[0] for x in ctx.db.execute(dq).fetchall()]
 
-        rq = text(qt % ("recover", submission_id)).columns(submission_id=Integer)
+        qt2 = "select submission_id from submissions where recovery_tasks_parent = %s"
+        rq = text(qt2 % submission_id).columns(submission_id=Integer)
         recovery_ids = [x[0] for x in ctx.db.execute(rq).fetchall()]
 
         rtypes = ctx.db.query(RecoveryType).all()
