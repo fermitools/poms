@@ -75,6 +75,8 @@ a regular launch
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[50:-2]}}">Submission #{{dataset[50:-2]}}</a>
 {%elif dataset[:13] == 'poms_depends_' and dataset|length < 50  %}
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
+{%elif submission.depends_on %}
+...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission.depends_on}}">Submission #{{submission.depends_on}}</a>
 {%endif%}
 {%endif%}
 

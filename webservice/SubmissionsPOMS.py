@@ -875,8 +875,8 @@ class SubmissionsPOMS:
                 ctx.db.add(submission)
                 ctx.db.flush()
 
-        qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'"
-        dq = text(qt % ("depends", submission_id)).columns(submission_id=Integer)
+        qt = "select submission_id from submissions where depends_on = %s"
+        dq = text(qt % submission_id).columns(submission_id=Integer)
         depend_ids = [x[0] for x in ctx.db.execute(dq).fetchall()]
 
         qt2 = "select submission_id from submissions where recovery_tasks_parent = %s"
@@ -1385,7 +1385,7 @@ class SubmissionsPOMS:
                     test_launch = False
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
-                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None)
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None, dependent_of=s.submission_id)
         return 1
 
     # h3. launch_recovery_if_needed
@@ -1722,6 +1722,7 @@ class SubmissionsPOMS:
         output_commands=False,
         parent=None,
         dd_project_idx=None,
+        dependent_of=None,
         **kwargs,
     ):
 
@@ -2023,6 +2024,7 @@ class SubmissionsPOMS:
         submission = None
         if not test_login_setup:
             submission = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time, full_submission=True)
+            submission.depends_on = dependent_of
             sid = submission.submission_id
             #
             # keep some bookkeeping flags
