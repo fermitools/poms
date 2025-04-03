@@ -2219,7 +2219,8 @@ class SubmissionsPOMS:
             if dd_project:
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_TASK_ID=%s;" % dd_project.data_dispatcher_project_idx)
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
-                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % (dd_project.named_dataset if dd_project.named_dataset else " "))
+                if dd_project.named_dataset and len(dd_project.named_dataset) > 0:
+                    data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % (dd_project.named_dataset))
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_VIRTUAL=%s;" % (dd_project.virtual if dd_project.virtual else "False" ))
 
                 data_dispatcher_logic.append(f"export POMS_DATA_DISPATCHER_LOAD_LIMIT={dd_project.load_limit or 0};")

@@ -587,7 +587,7 @@ class CampaignsPOMS:
             else:
                 lead = None
 
-            exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign.campaign_id).first()
+            exp = str(ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign.campaign_id).first())
 
             #
             # for now we're skipping multiparam datasets
