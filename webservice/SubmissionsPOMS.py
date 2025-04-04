@@ -1654,7 +1654,8 @@ class SubmissionsPOMS:
         do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
                      or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
         
-        proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
+        # proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
+        proxyheld = False
         if allheld or csheld or proxyheld:
 
             errnum = 423

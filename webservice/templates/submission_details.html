@@ -128,18 +128,15 @@ View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_rol
 
 View in
 {%if submission.jobsub_job_id %}
-{%if submission.project %}
-  <a href="{{fifemon_base}}/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
-{% else %}
-  <a href="{{fifemon_base}}/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
-{%endif%}
+  <a href="{{fifemon_base}}/monitor/d/JL6pUwB4k/submission-summary?orgId=1&var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
 {%else%}
 Landscape (disabled, no info found) <br>
 {%endif%}
 
 {%if submission.project %}
-View the <a href="{{sam_base}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
+View the <a href="{{sam_base|replace('web',session_experiment)}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
 {%endif%}
+  
 
 {%if submission.jobsub_job_id %}
 View the 
