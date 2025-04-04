@@ -691,7 +691,7 @@ class StagesPOMS:
             ctx, base_link
         )
         experimenter = ctx.get_experimenter()
-
+        stages_with_cronjob = self.read_crontab(ctx)
         csq = (
             ctx.db.query(CampaignStage)
             .options(joinedload(CampaignStage.experiment_obj))
@@ -763,6 +763,7 @@ class StagesPOMS:
         logit.log(logit.DEBUG, "show_campaign_stages: back from query")
         # check for authorization
         data["authorized"] = []
+        data["stages_with_cronjob"] = stages_with_cronjob
         for c_s in campaign_stages:
             if ctx.role != "analysis":
                 data["authorized"].append(True)
@@ -771,7 +772,6 @@ class StagesPOMS:
             else:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
-
     # h3. reset_campaign_split
     def reset_campaign_split(self, ctx, campaign_stage_id, test=False):
         """
@@ -1307,6 +1307,23 @@ class StagesPOMS:
             dmr_service = shrek.DMRService()
             dmr_service.initialize_session(ctx)
         return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session["Shrek"])
+    
+    
+    def read_crontab(self, ctx):
+        """
+            return crontab info for cron launches for campaign
+        """
+        my_crontab = CronTab(user=True)
+        jobs = my_crontab.find_command("/home/poms/poms/cron/launcher --campaign_stage_id=")
+        cs_with_cron = []
+        for job in jobs:
+            line = job.command
+            match = re.search(r'--campaign_stage_id=(\d+)', line)
+            if match:
+                csid = match.group(1)
+                cs_with_cron.append(int(csid))
+        
+        return cs_with_cron
     
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
