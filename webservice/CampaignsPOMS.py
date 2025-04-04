@@ -211,7 +211,7 @@ class CampaignsPOMS:
         
         total = 0.0
         for ds in dslist:
-            count = ctx.sam.count_files(exp, "defname:%s" % ds)
+            count = ctx.sam.count_files(exp.experiment, "defname:%s" % ds)
             if count > 0:
                 total += count
         if total == 0:

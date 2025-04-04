@@ -167,6 +167,7 @@ class samweb_lite:
         url = "%s/sam/%s/api/projects/name/%s/recovery_dimensions?useProcess=%s" % (base, experiment, projid, useprocess)
         with requests.Session() as sess:
             res = safe_get(sess, url, dbhandle=dbhandle)
+
         # default to basic consumed status
         info = "project_name %s minus consumed_status co%%" % projid
         if res:
@@ -367,7 +368,15 @@ class samweb_lite:
         count = -1
         # print("count_files(experiment=%s, dims=%s, url=%s)" % (experiment, dims,url))
         with requests.Session() as sess:
-            res = safe_get(sess, url, params={"dims": dims}, dbhandle=dbhandle)
+            res = sess.post(
+                url,
+                data={"dims": dims},
+                verify=False,
+                cert=(
+                    "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
+                    "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                ),
+            )
         if res:
             # print("Got status: %d" % res.status_code)
             if res.status_code != 200:
