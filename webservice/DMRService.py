@@ -414,6 +414,8 @@ class DMRService:
         retval = None
         msg = "Fail"
         try:
+            if not cherrypy.session or "Shrek" not in cherrypy.session or 'dd_client' not in cherrypy.session["Shrek"] or cherrypy.session["Shrek"]['dd_client'] is None:
+                self.set_configuration(True)
             project_info = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, with_replicas=True)
             retval = project_info.get("file_handles", []) if project_info else None
             state = [state] if state and not isinstance(state, list) else state
@@ -1210,6 +1212,9 @@ class DMRService:
             project_name = "Recovery | stage: %s | method: %s | mode: %s | parent_sid: %s | pos: %s" % (campaign_stage.name, methodology, mode, recovery_parent, recovery_position)
             recovery_files = []
             handles = []
+            if cherrypy.session["Shrek"]["current_experiment"] == "samdev":
+                cherrypy.session["Shrek"]["current_experiment"] = str(submission.campaign_stage_obj.experiment)
+                self.set_configuration(True)
             if rtype.name in ["state_not_done", "state_failed", "reprocess_all"]:
                 if rtype.name == "reprocess_all":
                     handles = self.get_project_handles(project.project_id).get("project_handles", [])

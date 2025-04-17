@@ -434,7 +434,7 @@ class Agent:
             self.lastconn[group] = start_time
             
             elapsed = datetime.now(utc) - start
-            record_queue_log(f"Found {len(ddict)} Submissions since {since}", group=group, request_duration=f"{elapsed.seconds}.{elapsed.microseconds} seconds")
+            record_queue_log(f"Found {len(ddict)} Submissions since {since}", group=group, request_duration=f"{elapsed.seconds}.{elapsed.microseconds} seconds", response_size=f"{len(json.dumps(ddict).encode('utf-8'))} bytes")
         except requests.exceptions.RequestException as r:
             record_queue_log("Connection error for group %s: %s" % (group, r), level="exception")
             ddict = {}
@@ -509,6 +509,7 @@ class Agent:
                 parsed_ids.append(task_id)
                 
         url = self.cfg.get("submission_agent", "poms_dd_complete_query_all") % ",".join(dd_task_ids)
+        dd_statuses = None
         try:
             record_queue_log("Fetching Projects: %s" % dd_task_ids)
             htr = self.psess.get(url)
@@ -518,7 +519,7 @@ class Agent:
             htr.close()
             return dd_statuses
         except Exception as e:
-            record_queue_log(e, "Data Dispatcher Project Status", level="exception", statuses=dd_statuses)
+            record_queue_log("Data Dispatcher Project Status", level="exception", statuses=dd_statuses, exception=e)
             return {}
         
 
@@ -670,10 +671,11 @@ class Agent:
                     if key == "dd_submissions":
                         continue
                     entry_to_check = dd_task_entries_to_check.get(key)
-                    record_queue_log("checking entry: %s" % entry_to_check)
-                    update_submission = self.maybe_report_data_dispatcher(entry_to_check, key, val)
-                    if update_submission:
-                        submissions_to_update[update_submission['submission_id']] = update_submission
+                    record_queue_log("checking entry with key %s: %s" % (key,entry_to_check))
+                    if entry_to_check:
+                        update_submission = self.maybe_report_data_dispatcher(entry_to_check, key, val)
+                        if update_submission:
+                            submissions_to_update[update_submission['submission_id']] = update_submission
                         
             if len(submissions_to_update) > 0:
                 self.update_submissions(submissions_to_update)
@@ -705,7 +707,10 @@ class Agent:
                 
         
     def get_dd_status(self, entry, dd_pct):
-        
+        ntot = 0
+        dd_pct = 0
+        ncomp = 0
+            
         if type(dd_pct) == str:
             ntot = (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 

@@ -732,7 +732,8 @@ class PomsService:
             "recovery_ids",
             "depend_ids",
             "statuses",
-            "data_dispatcher_projects"
+            "data_dispatcher_projects",
+            "data_handling_service"
         ],
         t="submission_details.html",
         help_page="experimenters_corner/submission_details_help",

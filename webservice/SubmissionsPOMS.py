@@ -594,6 +594,25 @@ class SubmissionsPOMS:
         else:
             return s.submission_id
 
+    def get_last_histories(self, ctx, submission_ids):
+        # get our latest history...
+        sq = (
+            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .subquery()
+        )
+
+        lasthist = (
+            ctx.db.query(SubmissionHistory)
+            .filter(SubmissionHistory.created == sq.c.latest)
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .all()
+        )
+        lasthist = {sub.submission_id: sub for sub in lasthist}
+
+        logit.log("get_last_histories: sub_id %s returns %s" % (submission_ids, lasthist))
+        return lasthist
+        
     # h3. get_last_history
     #
     #   query to find curent status of a submission; factored out
@@ -1068,7 +1087,7 @@ class SubmissionsPOMS:
         if campaign.data_handling_service == "data_dispatcher":
             data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
 
-        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects, data_handling_service
 
     def flatten_submission_ids(self, submission_ids):
         if all(isinstance(item, int) for item in submission_ids):
@@ -1409,15 +1428,17 @@ class SubmissionsPOMS:
         current_s = s
         if s.parent_obj:
             s = s.parent_obj
+            
         logit.log("launch_recovery_if_needed: current_s: %s" % current_s.submission_id)
         logit.log("launch_recovery_if_needed: s: %s" % s.submission_id)
         
         if s.recovery_position == None:
             s.recovery_position = 0
             iterate = False
+            logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
         else:
             iterate = True
-        logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
+        
 
         if recovery_type_override is not None:
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
@@ -1447,6 +1468,13 @@ class SubmissionsPOMS:
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
             project_idx = None
+            
+            if iterate:
+                s.recovery_position = s.recovery_position + 1
+            else:
+                # Skip the first iteration since recovery position was set from None to 0 on this round.
+                iterate = True
+
             if do_data_dispatcher:
                 if s.recovery_position == 0:
                     nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
@@ -1457,12 +1485,6 @@ class SubmissionsPOMS:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
                 else:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
-
-            if iterate:
-                s.recovery_position = s.recovery_position + 1
-            else:
-                # Skip the first iteration since recovery position was set from None to 0 on this round.
-                iterate = True
 
             if nfiles > 0:
 
