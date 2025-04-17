@@ -1209,16 +1209,18 @@ class SubmissionsPOMS:
             # else we use the current submission as the project because we don't want to re-submit the same files
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
-            if s.recovery_position == 0:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
-            else:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
-
+            
             if iterate:
                 s.recovery_position = s.recovery_position + 1
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True
+                
+            if s.recovery_position == 0:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            else:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
+
 
             if nfiles > 0:
 
