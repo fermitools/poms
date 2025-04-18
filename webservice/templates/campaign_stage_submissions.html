@@ -81,11 +81,11 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 </a>
             </td>
             <td>
-                {% if rec.handler == 'sam' %}
+                {% if rec.handler == 'SAM' %}
                     <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?dims={{rec.output_dims}}">
                         {{rec.available_output}}
                     </a>
-                {% elif rec.handler == 'data_dispatcher' %}
+                {% elif rec.handler == 'Data Dispatcher' %}
                     <a href="{{pomspath}}/show_dimension_files/{{session_experiment}}/{{session_role}}?{{rec.output_dims}}">
                         {{rec.available_output}}
                     </a>
