@@ -80,7 +80,8 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                     {{rec.submission_id}}
                 </a>
             </td>
-            <td>{% if data.depends[rec.submission_id] == None %}
+            <td>
+                {% if data.depends[rec.submission_id] == None %}
                     None
                   {% else %}
                     <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{data.depends[rec.submission_id]}}" target='_blank'>
