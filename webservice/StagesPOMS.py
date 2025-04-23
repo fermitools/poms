@@ -1058,7 +1058,7 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(desc(coalesce(Submission.recovery_tasks_parent,SubmissionHistory.submission_id)),SubmissionHistory.submission_id)
+            .order_by(coalesce(Submission.recovery_tasks_parent,SubmissionHistory.submission_id),SubmissionHistory.submission_id)
             #.order_by(desc(SubmissionHistory.submission_id))
         ).all()
         
