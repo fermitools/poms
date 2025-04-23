@@ -27,6 +27,7 @@ from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql.functions import coalesce
 
 from . import logit
 from .poms_model import (
@@ -1057,7 +1058,8 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(desc(SubmissionHistory.submission_id))
+            .order_by(desc(coalesce(Submission.recovery_tasks_parent,SubmissionHistory.submission_id)),SubmissionHistory.submission_id)
+            #.order_by(desc(SubmissionHistory.submission_id))
         ).all()
         
         sam_subs = dict({ sub.Submission.submission_id : sub.Submission for sub in tuples })

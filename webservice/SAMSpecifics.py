@@ -73,8 +73,9 @@ class sam_specifics:
             # work around consumed/completed status chagnes
             recovery_dims = recovery_dims.replace("consumed_status consumed", "consumed_status 'co%'")
 
-            # recovery dimensions can return an empty string if there is nothing to do.
-            if not recovery_dims:
+            # recovery dimensions can return an empty (or all blanks)
+            # string if there is nothing to do.
+            if not recovery_dims.strip():
                 return 0, ""
         elif rtype.name == "added_files":
             if s.submission_params and s.submission_params.get("dataset"):
