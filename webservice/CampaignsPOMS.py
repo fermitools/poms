@@ -1895,7 +1895,8 @@ class CampaignsPOMS:
                 
             # save this id for later so we dont need to check again
             creator_id = new_campaign.creator
-            creator_role = ctx.get_vo_role(creator_id)
+            #creator_role = ctx.get_vo_role(creator_id)
+            creator_role = role
             if creator_role.lower() in "production-shifter":
                 creator_role = campaign_to_clone.creator_role
             new_campaign.creator_role = creator_role
@@ -1961,7 +1962,9 @@ class CampaignsPOMS:
             return self.get_ui_editor_items(ctx=ctx, campaign_id=new_campaign_id)
         except IntegrityError as e:
             ctx.db.rollback()
+            logit.log("clone_campaign IntegrityError: ".join(e.args))
         
+        logit.log("clone_campaign: Error: 500") 
         raise cherrypy.HTTPError(500, "An error occurred while cloning this campaign.")
             
         

@@ -26,7 +26,7 @@
 {%block header%}
 <input type="text" id="data_handling_service" value="{{data_handling_service}}" hidden/>
 <h1 class="ui header">
-    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
+    Campaign Editor for <span id="camp_header1">{{to}}</span> {%include 'help_button.html'%}
     <!--
     <div class="sub header">
         Edit whole workflow
@@ -75,7 +75,7 @@
 
 
 <h3>Campaign 
-    <span id="camp_header2">{{campaign}}</span>
+    <span id="camp_header2">{{to}}</span>
     <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button>
     <span id="savebusy"></span>
 </h3>
@@ -170,12 +170,12 @@
 <script type="text/javascript">
 
 function main() {
-    
+    const to = "{{to}}";
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
    
    console.log(["args:", args, "base:", base])
-   if (args['campaign'] != undefined) {
+   if (args['campaign'] != undefined || to != undefined) {
        var url;
        // const campaign = decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
        const campaign = args['campaign'];

@@ -108,6 +108,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
                 <th>Tags</th>
                 <th>Creator</th>
+                <th>Role</th>
                 <th>Watch</th>
             </tr>
         </thead>
@@ -205,6 +206,11 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 <td>
                     {{s.experimenter_creator_obj.username}}
                 </td>
+                <td>
+                    {{s.creator_role}}  <!-- from campaign_stages table -->
+                    <!-- could be {{s.vo_role}} usually the same as creator_role, but not always -->
+                    <!-- not {{s.experimenter_creator_obj.session_role}} fixed to value in experimenters table -->
+                </td>
                 <td id="c_name_{{loop.index}}" style="display:none">{{s.name}}</td>
                 <td>
                     {%if data.authorized[loop.index0] %}
@@ -273,7 +279,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="POST" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}">
+    <div id="template_clone_form" class="ui form">
         <input type="number" id="campaign_id_to_clone" name="campaign_id" hidden/>
         <div class="two fields">
         <div class="field">
@@ -287,10 +293,10 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
+        <input id="clone" name="clone" value="Clone" class="ui button teal">
       </div>
       <input type="hidden" id="campaign" name="campaign">
-    </form>
+    </div>
   </div>
   <div class="ui hidden divider"></div>
 </div> <!-- Ends template_clone_modal -->
@@ -628,6 +634,15 @@ function add_click_handler() {
         }
     });
 }
+
+const submitBtn = document.querySelector("#clone");
+submitBtn.addEventListener("click", (e) => {
+    var campaign = $("#campaign").val();
+    var to = $("#to").val();
+    var from = $("#from").val();
+    var url = "{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" +to;
+    window.location.href = url;
+});
 
 function do_delete(item) {
     var c_id = item.id.split("_")[0];

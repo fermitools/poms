@@ -65,7 +65,7 @@ Campaign Samples{%include 'help_button.html'%}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="sample_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?">
+    <div id="sample_clone_form" class="ui form">
       <div class="two fields">
         <div class="field">
           <label>Sample Campaign Name</label>
@@ -78,10 +78,10 @@ Campaign Samples{%include 'help_button.html'%}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal" />
+        <input id="clone" name="clone" value="Clone" class="ui button teal" />
       </div>
       <input type="hidden" id="from" name="from">
-    </form>
+    </div>
   </div>
   <div class="ui hidden divider"></div>
 </div> <!-- Ends template_clone_modal -->
@@ -134,6 +134,29 @@ $('#sample_clone_form')
     }
   })
 ;
+const submitBtn = document.querySelector("#clone");
+submitBtn.addEventListener("click", (e) => {
+    const url = "{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?"
+        + "campaign=" + document.querySelector("#to").value
+        + "&clone=" + document.querySelector("#from").value;
+    const form = document.querySelector("#sample_clone_form");
+    if (form.checkValidity()) {
+        form.submit();
+    } else {
+        form.reportValidity();
+    }
+});
+$('#').submit(function(event) {
+    event.preventDefault();
+    var form = $(this);
+    if (form.form('is valid')) {
+        var campaign = $("#campaign").val();
+        var to = $("#to").val();
+        var from = $("#from").val();
+        var url = "{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign=" + to + "&from=" + from;
+        window.location.href = url;
+    }
+});
 
 </script>
 {%endblock%}

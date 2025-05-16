@@ -50,7 +50,8 @@ from .poms_model import (
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
-from .condor_log_parser import get_joblogs
+#from .condor_log_parser import get_joblogs
+from LensChecker import LensChecker
 
 DEFAULT_ROLE = "analysis"
 # from exceptions import KeyError
@@ -98,6 +99,7 @@ class SubmissionsPOMS:
         self.status_Located = None
         self.status_Completed = None
         self.status_New = None
+        self.status_Held = None
         
 
     # h3. init_statuses
@@ -110,6 +112,7 @@ class SubmissionsPOMS:
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.status_Failed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Failed").first()[0]
         self.status_Cancelled = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Cancelled").first()[0]
+        self.status_Held = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Held").first()[0]
         self.init_status_done = True
 
     # h3. session_status_history
@@ -798,11 +801,13 @@ class SubmissionsPOMS:
     # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
         """
-            find all the recent submissions that are still "New" but more
+            find all the recent submissions that are still "New" or "Held" but more
             than two hours old, and mark them "LaunchFailed"
         """
         self.init_statuses(ctx)
         now = datetime.now(utc)
+
+        lens_checker = LensChecker()
 
         cert = ctx.web_config.get("Elasticsearch", "cert")
         key = ctx.web_config.get("Elasticsearch", "key")
@@ -817,8 +822,8 @@ class SubmissionsPOMS:
             .group_by(SubmissionHistory.submission_id)
             .having(
                 and_(
-                    func.max(SubmissionHistory.status_id) == self.status_New,
-                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=4),
+                    func.max(SubmissionHistory.status_id) in (self.status_New, self.status_Held),
+                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=2),
                 )
             )
             .all()
@@ -826,7 +831,7 @@ class SubmissionsPOMS:
 
         failed_sids = [x[0] for x in newtups]
 
-        res = []
+        res = ["mark_failed_submissions: Starting..."]
         for submission in (
             ctx.db.query(Submission)
             .filter(Submission.submission_id.in_(failed_sids))
@@ -834,34 +839,30 @@ class SubmissionsPOMS:
             .with_for_update(read=True)
             .all()
         ):
-            # sometimes jobs complete quickly, and we do not see them go by..
-            # so if we got a jobsub_job_id, check for a job log to find
-            # out what happened
-            if submission.jobsub_job_id:
-                logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(
-                    ctx.db,
-                    submission.jobsub_job_id,
-                    cert,
-                    key,
-                    submission.campaign_stage_obj.experiment,
-                    submission.campaign_stage_obj.creator_role,
-                )
-
-                if job_data:
-                    res.append("found job log for %s!" % submission.submission_id)
-                    logit.log("found job log for %s!" % submission.submission_id)
-
-                    if len(job_data["completed"]) == len(job_data["idle"]):
+            data = lens_checker.check_submission(submission.submission_id)
+            if data:
+                if data["done"]:
+                    if data["failed"] / data["completed"] < 0.5:
                         self.update_submission_status(ctx, submission.submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
-
-                continue
-            res.append("failing launch for %s" % submission.submission_id)
-            logit.log("failing launch for %s" % submission.submission_id)
-            self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                    else:
+                        self.update_submission_status(ctx, submission.submission_id, status="Failed")
+                        res.append("submission %s Failed")
+                        logit.log("submission %s Failed")
+                elif data["running"] > 0:
+                    self.update_submission_status(ctx, submission.submission_id, status="Running")
+                    res.append("submission %s Running")
+                    logit.log("submission %s Running")
+                else:
+                    res.append("submission %s unchanged`")
+                    logit.log("submission %s unchanged")
+            else:
+                self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                res.append("failing launch for %s" % submission.submission_id)
+                logit.log("failing launch for %s" % submission.submission_id)
         ctx.db.commit()
+        res.append("...completed")
         return "\n".join(res)
 
     # h3. submission_details
