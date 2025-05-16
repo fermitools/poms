@@ -258,6 +258,30 @@ class SubmissionsPOMS:
         logit.log("got file pattern list: %s" % repr(plist))
         return plist
 
+    # utility for strong_dd completion type
+    def all_dd_handles_not_reserved(self, submission_id):
+        # make sure we have the DMRService initialized
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: submission {submission_id}")
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"]:
+            dmr_service = shrek.DMRService()
+            dmr_service.initialize_session(ctx)
+
+        # find submission
+        submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()
+        dd_task = submission.data_dispatcher_submission_obj
+
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: dd_task.project_id {dd_task.project_id}")
+
+        project_handles = ctx.dmrservice.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+        for ph in project_handles:
+            logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: file: {ph['name']} state: {ph['state']}")
+
+            if ph["state"] == "reserved":
+                # nope, still at least one reserved...
+                return False
+        # yay! none are reserved
+        return True
+
     # h3. wrapup_tasks
     def wrapup_tasks(self, ctx: Ctx):
         # this function call another function that is not in this module, it
@@ -365,6 +389,11 @@ class SubmissionsPOMS:
             if submission_details["completion_type"] == "complete":
                 completed.add(submission_id)
                 append_submission(submission_id, submission_details) # completed
+            elif submission_details["completion_type"] == "strong_dd":
+                # wait for all data_dispatcher handles to timeout
+                if self.all_dd_handles_not_reserved(submission_id):
+                    append_submission(submission_id, submission_details) 
+
             elif submission_details["completion_type"] == "located":
                 # after two days, call it on time...
                 if now - submission_details["created"] > timedelta(days=2) or (

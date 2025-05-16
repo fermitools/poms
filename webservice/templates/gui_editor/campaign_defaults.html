@@ -67,6 +67,8 @@
                                         <option value="complete" {% if cd.get('defaults', {}).get('completion_type', 'located') == 'complete' %}selected{% endif %} >Complete</option>
                                         {% if data_handling_service == 'sam' %}
                                             <option value="located" {% if cd.get('defaults', {}).get('completion_type', 'located') == 'located' %}selected{% endif %}>Located</option>
+                                        {% else %}
+                                            <option value="strong_dd" {% if cd.get('defaults', {}).get('completion_type', '') == 'strong_dd' %}selected{% endif %}>Strong DataDispatcher</option>
                                         {% endif %}
                                     </select>
                                 </td>

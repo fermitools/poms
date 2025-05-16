@@ -1707,7 +1707,7 @@ gui_editor.prototype.loginsetup_select = function (sval, eid, placeholder) {
 }
 
 gui_editor.prototype.completion_type_select = function (sval, eid, placeholder) {
-    let res = ["complete", "located"].reduce(
+    let res = ["complete", "located","strong_dd"].reduce(
         function (acc, val) {
             const sel = (val == sval) ? ' selected' : '';
             return acc + `<option style="background-color: #EEE" value="${val}"${sel}>${val}</option>\n`;
