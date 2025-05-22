@@ -170,7 +170,7 @@
 <script type="text/javascript">
 
 function main() {
-    const to = "{{to}}";
+   const to = "{{to}}";
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
    
@@ -178,12 +178,15 @@ function main() {
    if (args['campaign'] != undefined || to != undefined) {
        var url;
        // const campaign = decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
+       if (args['campaign'] == undefined) {
+           args['campaign'] = to;
+       }
        const campaign = args['campaign'];
        //VP~ if (args['campaign'].indexOf('samples/') == 0) {
        if (campaign.startsWith('samples')) {
           url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign;
+	  url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign; 
        }
        $.ajax( {
           url: url

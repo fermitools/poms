@@ -1906,6 +1906,7 @@ class CampaignsPOMS:
             ctx.db.add(new_campaign)
             ctx.db.commit()
             new_campaign_id = new_campaign.campaign_id
+            logit.log("clone_campaign new_campaign_id == %s ", repr(new_campaign_id) )
             
             # Now do the same for the campaign stages
             stage_index = {}
@@ -1952,10 +1953,12 @@ class CampaignsPOMS:
                 
                 # Now use our nifty index to swap the campaign_stage_id's
                 needs = stage_index.get(dep.needs_campaign_stage_id, None)
-                provides = stage_index.get(dep.needs_campaign_stage_id, None)
+                provides = stage_index.get(dep.provides_campaign_stage_id, None)
                 if needs and provides:
                     cloned_dep.needs_campaign_stage_id = needs
                     cloned_dep.provides_campaign_stage_id = provides
+                    if not cloned_dep.file_patterns:
+                        cloned_dep.file_patterns = '%'
                     ctx.db.add(cloned_dep)
             
             ctx.db.commit()

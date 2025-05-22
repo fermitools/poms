@@ -27,6 +27,8 @@ config = TConfig()
 # shut up annoying InsecureRequestWarnings
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+def fix_hypot(url):
+    return url.replace("//samhypot.fnal.gov","//samdev.fnal.gov").replace("/sam/hypot/","/sam/samdev/")
 
 def safe_get(sess, url, *args, **kwargs):
     # TODO: Need more refactoring to optimize
@@ -35,6 +37,8 @@ def safe_get(sess, url, *args, **kwargs):
 
     if url == None:
         return None
+
+    url = fix_hypot(url)
 
     if dbh is None:
         try:
@@ -137,7 +141,7 @@ class samweb_lite:
             try:
                 with requests.Session() as sess:
                     res = sess.post(
-                        url,
+                        fix_hypot(url),
                         data={"group": experiment},
                         verify=False,
                         cert=(
@@ -286,7 +290,7 @@ class samweb_lite:
             return
         try:
             res = requests.post(
-                url,
+                fix_hypot(url),
                 data={"description": desc},
                 verify=False,
                 cert=(
@@ -363,6 +367,7 @@ class samweb_lite:
         logit.log("INFO", "count_files(experiment=%s, dims=%s)" % (experiment, dims))
         base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         url = "%s/sam/%s/api/files/count" % (base, experiment)
+        url = fix_hypot(url)
         dims = self.cleanup_dims(dims)
         count = -1
         # print("count_files(experiment=%s, dims=%s, url=%s)" % (experiment, dims,url))
@@ -381,6 +386,7 @@ class samweb_lite:
 
     def count_files_list(self, experiment, dims_list):
         def getit(req, url):
+            url = fix_hypot(url)
             retries = 10
             r = req.get(url, verify=False)
             while r and r.status_code >= 500 and retries > 0:
@@ -446,7 +452,7 @@ class samweb_lite:
             try:
                 with requests.Session() as sess:
                     res = sess.post(
-                        url,
+                        fix_hypot(url),
                         data=pdict,
                         verify=False,
                         cert=(
@@ -481,6 +487,7 @@ class samweb_lite:
         base = "%s" % config.get("SAM", "sam_base").replace("web",experiment).replace("samsamdev","samdev")
         path = "/sam/%s/api/definitions/name/%s" % (experiment, name)
         url = "%s%s" % (base, path)
+        url = fix_hypot(url)
         res = None
         logit.log("INFO", "remove_existing_definition: calling: %s " % url)
         text = None

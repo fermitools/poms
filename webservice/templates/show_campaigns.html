@@ -640,7 +640,7 @@ submitBtn.addEventListener("click", (e) => {
     var campaign = $("#campaign").val();
     var to = $("#to").val();
     var from = $("#from").val();
-    var url = "{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" +to;
+    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" +to;
     window.location.href = url;
 });
 

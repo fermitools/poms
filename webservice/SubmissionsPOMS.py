@@ -2145,7 +2145,9 @@ class SubmissionsPOMS:
         elif role == "analysis":
              htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"), group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"), group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
+            # don't set --credkey for the production account because we
+            # don't know if it should be fifeutilgpvm01 or 03...
+            htgettokenopts = "-a %s -i %s -r production " % (ctx.web_config.get("tokens", "vaultserver"), group)
 
          # add token logic if not already in login_setup:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
@@ -2181,7 +2183,6 @@ class SubmissionsPOMS:
             ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
-            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
             f"chmod 0600 {vaultfile}; ls -l {vaultfile};" if vaultfile else "",
             #"export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/pu1ppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
@@ -2326,16 +2327,7 @@ class SubmissionsPOMS:
             #
             "echo \"Vault file permissions:\"",
             "ls -l %s" % vaultfile if role == "analysis" else "",
-            "export X509_USER_PROXY=%s;" % proxyfile,
-            # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
-            % (uu, uu),
              
-            #"source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
-            #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
-            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
-            # save our spack root in SSR1 for later..
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
             "spack load fife-utils@3.7.3 os=fe;",
             "SSR1=$SPACK_ROOT;",
@@ -2357,12 +2349,6 @@ class SubmissionsPOMS:
         
             
         cmdl.extend([
-            #'setup jobsub_client v_lite;' if do_tokens else "",
-            #'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, -j poms_client -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
-            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            # "ups active;",
-
-            # POMS4 'properly named' items for poms_jobsub_wrapper
             
             "export POMS4_HOST=%s;" % self.poms_service.hostname ,
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
