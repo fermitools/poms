@@ -2032,7 +2032,7 @@ class SubmissionsPOMS:
                 DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
                 DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).order_by(desc(DataDispatcherSubmission.created)).first()
         if do_data_dispatcher:
-            if cs.completion_type != "complete":
+            if cs.completion_type == "located":
                 cs.completion_type = "complete"
                 ctx.db.commit()
             if dd_project_override:
