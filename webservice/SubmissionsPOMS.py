@@ -1177,6 +1177,7 @@ class SubmissionsPOMS:
         
         if s.recovery_position == None:
             s.recovery_position = 0
+            ctx.db.add(s)
             iterate = False
         else:
             iterate = True
@@ -1212,6 +1213,7 @@ class SubmissionsPOMS:
             
             if iterate:
                 s.recovery_position = s.recovery_position + 1
+                ctx.db.add(s)
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True
