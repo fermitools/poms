@@ -50,7 +50,7 @@ class drainingn:
             previous_subs = [submission.project_id for submission in self.db.query(DataDispatcherSubmission).filter(
                 DataDispatcherSubmission.experiment == self.cs.experiment, 
                 DataDispatcherSubmission.campaign_stage_id == self.cs.campaign_stage_id,
-                DataDispatcherSubmission.split_type == "%s" % (self.cs.cs_split_type if not self.test else self.cs.test_split_type),
+                DataDispatcherSubmission.split_type.like("drainingn(%"),
                 DataDispatcherSubmission.project_id != None,
                 DataDispatcherSubmission.splits_reset == False,
                 DataDispatcherSubmission.archive == False).all()]
