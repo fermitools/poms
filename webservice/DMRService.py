@@ -834,14 +834,24 @@ class DMRService:
             logit.log("DMR-Service  | experiment: %s |  get_campaign_dd_field(%s) | %s" % (cherrypy.session["Shrek"]["current_experiment"], field, e))
     
     def create_project(self, username, dataset=None, files=[], **kwargs):
-        logit.log("DMR-Service  | experiment: %s | create_project() | Begin " % (cherrypy.session["Shrek"]["current_experiment"]))
+        logit.log("DMR-Service  | experiment: %s | create_project() | Begin | kwargs: %s" % (cherrypy.session["Shrek"]["current_experiment"], repr(kwargs)))
         users = []
         project_attributes = {}
-        idle_timeout = kwargs.get("idle_timeout", None)
-        worker_timeout = kwargs.get("worker_timeout", None)
+
+        if "project_settings" not in kwargs:
+            kwargs["project_settings"] = {}
+
+        idle_timeout = kwargs.get("idle_timeout", 
+                kwargs["project_settings"].get("idle_timeout", None)
+                )
+        worker_timeout = kwargs.get("worker_timeout", 
+                kwargs["project_settings"].get("worker_timeout", None)
+                )
+
         for item in [idle_timeout, worker_timeout]:
             if item and item in (None, "null", "None", 0):
                 item = None
+
         common_attributes = kwargs.get("common_attributes", {})
         if "creator_name" in kwargs:
             users.append(kwargs.get("creator_name"))
@@ -868,6 +878,7 @@ class DMRService:
             else:
                 logit.log("DMR-Service  | store_project | fail: no database access | session %s" % (cherrypy.session["Shrek"]["session"]))
                 raise Exception("DMR-Service  | store_project | fail: no database access")
+
         if "campaign_stage_id" in kwargs and check_stage:
             cs = self.db.query(CampaignStage).join(Campaign).filter(CampaignStage.campaign_stage_id == int(kwargs["campaign_stage_id"])).first()
             if cs and (cs.data_dispatcher_settings 

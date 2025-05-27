@@ -2244,12 +2244,13 @@ class SubmissionsPOMS:
                     settings = cs.data_dispatcher_settings 
                 elif "defaults" in cs.campaign_obj.defaults and "data_handling_service" in cs.campaign_obj.defaults["defaults"] and "data_dispatcher" in cs.campaign_obj.defaults["defaults"]["data_handling_service"]:
                     settings = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"] 
+                else:
+                    settings = {}
 
-                if settings:
-                    project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
-                    project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                    project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
-                    project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
                 
                 def generate_project_name(type):
                     if methodology == "1P" and type == "Project ID Override":
