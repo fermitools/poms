@@ -2236,23 +2236,23 @@ class SubmissionsPOMS:
                     "last_split": cs.cs_last_split,
                     "status": "created"
                 }
+            try:
+                settings = cs.data_dispatcher_settings or {}
+                project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+            except:
                 try:
-                    settings = cs.data_dispatcher_settings or {}
-                    project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
-                    project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                    project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
-                    project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                    defaults = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"]
+                    project_data["virtual"] = defaults.get("data_dispatcher_project_virtual", False)
+                    project_data["idle_timeout"] = defaults.get("data_dispatcher_idle_timeout", 259200)
+                    project_data["worker_timeout"] = defaults.get("data_dispatcher_worker_timeout", 0)
+                    project_data["load_limit"] = defaults.get("data_dispatcher_load_limit", None)
                 except:
-                    try:
-                        defaults = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"]
-                        project_data["virtual"] = defaults.get("data_dispatcher_project_virtual", False)
-                        project_data["idle_timeout"] = defaults.get("data_dispatcher_idle_timeout", 259200)
-                        project_data["worker_timeout"] = defaults.get("data_dispatcher_worker_timeout", 0)
-                        project_data["load_limit"] = defaults.get("data_dispatcher_load_limit", None)
-                    except:
-                        # Keep going
-                        pass
-                    
+                    # Keep going
+                    pass
+                
                     
                 def generate_project_name(type):
                     if methodology == "1P" and type == "Project ID Override":
