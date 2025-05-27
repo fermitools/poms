@@ -2201,6 +2201,7 @@ class SubmissionsPOMS:
             "experiment": exp,
         }
         data_dispatcher_logic = []
+        project_data = {}
         if do_data_dispatcher:
             if dd_project:
                 dd_project.campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id
@@ -2219,7 +2220,7 @@ class SubmissionsPOMS:
             else:
                 stage_name = submission.campaign_stage_obj.name
                 methodology = submission.campaign_stage_obj.data_dispatcher_stage_methodology or "standard"
-                project_data = {
+                project_data.update( {
                     "experiment": exp,
                     "role": cs.vo_role,
                     "campaign_id": cid, 
@@ -2235,25 +2236,21 @@ class SubmissionsPOMS:
                     "creator_name": cs.experimenter_creator_obj.username,
                     "last_split": cs.cs_last_split,
                     "status": "created"
-                }
-            try:
-                settings = cs.data_dispatcher_settings or {}
-                project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
-                project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
-                project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
-            except:
-                try:
-                    defaults = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"]
-                    project_data["virtual"] = defaults.get("data_dispatcher_project_virtual", False)
-                    project_data["idle_timeout"] = defaults.get("data_dispatcher_idle_timeout", 259200)
-                    project_data["worker_timeout"] = defaults.get("data_dispatcher_worker_timeout", 0)
-                    project_data["load_limit"] = defaults.get("data_dispatcher_load_limit", None)
-                except:
-                    # Keep going
-                    pass
+                })
+
+                # try to get data_dispatcher settings from stage or campaign
+                settings = None
+                if cs.data_dispatcher_settings:
+                    settings = cs.data_dispatcher_settings 
+                elif "defaults" in cs.campaign_obj.defaults and "data_handling_service" in cs.campaign_obj.defaults["defaults"] and "data_dispatcher" in cs.campaign_obj.defaults["defaults"]["data_handling_service"]:
+                    settings = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"] 
+
+                if settings:
+                    project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                    project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                    project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                    project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
                 
-                    
                 def generate_project_name(type):
                     if methodology == "1P" and type == "Project ID Override":
                         type = "Initial"
