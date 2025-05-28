@@ -2064,10 +2064,8 @@ class SubmissionsPOMS:
                             dataset = "project_idx:%s" % dd_project.data_dispatcher_project_idx
                         else:
                             dataset = None
-        if 'dataset' in locals():
-            dataset = None                 
-        else:
-            logit.log("Dataset is: %s" % dataset)
+
+        logit.log(f"Dataset is: {repr(dataset)}")
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""

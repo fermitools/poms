@@ -1231,7 +1231,7 @@ class StagesPOMS:
             if do_data_dispatcher:
                 return None
             else:
-                return camp.dataset, None
+                return camp.dataset
 
         # clean up split_type -- de-white-space it
         split_type = split_type.replace(" ", "")
