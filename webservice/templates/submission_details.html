@@ -85,7 +85,7 @@ a regular launch
 
 {% if recovery_ids %}
 Recoveries launched: 
-{%for id in recovery_ids %}
+{%for id in recovery_ids|sort %}
    <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
 {% endfor %}
 <br>
@@ -93,7 +93,7 @@ Recoveries launched:
 
 {% if depend_ids %}
 Dependencies launched: 
-{%for id in depend_ids %}
+{%for id in depend_ids|sort %}
    <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
 {% endfor %}
 <br>
