@@ -360,7 +360,12 @@ class DMRService:
         for project in dd_projects:
             depths[project.campaign_stage_id] = project.output_ancestor_depth
             if project.named_dataset:
-                if "project_id:" in project.named_dataset:
+
+                if project.named_dataset.startswith("Recovery | "):
+                    # Project name leaking into named_dataset somehow..
+                    continue
+
+                if "project_id:" in project.named_dataset: 
                     projects_without_dataset.add(project)
                 else:
                     projects_with_dataset.add(project)
@@ -484,6 +489,7 @@ class DMRService:
         return retval
     
     def is_query(self, named_dataset):
+
         # Match "{namespace}:{name}" pattern.
         pattern = r'\w+:\w+'
         match = re.search(pattern, named_dataset)
@@ -1326,7 +1332,9 @@ class DMRService:
                 flag_modified(submission, 'submission_params')
                 self.db.add(submission)
                 self.db.commit()
-                return nfiles, project_name, recovery["dd_project_idx"]
+
+                # return Metacat query string for these files as the dataset name
+                return nfiles, project_name, recovery["dd_project_idx"], recovery_files
             else:
                 logit.log("DMR-Service  | create_recovery_dataset | Failed")
         except IntegrityError as e:

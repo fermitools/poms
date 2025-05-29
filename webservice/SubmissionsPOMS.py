@@ -1513,15 +1513,19 @@ class SubmissionsPOMS:
             if do_data_dispatcher:
                 #logit.log("launch_recovery_if_needed: do_data_dispatcher rtype.name=%s" % rtype.name)
                 if s.recovery_position == 0:
-                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
                 else:
-                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(current_s, rtype, rlist)
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(current_s, rtype, rlist)
+                recovery_dids = [ 
+                   f"{f['namespace']}:{f['name']}" for f in rflist
+                ] 
+                dd_recovery_query = "files " + ",".join(recovery_dids)
             else:
                 if s.recovery_position == 0:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
                 else:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
-
+                dd_recovery_query = None
             if nfiles > 0:
 
                 launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
@@ -1538,7 +1542,8 @@ class SubmissionsPOMS:
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
-                    dd_project_idx=project_idx
+                    dd_project_idx=project_idx,
+                    dd_recovery_query = dd_recovery_query
                 )
                 return res
 
@@ -1781,6 +1786,7 @@ class SubmissionsPOMS:
         parent=None,
         dd_project_idx=None,
         dependent_of=None,
+        dd_recovery_query = None,
         **kwargs,
     ):
 
@@ -2209,7 +2215,7 @@ class SubmissionsPOMS:
                 dd_project.recovery_tasks_parent_submission = submission.recovery_tasks_parent
                 dd_project.job_type_snapshot_id = submission.job_type_snapshot_id
                 dd_project.status="created"
-                dd_project.named_dataset = dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
+                dd_project.named_dataset = dd_recovery_query if dd_recovery_query else dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
                 if dd_project.depends_on_submission and not dd_project.depends_on_project:
                     dd_project.depends_on_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).first()
                 if dd_project.recovery_tasks_parent_submission and not dd_project.recovery_tasks_parent_project:
