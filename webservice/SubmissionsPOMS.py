@@ -275,13 +275,24 @@ class SubmissionsPOMS:
         ctx.experiment = submission.campaign_stage_obj.experiment
         ctx.dmr_service.initialize_session(ctx)
 
-        project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
-        for ph in project_handles:
-            logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: file: {ph['name']} state: {ph['state']}")
+        # do two passes, first check if the reserved handles have
+        # timed out, if not, bail.
+        # then cancel the project, which should prevent new reservations
+        # but then do a second pass to make sure no-one snuck in a 
+        # reservation just behind our checks
+        # this is basically in case of zombie jobs rising from 
+        # the dead after Lens thinks our submission is completed
 
-            if ph["state"] == "reserved":
-                # nope, still at least one reserved...
-                return False
+        for passnum in [0,1]:
+            project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+            for ph in project_handles:
+                logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: file: {ph['name']} state: {ph['state']}")
+
+                if ph["state"] == "reserved":
+                    # nope, still at least one reserved...
+                    return False
+            if not passnum:
+                cherrypy.session["Shrek"]["dd_client"].cancel_project(dd_task.project_id)
         # yay! none are reserved
         return True
 
