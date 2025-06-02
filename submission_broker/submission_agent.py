@@ -366,7 +366,7 @@ class Agent:
         sublist = self.get_running_submissions_LENS( group, since)
         sublist.extend( self.get_running_submissions_POMS(group))
 
-        LOGIT.info("%s data: %s", group, repr(sublist))
+        #LOGIT.info("%s data: %s", group, repr(sublist))
 
         sublist.sort(key=(lambda x: x.get("pomsTaskID", "")))
 
