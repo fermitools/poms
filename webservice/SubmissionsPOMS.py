@@ -1863,10 +1863,10 @@ class SubmissionsPOMS:
             #
             #
             
-            "export X509_USER_PROXY=%s;" % proxyfile,
+            # Not using proxies anymore ... mengel@fnal.gov
+            #"export X509_USER_PROXY=%s;" % proxyfile,
             # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"
-            % (uu, uu),
+            #"cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;" % (uu, uu),
              
             #"source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
             #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
@@ -1874,7 +1874,7 @@ class SubmissionsPOMS:
             # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
             # save our spack root in SSR1 for later..
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.3 os=fe;",
+            "spack load fife-utils@3.7.5 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
@@ -1922,7 +1922,7 @@ class SubmissionsPOMS:
             # have laoded in their launch_setup.
             "SSR2=$SPACK_ROOT;",
             "SPACK_ROOT=$SSR1;",
-            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=fe);",
+            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os);",
             "SPACK_ROOT=$SSR2;",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
@@ -1936,8 +1936,8 @@ class SubmissionsPOMS:
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
-            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
+            #"rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+            #"rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
 
