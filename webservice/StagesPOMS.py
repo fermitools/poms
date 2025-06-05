@@ -783,7 +783,9 @@ class StagesPOMS:
 
         c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         split = "%s" % (c_s.cs_split_type if not test else c_s.test_split_type)
-        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == split).all()
+        # don't include parameters (i.e. the "(10)" in "drainingn(10)") and do a like search
+        split_pat = split[:split.find("(")] + "%"
+        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type.like(split_pat)).all()
         for sub in dd_subs:
             sub.splits_reset = True
         if not test:

@@ -24,9 +24,9 @@
 {%block bodytags%} onload="main()" {%endblock%}
 
 {%block header%}
-<input type="text" id="data_handling_service" value="{{data_handling_service}}" hidden/>
 <h1 class="ui header">
-    Campaign Editor for <span id="camp_header1">{{to}}</span> {%include 'help_button.html'%}
+    <span>Campaign Editor for</span><br>
+    <span id="camp_header1">{{campaign}}</span> {% include 'help_button.html' %}
     <!--
     <div class="sub header">
         Edit whole workflow
@@ -75,7 +75,7 @@
 
 
 <h3>Campaign 
-    <span id="camp_header2">{{to}}</span>
+    <span id="camp_header2">{{campaign}}</span>
     <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button>
     <span id="savebusy"></span>
 </h3>
