@@ -75,7 +75,19 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
-            <td>{{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.darrow[rec.submission_id]|safe}}&nbsp;{{rec.campaign_stage_name}}</td>
+            <td>
+                {{ "&nbsp;" * (4 * depth) }}
+                {{ data.darrow[rec.submission_id] | safe }}
+                &nbsp;
+                <span style="color:
+                    {% if depth == 0 %}black
+                    {% elif depth == 1 %}blue
+                    {% elif depth == 2 %}green
+                    {% elif depth == 3 %}orange
+                    {% else %}gray{% endif %};
+                ">
+                    {{ rec.campaign_stage_name }}
+                </span>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.submission_id}}
