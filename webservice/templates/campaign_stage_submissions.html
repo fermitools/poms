@@ -60,11 +60,11 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
         <thead>
             <tr>
                 <th style="width:20%">Stage Name</th>
-                <th>Submission Id</th>
+                <th>Submission<br>Id</th>
                 <th>Parent Id</th>
                 <th>Jobsub Id</th>
                 <th>Available<br>Output</th>
-                <th>DD File Status Summary</th>
+                <th>DD File Status<br>Summary</th>
                 <th>Commands</th>
                 <!-- <th>Handler</th> -->
                 <th>Status</th> <!--(History/Current)-->
@@ -91,7 +91,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
-                    {{rec.jobsub_job_id}}
+                    {{rec.jobsub_job_id.replace('.fnal.gov', '')}}
                 </a>
             </td>
             <td>
