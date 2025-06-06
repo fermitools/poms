@@ -91,7 +91,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
-                    {{rec.jobsub_job_id.replace('.fnal.gov', '')}}
+                    {{rec.jobsub_job_id | replace('.fnal.gov', '')}}
                 </a>
             </td>
             <td>
