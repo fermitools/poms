@@ -279,9 +279,8 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <div id="template_clone_form" class="ui form">
-        <input type="number" id="campaign_id_to_clone" name="campaign_id" hidden/>
-        <div class="two fields">
+    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?">
+      <div class="two fields">
         <div class="field">
           <label>Existing Campaign Name</label>
           <input type="text" id="from" name="from" readonly>
@@ -293,10 +292,10 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input id="clone" name="clone" value="Clone" class="ui button teal">
+        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
       </div>
       <input type="hidden" id="campaign" name="campaign">
-    </div>
+    </form>
   </div>
   <div class="ui hidden divider"></div>
 </div> <!-- Ends template_clone_modal -->
