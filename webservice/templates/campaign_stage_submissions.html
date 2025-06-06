@@ -75,6 +75,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
         <tbody>
         {% for rec in data.submissions %}
         <tr>
+            {% set depth = data.depth[rec.submission_id] %}
             <td>
                 {{ "&nbsp;" * (4 * depth) }}
                 {{ data.darrow[rec.submission_id] | safe }}
@@ -88,6 +89,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 ">
                     {{ rec.campaign_stage_name }}
                 </span>
+            </td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.submission_id}}
