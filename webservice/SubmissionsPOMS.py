@@ -5,7 +5,8 @@ List of methods: wrapup_tasks,
 Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of functions in poms_service.py
 written by Marc Mengel, Michael Gueith and Stephen White. September, 2016.
 """
-import configparser
+#import configparser
+from calendar import c
 import glob
 import json
 import os
@@ -21,11 +22,15 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import and_, desc, func, text, Integer
 from sqlalchemy.orm import joinedload
+from sqlalchemy import and_, distinct, func, or_, text, Integer
+from sqlalchemy.orm import joinedload, aliased
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.dialects.postgresql import INTERVAL
 
 from .mail import Mail
 
 from . import logit
+from .Ctx import Ctx
 from .poms_model import (
     CampaignStage,
     JobType,
@@ -45,7 +50,8 @@ from .poms_model import (
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
-from .condor_log_parser import get_joblogs
+#from .condor_log_parser import get_joblogs
+from LensChecker import LensChecker
 
 DEFAULT_ROLE = "analysis"
 # from exceptions import KeyError
@@ -93,6 +99,7 @@ class SubmissionsPOMS:
         self.status_Located = None
         self.status_Completed = None
         self.status_New = None
+        self.status_Held = None
         
 
     # h3. init_statuses
@@ -105,6 +112,7 @@ class SubmissionsPOMS:
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.status_Failed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Failed").first()[0]
         self.status_Cancelled = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Cancelled").first()[0]
+        self.status_Held = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Held").first()[0]
         self.init_status_done = True
 
     # h3. session_status_history
@@ -165,7 +173,6 @@ class SubmissionsPOMS:
 
         return res
 
-    # h3. get_submissions_with_status
     def get_submissions_with_status(self, ctx, status_id, recheck_sids=None):
         self.init_statuses(ctx)
         sq = (
@@ -189,6 +196,43 @@ class SubmissionsPOMS:
         completed_sids = [x[0] for x in cpairs]
 
         return completed_sids
+    
+    def get_completed_submissions_and_completion_type(self, ctx):
+        self.init_statuses(ctx)
+        return {
+            x[0]: {
+                "last_history_created": x[1],
+                "last_history_status": x[1],
+                "completion_type": x[2],
+                "updated": x[3],
+                "project": x[4],
+                "submission_params": x[5],
+            }
+            for x in 
+            ctx.db.execute(text(f"""WITH latest_submissions AS ( 
+                SELECT submission_id, MAX(created) AS latest_created 
+                FROM submission_histories WHERE created > CURRENT_TIMESTAMP - INTERVAL '4 days' 
+                AND submission_id = ANY(select submission_id from (WITH latest_submissions AS ( 
+                    SELECT submission_id, MAX(created) AS latest_created 
+                    FROM submission_histories WHERE created > CURRENT_TIMESTAMP - INTERVAL '4 days' 
+                    GROUP BY submission_id ) SELECT DISTINCT sh.submission_id 
+                    FROM submission_histories sh 
+                    JOIN latest_submissions ls 
+                        ON sh.submission_id = ls.submission_id 
+                        AND sh.created = ls.latest_created 
+                        WHERE sh.status_id = {self.status_Completed}) as submission_id)
+                    GROUP BY submission_id 
+                ) 
+                SELECT sh.submission_id, sh.created, css.completion_type, s.updated, s.project, s.submission_params
+                FROM submission_histories sh 
+                JOIN latest_submissions ls 
+                    ON sh.submission_id = ls.submission_id 
+                    AND sh.created = ls.latest_created
+                join submissions s on sh.submission_id = s.submission_id
+                join campaign_stage_snapshots css on css.campaign_stage_snapshot_id = s.campaign_stage_snapshot_id
+                WHERE sh.status_id = {self.status_Completed};""")).fetchall()
+        }
+
 
     # h3. get_file_patterns
     def get_file_patterns(self, s):
@@ -214,114 +258,271 @@ class SubmissionsPOMS:
         logit.log("got file pattern list: %s" % repr(plist))
         return plist
 
+    # utility for strong_dd completion type
+    def all_dd_handles_not_reserved(self, ctx,  submission_id):
+        # make sure we have the DMRService initialized
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: submission {submission_id}")
+        # find submission
+        submission = ctx.db.query(Submission).options(joinedload(Submission.campaign_stage_obj)).filter(Submission.submission_id == submission_id).first()
+        dd_task = submission.data_dispatcher_submission_obj
+
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: dd_task.project_id {dd_task.project_id}")
+
+        if not hasattr(ctx, 'dmr_service'):
+            ctx.dmr_service = shrek.DMRService()
+
+        # need DMR session stutff for this submissions's experiment..
+        ctx.experiment = submission.campaign_stage_obj.experiment
+        ctx.dmr_service.initialize_session(ctx)
+
+        # do two passes, first check if the reserved handles have
+        # timed out, if not, bail.
+        # then cancel the project, which should prevent new reservations
+        # but then do a second pass to make sure no-one snuck in a 
+        # reservation just behind our checks
+        # this is basically in case of zombie jobs rising from 
+        # the dead after Lens thinks our submission is completed
+
+        for passnum in [0,1]:
+            project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+            for ph in project_handles:
+                logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: file: {ph['name']} state: {ph['state']}")
+
+                if ph["state"] == "reserved":
+                    # nope, still at least one reserved...
+                    return False
+            if not passnum:
+                cherrypy.session["Shrek"]["dd_client"].cancel_project(dd_task.project_id)
+        # yay! none are reserved
+        return True
+
     # h3. wrapup_tasks
-    def wrapup_tasks(self, ctx):
+    def wrapup_tasks(self, ctx: Ctx):
         # this function call another function that is not in this module, it
         # use a poms_service object passed as an argument at the init.
-
+        start = datetime.now(utc)
+        logit.log("wrapup_tasks | begin")
         now = datetime.now(utc)
         res = ["wrapping up:"]
-
-        self.checker = sam_project_checker(ctx)
-
-        completed_projects = []
-        finish_up_sam_submissions = set()
-        finish_up_dd_submissions = set()
-        mark_located = []
-
-        ctx.db.execute(text("SET SESSION lock_timeout = '450s';"))
-        ctx.db.execute(text("SET SESSION statement_timeout = '500s';"))
+        
+        self.checker_idx = 0
+        checker_subs = {
+            0: dict(
+                {
+                    "project": [],
+                    "non_project": [],
+                    "submissions_set": {}
+                }
+            )
+        }
 
         # get completed jobs, lock them, double check
-        completed_sids = self.get_submissions_with_status(ctx, self.status_Completed)
-        finished_dd_project_indexes = {idx:True for (idx,) in ctx.db.query(DataDispatcherSubmission.data_dispatcher_project_idx).filter(DataDispatcherSubmission.status == "Finished").all()}
-        #ctx.db.query(Submission).filter(Submission.submission_id.in_(completed_sids)).order_by(
-        #    Submission.submission_id
-        #).with_for_update(read=True).all()
-        completed_sids = self.get_submissions_with_status(ctx, self.status_Completed, completed_sids)
-
+        completed_sids = self.get_completed_submissions_and_completion_type(ctx)
+        
+        logit.log(f"wrapup_tasks | Completed submissions count: {len(completed_sids)}")
         res.append("Completed submissions_ids: %s" % repr(list(completed_sids)))
 
         # now get the ones with completion_type "complete":
-        # and put them in the finish_up_sam_submissions list
-        for s in (
-            ctx.db.query(Submission)
-            .join(
-                CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
-            )
-            .filter(Submission.submission_id.in_(completed_sids), CampaignStageSnapshot.completion_type == "complete")
-            .all()
-        ):
-            res.append("completion type completed: %s" % s.submission_id)
-            if s.data_dispatcher_project_idx:
-                if s.data_dispatcher_project_idx not in finished_dd_project_indexes:
-                    finish_up_dd_submissions.add(s.data_dispatcher_project_idx)
-            else:
-                finish_up_sam_submissions.add(s.submission_id)
-
-        # now get the ones with completion_type "located":
-        # and decide if they go on the finish_up_sam_submissions list...
-        n_project = 0
-        for s in (
-            ctx.db.query(Submission)
-            .join(
-                CampaignStageSnapshot, Submission.campaign_stage_snapshot_id == CampaignStageSnapshot.campaign_stage_snapshot_id
-            )
-            .filter(
-                and_(
-                    Submission.submission_id.in_(completed_sids),
-                    Submission.data_dispatcher_project_idx == None # Data dispatcher submissions only get to a completed status, so we will ignore them.
-                )
-            )
-            .all()
-        ):
-
-            res.append("completion type located: %s" % s.submission_id)
-            # after two days, call it on time...
-            if now - s.updated > timedelta(days=2) or (s.submission_params and s.submission_params.get("force_located", False)):
-                finish_up_sam_submissions.add(s.submission_id)
-            elif s.project:
-                self.checker.add_project_submission(s)
-            else:
-                self.checker.add_non_project_submission(s)
-
-        finish_up_sam_submissions, res = self.checker.check_added_submissions(finish_up_sam_submissions, res)
-
-        finish_up_sam_submissions = list(finish_up_sam_submissions)
-        finish_up_sam_submissions.sort()
+        # and put them in the finish_up_submissions list
+        self.set_idx = 0
+        finish_up_submissions = {0: {}}
         
-        # Only SAM submissions go into a located status
-        for s in finish_up_sam_submissions:
-            res.append("marking submission %s located " % s)
-            self.update_submission_status(ctx, s, "Located")
+        def append_submission(sub_id, details):
+            if len(finish_up_submissions[self.set_idx]) >= 500:
+                self.set_idx += 1
+                finish_up_submissions[self.set_idx] = {}
+            finish_up_submissions[self.set_idx][sub_id] = details
+        
+        def add_to_checker(submission_details, is_project):
+            key = "project" if is_project else "non_project"
+            idx_length = len(checker_subs[self.checker_idx]["submissions_set"])
+            if idx_length >= 500:
+                self.checker_idx += 1
+                checker_subs[self.checker_idx] = dict({
+                    "project": [],
+                    "non_project": [], 
+                    "submissions_set": {}
+                })
+            checker_subs[self.checker_idx][key].append(submission_details)
+            checker_subs[self.checker_idx]["submissions_set"][submission_details["submission_id"]] = submission_details
+        
+        logit.log(f"wrapup_tasks | generate subquery | begin")
+        
+        all_subs =  {
+            s[0]: {
+            "submission_id": s[0],
+            "created": s[1],
+            "updated": s[2],
+            "command_executed": s[3],
+            "recovery_tasks_parent": s[4],
+            "output_ancestor_depth": s[5],
+            "creator_role": s[6],
+            "experiment": s[7],
+            "software_version": s[8],
+            "campaign_stage_id": s[9],
+            "completion_pct": s[10],
+            "output_file_patterns": s[11],
+            "username": s[12],
+            "dependency_file_patterns": [],
+            "update": []
+            } for s in (
+            ctx.db.query(
+                Submission.submission_id,
+                Submission.created,
+                Submission.updated, #s[1]
+                Submission.command_executed,
+                Submission.recovery_tasks_parent,
+                CampaignStage.output_ancestor_depth,
+                CampaignStage.creator_role,
+                CampaignStageSnapshot.experiment,
+                CampaignStageSnapshot.software_version,
+                CampaignStageSnapshot.campaign_stage_id,
+                CampaignStageSnapshot.completion_pct,
+                JobTypeSnapshot.output_file_patterns,
+                Experimenter.username,
+                )
+            .join(Submission.campaign_stage_obj)
+            .join(Submission.campaign_stage_snapshot_obj)
+            .join(Submission.job_type_snapshot_obj)
+            .join(Experimenter, Experimenter.experimenter_id == Submission.creator)
+            .filter(Submission.submission_id.in_(completed_sids.keys()))
+            .all()
+        )}
+        
+        for key, val in completed_sids.items():
+            if key in all_subs:
+                all_subs[key].update(val)
+        
+        logit.log(logit.DEBUG, f"wrapup_tasks | all submissions: {repr(all_subs)}")
+        completed = set()
+        located = set()
+        non_project_submissions = {}
+        projects_submissions = {}
+        
+        for submission_id, submission_details in all_subs.items():
+            if submission_details["completion_type"] == "complete":
+                completed.add(submission_id)
+                append_submission(submission_id, submission_details) # completed
+            elif submission_details["completion_type"] == "strong_dd":
+                # wait for all data_dispatcher handles to timeout
+                if self.all_dd_handles_not_reserved(ctx, submission_id):
+                    append_submission(submission_id, submission_details) 
 
-        #
-        # now commit having marked things located, to release database
-        # locks.
-        #
-        if ctx.experiment == "borked":
-            # testing hook
-            logit.log("faking database error")
-            res.append("faking database error")
-            ctx.db.rollback()
-        ctx.db.commit()
+            elif submission_details["completion_type"] == "located":
+                # after two days, call it on time...
+                if now - submission_details["created"] > timedelta(days=2) or (
+                        submission_details["submission_params"]  and submission_details["submission_params"].get("force_located", False)
+                    ):
+                    located.add(submission_id)
+                    append_submission(submission_id, submission_details)
+                elif "project" in submission_details and submission_details["project"]:
+                    projects_submissions[submission_id] = submission_details
+                    add_to_checker(submission_details, True)
+                else:
+                    non_project_submissions[submission_id] = submission_details
+                    add_to_checker(submission_details, False)
+        
+        logit.log(f"wrapup_tasks | completion type completed | {len(completed)}")   
+        logit.log(f"wrapup_tasks | completion type located | {len(located)}")   
+        res.append("completion type completed: %s" % completed)
+        res.append("completion type located: %s" % located)
+        
+        
+        # get dependencies and SAM url's for the projects
+        campaign_dependencies = (
+            ctx.db.query(CampaignDependency.needs_campaign_stage_id, CampaignDependency.file_patterns)
+            .filter(CampaignDependency.needs_campaign_stage_id.in_([s["campaign_stage_id"] for s in projects_submissions.values()]))
+            .all()
+        )
+        logit.log(logit.DEBUG, f"wrapup_tasks | got dependencies")  
+        self.checker = sam_project_checker(ctx)
+        urls = []
+        base = "%s" % ctx.web_config.get("SAM", "sam_base").replace("\"", "")
+        for submission_id, submission_details in projects_submissions.items():
+            for dep in campaign_dependencies:
+                if dep[0] == submission_details["campaign_stage_id"]:
+                    if dep[1]:
+                        submission_details["dependency_file_patterns"].extend(dep[1].split(","))
+                    else:
+                        submission_details["dependency_file_patterns"].append("%")
+            if not submission_details["dependency_file_patterns"]:
+                submission_details["dependency_file_patterns"].append(str(submission_details["output_file_patterns"].split(",")))
+            # get urls for these, for later use
+            if submission_details.get("project", "None") != "None":
+                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]).replace("samsamdev","samdev"), submission_details["experiment"], submission_details["project"])
+                urls.append(submission_details["url"])
+        
+        logit.log(logit.DEBUG, f"wrapup_tasks | got urls: {urls}")  
+        i = 1
+        
+        for submission_set in [finish_up_submissions, checker_subs]:
+            logit.log("wrapup_tasks | Checking submissions | iteration %d of %d" % (i, (self.set_idx + self.checker_idx + 1)))
+            submissions_to_process = {}
+            
+            
+            
+            for key, val in submission_set.items():
+                # Is it a checker sub? 
+                if "project" in val or "non_project" in val or "submissions_set" in val:
+                    submissions_to_process = val["submissions_set"]
+                    logit.log("Running sam checker on %d submissions: %s" % (len(submissions_to_process), submissions_to_process))
+                    self.checker = sam_project_checker(ctx)
+                    for s in val.get("project", {}):
+                        self.checker.add_project_submission(s)
+                    for s in val.get("non_project", {}):  
+                        self.checker.add_non_project_submission(s)
+                    submissions_to_process, res = self.checker.check_added_submissions_new(submissions_to_process, res, urls)
+                else: 
+                    submissions_to_process = val
+                    logit.log("sam checker not required on current set containing %d submissions: %s" % (len(submissions_to_process), submissions_to_process))
 
-        #
-        # now, after committing to clear locks, we run through the
-        # job logs for the submissions and update process stats, and
-        # launch any recovery jobs or jobs depending on us.
-        # this way we don's keep the rows locked all day
-        #
+                if isinstance(submissions_to_process, dict):
+                    res.append("marking submissions %s located " % submissions_to_process.keys())
+                    logit.log(logit.DEBUG, "marking submissions %s located " % submissions_to_process.keys())
+                elif isinstance(submissions_to_process, set):
+                    res.append("marking submissions %s located " % submissions_to_process)
+                    logit.log(logit.DEBUG, "marking submissions %s located " % submissions_to_process)
+                submissions_to_process, res = self.update_submission_statuses_new(ctx, submissions_to_process, "Located", res=res)
+                
+                #
+                # now, after committing to clear locks, we run through the
+                # job logs for the submissions and update process stats, and
+                # launch any recovery jobs or jobs depending on us.
+                # this way we don's keep the rows locked all day
+                #
+                self.init_statuses(ctx)
+                if ctx.web_config.get("POMS","launch_recovery_jobs", default=False):
+                    for submission_id, submission_details in submissions_to_process.items():
+                        if submission_details["last_history_status"] == self.status_Located:
+                            logit.log(logit.DEBUG, "Checking submission %s" % submission_id)
+                            submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).first()
+                            # get logs for job for final cpu values, etc.
+                            msg = "Starting finish_up_submissions items for submission %s" % submission.submission_id
+                            logit.log(logit.DEBUG, msg)
+                            res.append(msg)
 
-        res.append("finish_up_sam_submissions: %s " % repr(finish_up_sam_submissions))
+                            try:
+                                # take care of any recovery or dependency launches
+                                if not self.launch_recovery_if_needed(ctx, submission, None, True):
+                                    self.launch_dependents_if_needed(ctx, submission)
+                                # finish up any pending changes before the next try
+                                ctx.db.commit()
+                            except Exception as e:
+                                logit.logger.exception("exception %s during finish_up_submissions %s" % (e, submission))
+                                ctx.db.rollback()
+                    
+                i+=1
+                
+        elapsed = (datetime.now(utc) - start).total_seconds()
+        logit.log(f"Wrapup Tasks | Done | elapsed: {elapsed}")
+        return res
 
-        for submission_id in finish_up_sam_submissions:
+    def maybe_relaunch_recoveries(self,ctx, submissions_to_process):
+        for submission_id in submissions_to_process:
             submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
             # get logs for job for final cpu values, etc.
-            msg = "Starting finish_up_sam_submissions items for submission %s" % submission.submission_id
+            msg = "Starting finish_up_submissions items for submission %s" % submission.submission_id
             logit.log(msg)
-            res.append(msg)
-
             try:
                 # take care of any recovery or dependency launches
                 if not self.launch_recovery_if_needed(ctx, submission, None):
@@ -329,33 +530,8 @@ class SubmissionsPOMS:
                 # finish up any pending changes before the next try
                 ctx.db.commit()
             except Exception as e:
-                logit.logger.exception("exception %s during finish_up_sam_submissions %s" % (e, submission))
+                logit.logger.exception("exception %s during finish_up_submissions %s" % (e, submission))
                 ctx.db.rollback()
-        
-        
-        finish_up_dd_submissions = list(finish_up_dd_submissions)
-        finish_up_dd_submissions.sort()
-        res.append("finish_up_dd_submissions: %s " % repr(finish_up_sam_submissions))
-        for dd_project_idx in finish_up_dd_submissions:
-            dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one()
-            # get logs for job for final cpu values, etc.
-            msg = "Starting finish_up_dd_submissions items for submission %s" % dd_project.submission_id
-            logit.log(msg)
-            res.append(msg)
-
-            try:
-                # take care of any recovery or dependency launches
-                if not self.launch_recovery_if_needed(ctx, dd_project.submission, None):
-                    self.launch_dependents_if_needed(ctx, submission)
-                # finish up any pending changes before the next try
-                ctx.db.commit()
-            except Exception as e:
-                logit.logger.exception("exception %s during finish_up_sam_submissions %s" % (e, submission))
-                ctx.db.rollback()
-        
-
-        return res
-
     ###
 
     # h3. get_task_id_for
@@ -442,9 +618,11 @@ class SubmissionsPOMS:
 
         if parent_submission_id is not None and parent_submission_id != "None":
             s.recovery_tasks_parent = int(parent_submission_id)
+
         keywords = None
         if cs.campaign_obj and cs.campaign_obj.campaign_keywords:
             keywords = cs.campaign_obj.campaign_keywords
+
         self.poms_service.miscPOMS.snapshot_parts(ctx, s, s.campaign_stage_id, keywords)
 
         ctx.db.add(s)
@@ -462,6 +640,25 @@ class SubmissionsPOMS:
         else:
             return s.submission_id
 
+    def get_last_histories(self, ctx, submission_ids):
+        # get our latest history...
+        sq = (
+            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .subquery()
+        )
+
+        lasthist = (
+            ctx.db.query(SubmissionHistory)
+            .filter(SubmissionHistory.created == sq.c.latest)
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .all()
+        )
+        lasthist = {sub.submission_id: sub for sub in lasthist}
+
+        logit.log("get_last_histories: sub_id %s returns %s" % (submission_ids, lasthist))
+        return lasthist
+        
     # h3. get_last_history
     #
     #   query to find curent status of a submission; factored out
@@ -485,38 +682,91 @@ class SubmissionsPOMS:
 
         logit.log("get_last_history: sub_id %s returns %s" % (submission_id, lasthist))
         return lasthist
-    
-    # Returns a dictionary of {submission_id:last_history} given a list of submission_ids 
-    def get_last_histories(self, ctx, submission_ids):
-        sq = (
-            ctx.db.query(
-                SubmissionHistory.submission_id,
-                func.max(SubmissionHistory.created).label("latest")
-            )
-            .filter(SubmissionHistory.submission_id.in_(submission_ids))
-            .group_by(SubmissionHistory.submission_id)
-            .subquery()
-        )
 
-        submission_id_to_lasthist = (
-            ctx.db.query(SubmissionHistory)
-            .join(sq, and_(
-                SubmissionHistory.submission_id == sq.c.submission_id,
-                SubmissionHistory.created == sq.c.latest
-            ))
-            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+    def update_submission_statuses_new(self, ctx, submissions_dict, status, when=None, res=[]):
+        self.init_statuses(ctx)
+        slist = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == status).first()
+        if when == None:
+            when = datetime.now(utc)
+
+        if slist:
+            status_id = slist[0]
+        else:
+            # not a known status, just bail
+            return
+        
+        for s in (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id.in_(submissions_dict.keys()))
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
             .all()
-        )
-        
-        result_dict = {
-            lasthist.submission_id: lasthist
-            for lasthist in submission_id_to_lasthist
-        }
-        
-        logit.log("get_last_histories: sub_ids %s return %s" % (submission_ids, result_dict))
-        return result_dict
+        ):
 
+            # don't mark recovery jobs Failed -- they get just
+            # the jobs that didn't pass the original submission,
+            # the recovery is still a success even if they all fail again.
+            if status == "Failed" and s.recovery_tasks_parent:
+                status = "Completed"
+            
+            lasthist = submissions_dict[s.submission_id].get("last_history_status", None)
+            lasthist_created = submissions_dict[s.submission_id].get("last_history_created", "")
 
+            logit.log(
+                "update_submission_statuses: submission_id: %s  newstatus %s  lasthist: status %s created %s "
+                % (s.submission_id, status_id, lasthist if lasthist else "", lasthist_created)
+            )
+
+            # don't roll back Located, Failed, or Removed (final states)
+            # note that we *intentionally don't* have LaunchFailed here, as we
+            # *could*  have a launch that took a Really Long Time, and we might
+            # have falsely concluded that the launch failed...
+            final_states = (self.status_Located, self.status_Removed, self.status_Failed)
+            if lasthist and lasthist in final_states and ctx.username == "poms":
+                return
+
+            # don't roll back Completed
+            if lasthist == self.status_Completed and status_id <= self.status_Completed:
+                return
+
+            # don't put in duplicates
+            if lasthist == status_id:
+                return
+
+            sh = SubmissionHistory()
+            sh.submission_id = s.submission_id
+            sh.status_id = status_id
+            sh.created = when
+            ctx.db.add(sh)
+
+            #
+            # update Submission.updated *only* if this is a final state, as
+            # this time will be used for the date range on the submission
+            #
+            submissions_dict[s.submission_id]["last_history_status"] = status_id
+            submissions_dict[s.submission_id]["last_history_created"] = when
+            if status_id in final_states:
+                s.updated = when
+                ctx.db.add(s)
+            for field in submissions_dict[s.submission_id].get("update", []):
+                setattr(s, field, submissions_dict[s.submission_id][field])
+                flag_modified(s, field)
+            
+            # now commit having marked things located, to release database locks. 
+            # this used to be outside the loop, but it was (maybe) causing deadlocks for other requests.
+            # better yet maybe to merge this and the following loop but I assume there was some reason they were separate to begin with.
+            #
+            if ctx.experiment == "borked":
+                # testing hook
+                logit.log("faking database error")
+                res.append("faking database error")
+                ctx.db.rollback()
+        
+        ctx.db.commit()
+        
+        return submissions_dict, res
+        
+        
     # h3. update_submission_status
     def update_submission_status(self, ctx, submission_id, status, when=None):
         self.init_statuses(ctx)
@@ -524,6 +774,7 @@ class SubmissionsPOMS:
         if when == None:
             when = datetime.now(utc)
 
+        ctx.db.commit()
         # always lock the submission first to prevent races
 
         s = (
@@ -588,15 +839,18 @@ class SubmissionsPOMS:
         if status_id in final_states:
             s.updated = sh.created
             ctx.db.add(s)
+        ctx.db.commit()
 
     # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
         """
-            find all the recent submissions that are still "New" but more
+            find all the recent submissions that are still "New" or "Held" but more
             than two hours old, and mark them "LaunchFailed"
         """
         self.init_statuses(ctx)
         now = datetime.now(utc)
+
+        lens_checker = LensChecker()
 
         cert = ctx.web_config.get("Elasticsearch", "cert")
         key = ctx.web_config.get("Elasticsearch", "key")
@@ -611,8 +865,8 @@ class SubmissionsPOMS:
             .group_by(SubmissionHistory.submission_id)
             .having(
                 and_(
-                    func.max(SubmissionHistory.status_id) == self.status_New,
-                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=4),
+                    func.max(SubmissionHistory.status_id) in (self.status_New, self.status_Held),
+                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=2),
                 )
             )
             .all()
@@ -620,7 +874,7 @@ class SubmissionsPOMS:
 
         failed_sids = [x[0] for x in newtups]
 
-        res = []
+        res = ["mark_failed_submissions: Starting..."]
         for submission in (
             ctx.db.query(Submission)
             .filter(Submission.submission_id.in_(failed_sids))
@@ -628,34 +882,30 @@ class SubmissionsPOMS:
             .with_for_update(read=True)
             .all()
         ):
-            # sometimes jobs complete quickly, and we do not see them go by..
-            # so if we got a jobsub_job_id, check for a job log to find
-            # out what happened
-            if submission.jobsub_job_id:
-                logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(
-                    ctx.db,
-                    submission.jobsub_job_id,
-                    cert,
-                    key,
-                    submission.campaign_stage_obj.experiment,
-                    submission.campaign_stage_obj.creator_role,
-                )
-
-                if job_data:
-                    res.append("found job log for %s!" % submission.submission_id)
-                    logit.log("found job log for %s!" % submission.submission_id)
-
-                    if len(job_data["completed"]) == len(job_data["idle"]):
+            data = lens_checker.check_submission(submission.submission_id)
+            if data:
+                if data["done"]:
+                    if data["failed"] / data["completed"] < 0.5:
                         self.update_submission_status(ctx, submission.submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
-
-                continue
-            res.append("failing launch for %s" % submission.submission_id)
-            logit.log("failing launch for %s" % submission.submission_id)
-            self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                    else:
+                        self.update_submission_status(ctx, submission.submission_id, status="Failed")
+                        res.append("submission %s Failed")
+                        logit.log("submission %s Failed")
+                elif data["running"] > 0:
+                    self.update_submission_status(ctx, submission.submission_id, status="Running")
+                    res.append("submission %s Running")
+                    logit.log("submission %s Running")
+                else:
+                    res.append("submission %s unchanged`")
+                    logit.log("submission %s unchanged")
+            else:
+                self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                res.append("failing launch for %s" % submission.submission_id)
+                logit.log("failing launch for %s" % submission.submission_id)
         ctx.db.commit()
+        res.append("...completed")
         return "\n".join(res)
 
     # h3. submission_details
@@ -688,12 +938,12 @@ class SubmissionsPOMS:
                 ctx.db.add(submission)
                 ctx.db.flush()
 
-        qt = "select submission_id from submissions where submission_params->>'dataset' like 'poms_%s_%s_%%'"
-
-        dq = text(qt % ("depends", submission_id)).columns(submission_id=Integer)
+        qt = "select submission_id from submissions where depends_on = %s"
+        dq = text(qt % submission_id).columns(submission_id=Integer)
         depend_ids = [x[0] for x in ctx.db.execute(dq).fetchall()]
 
-        rq = text(qt % ("recover", submission_id)).columns(submission_id=Integer)
+        qt2 = "select submission_id from submissions where recovery_tasks_parent = %s"
+        rq = text(qt2 % submission_id).columns(submission_id=Integer)
         recovery_ids = [x[0] for x in ctx.db.execute(rq).fetchall()]
 
         rtypes = ctx.db.query(RecoveryType).all()
@@ -724,7 +974,8 @@ class SubmissionsPOMS:
             dataset = sam_specifics(ctx).get_dataset_from_project(submission)
         else:
             dataset = None
-        
+            
+        submission_log_format = 0
         base_dir = "{}/private/logs/poms/launches".format(os.environ["HOME"])
         directory = "%s/%s/%s/%s/%s/%s_%s" % (
                     base_dir,
@@ -735,7 +986,6 @@ class SubmissionsPOMS:
                     submission.submission_id, # Submission ID
                     submission.created.astimezone(utc).strftime("%Y%m%d_%H%M%S")
                 )
-        submission_log_format = 0
         
         if os.path.exists(directory):
             submission_log_format = 4
@@ -749,10 +999,31 @@ class SubmissionsPOMS:
             flist = glob.glob(pattern)
             pattern2 = "{}/{}*".format(dirname, ds2[:-2])
             flist.extend(glob.glob(pattern2))
+            pattern = "{}/{}*".format(dirname, ds[:-2])
+            flist = glob.glob(pattern)
+            pattern2 = "{}/{}*".format(dirname, ds2[:-2])
+            flist.extend(glob.glob(pattern2))
 
             logit.log("datestamps: '%s' '%s'" % (ds, ds2))
             logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
+            logit.log("datestamps: '%s' '%s'" % (ds, ds2))
+            logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
 
+            if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                submission_log_format = 3
+            if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                ds = ds2
+                submission_log_format = 3
+            elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
+                submission_log_format = 2
+            elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
+                ds = ds2
+                submission_log_format = 2
+            elif "{}/{}".format(dirname, ds) in flist:
+                submission_log_format = 1
+            elif "{}/{}".format(dirname, ds2) in flist:
+                ds = ds2
+                submission_log_format = 1
             if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
                 submission_log_format = 3
             if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
@@ -860,7 +1131,7 @@ class SubmissionsPOMS:
         if campaign.data_handling_service == "data_dispatcher":
             data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
 
-        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects, data_handling_service
 
     def flatten_submission_ids(self, submission_ids):
         if all(isinstance(item, int) for item in submission_ids):
@@ -890,8 +1161,7 @@ class SubmissionsPOMS:
             .filter(SubmissionStatus.status.in_(status_list), SubmissionHistory.created == sq.c.latest)
             .all()
         )
-
-        running_sids = self.flatten_submission_ids(running_sids_results)
+        running_sids = [x[0] for x in running_sids_results]
 
         if cl and cl != "None":
 
@@ -915,11 +1185,12 @@ class SubmissionsPOMS:
 
         else:
 
-            res = [ (s.submission_id, s.jobsub_job_id, s.campaign_stage_obj.experiment, s.data_dispatcher_submission_obj.project_id if s.data_dispatcher_project_idx else '') 
-                   for s in ctx.db.query(Submission)
-                    .filter(Submission.jobsub_job_id != None)
-                    .filter(Submission.submission_id.in_(running_sids))
-                ]
+            res = list(
+                ctx.db.query(Submission.submission_id, Submission.jobsub_job_id, CampaignStage.experiment)
+                .filter(CampaignStage.campaign_stage_id == Submission.campaign_stage_id)
+                .filter(Submission.submission_id.in_(running_sids))
+            )
+            res = [(x[0], x[1],x[2]) for x in res]
 
         return res
 
@@ -1130,7 +1401,7 @@ class SubmissionsPOMS:
         if s.parent_obj:
             s = s.parent_obj
 
-        if not ctx.config_get("poms.launch_recovery_jobs", False):
+        if not ctx.web_config.get("POMS","launch_recovery_jobs", default=False):
             # XXX should queue for later?!?
             logit.log("recovery launches disabled")
             return 1
@@ -1177,35 +1448,42 @@ class SubmissionsPOMS:
                     test_launch = False
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
-                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None)
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None, dependent_of=s.submission_id)
         return 1
 
     # h3. launch_recovery_if_needed
     #  Note: assumes submission is already locked
-    def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None):
-        logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
-        self.init_statuses(ctx)
-        if not ctx.config_get("poms.launch_recovery_jobs", False):
-            logit.log("recovery launches disabled")
-            return 1
+    def launch_recovery_if_needed(self, ctx, s, recovery_type_override=None, already_checked=False):
+        if not already_checked:
+            logit.log("Entering launch_recovery_if_needed(%s)" % s.submission_id)
+            self.init_statuses(ctx)
+            if not ctx.web_config.get("POMS","launch_recovery_jobs", default=False):
+                logit.log("recovery launches disabled")
+                return 1
 
-        lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status_id != self.status_Located and not recovery_type_override:
-            logit.log("Not launching recovery because submission is not marked Located")
-            return
+            lasthist = self.get_last_history(ctx, s.submission_id)
+            if lasthist.status_id != self.status_Located and not recovery_type_override:
+                logit.log("Not launching recovery because submission is not marked Located")
+                return
 
+        do_data_dispatcher = s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
         current_s = s
         if s.parent_obj:
             s = s.parent_obj
+            
+        logit.log("launch_recovery_if_needed: current_s: %s" % current_s.submission_id)
+        logit.log("launch_recovery_if_needed: s: %s" % s.submission_id)
         
-        do_data_dispatcher = current_s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
-        logit.log("launch_recovery_if_needed: current_s: %s" %repr(current_s))
-        logit.log("launch_recovery_if_needed: s: %s" %repr(s))
-
-        if s.recovery_position is None:
+        if s.recovery_position == None:
             s.recovery_position = 0
+            ctx.db.add(s)
+            iterate = False
+            logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
+        else:
+            iterate = True
+        
 
         if recovery_type_override is not None:
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
@@ -1223,8 +1501,7 @@ class SubmissionsPOMS:
         else:
             rlist = self.poms_service.miscPOMS.get_recovery_list_for_campaign_def(ctx, s.job_type_snapshot_obj)
 
-        logit.log("recovery list %s" % rlist)
-
+        logit.log("submission: %s | recovery list %s" % (s.submission_id, rlist))
         while s.recovery_position is not None and s.recovery_position < len(rlist):
             logit.log("recovery position %d" % s.recovery_position)
 
@@ -1236,19 +1513,30 @@ class SubmissionsPOMS:
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
             project_idx = None
+            
+            if iterate:
+                s.recovery_position = s.recovery_position + 1
+                ctx.db.add(s)
+            else:
+                # Skip the first iteration since recovery position was set from None to 0 on this round.
+                iterate = True
+
             if do_data_dispatcher:
+                #logit.log("launch_recovery_if_needed: do_data_dispatcher rtype.name=%s" % rtype.name)
                 if s.recovery_position == 0:
-                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
                 else:
-                    nfiles, rname, project_idx = ctx.dmr_service.create_recovery_dataset(current_s, rtype, rlist)
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(current_s, rtype, rlist)
+                recovery_dids = [ 
+                   f"{f['namespace']}:{f['name']}" for f in rflist
+                ] 
+                dd_recovery_query = "files " + ",".join(recovery_dids)
             else:
                 if s.recovery_position == 0:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
                 else:
                     nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
-
-            s.recovery_position = s.recovery_position + 1
-
+                dd_recovery_query = None
             if nfiles > 0:
 
                 launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
@@ -1265,7 +1553,8 @@ class SubmissionsPOMS:
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
-                    dd_project_idx=project_idx
+                    dd_project_idx=project_idx,
+                    dd_recovery_query = dd_recovery_query
                 )
                 return res
 
@@ -1279,8 +1568,10 @@ class SubmissionsPOMS:
 
         # return lcmd, cs, campaign_stage_id, outdir, outfile
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
-
+        print(res)
         if res:
+            if isinstance(res, int) and res == 1:
+                raise AssertionError("Recovery submissions are currently disabled.")
             return res[3], res[4], "%s/%s" % (res[3], res[4]), res[5]
         else:
             raise AssertionError("No recovery needed, launch skipped.")
@@ -1505,10 +1796,12 @@ class SubmissionsPOMS:
         output_commands=False,
         parent=None,
         dd_project_idx=None,
+        dependent_of=None,
+        dd_recovery_query = None,
         **kwargs,
     ):
 
-        logit.log("Entering launch_jobs(%s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id))
+        logit.log("Entering launch_jobs(%s, %s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides, launcher))
 
         if launcher == None:
             launcher = ctx.username
@@ -1518,6 +1811,18 @@ class SubmissionsPOMS:
         e = ctx.get_experimenter()
         role = ctx.role
         
+        if parent_submission_id:
+            recovery_param_overrides = self.poms_service.miscPOMS.get_recovery_param_overrides(ctx, parent_submission_id)
+            logit.log("launch_jobs -- recovery_param_overrides: %s" % recovery_param_overrides)
+            if param_overrides is None:
+                param_overrides = recovery_param_overrides
+            elif isinstance(param_overrides, list):
+                param_overrides += recovery_param_overrides
+            else:
+                logit.log("launch_jobs -- param_overrides type: %s" % type(param_overrides))
+            
+        logit.log("launch_jobs -- param_overrides: %s" % param_overrides)
+            
 
         # at the moment we're inconsistent about whether we pass
         # launcher as ausername or experimenter_id or if its a string
@@ -1562,12 +1867,15 @@ class SubmissionsPOMS:
                 joinedload(CampaignStage.job_type_obj),
             ).one()
 
-            ctx.role = cs.creator_role
-
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
             else:
                 role = cs.vo_role.lower()
+
+            # update ctx bookkeping we might need for DMR later
+            ctx.role = cs.creator_role
+            ctx.username = launcher_experimenter.username
+            ctx.experiment = cs.experiment
                 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1582,7 +1890,7 @@ class SubmissionsPOMS:
             ra = ctx.headers_get("Remote-Addr", None)
             exp = cs.experiment
             vers = cs.software_version
-            launch_script = cd.launch_script
+            launch_script = str(cd.launch_script)
             csid = cs.campaign_stage_id
             cid = cs.campaign_id
 
@@ -1623,6 +1931,10 @@ class SubmissionsPOMS:
                 c_param_overrides = []
 
             c_param_overrides += cs.param_overrides
+            if param_overrides:
+                c_param_overrides += param_overrides
+                
+            logit.log("launch_jobs (%s) -- c_param_overrides: %s" % (parent_submission_id, c_param_overrides))
 
             # if it is a test launch, add in the test param overrides
             # and flag the task as a test (secretly relies on poms_client
@@ -1632,12 +1944,10 @@ class SubmissionsPOMS:
             logit.log("launch_jobs -- experimenter not authorized")
             raise PermissionError("non experimenter launch not on localhost")
 
-        if role== "production" and not lt.launch_host.find(exp) >= 0 and lt.launch_host not in ctx.web_config.get("POMS", "production_launch_hosts") and exp != "samdev":
-            if lt.launch_host != "fermicloud821.fnal.gov": 
-                
-                logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
-                output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
-                raise AssertionError(output)
+        if role == "production" and not lt.launch_host.find(exp) >= 0 and lt.launch_host in ctx.web_config.get("POMS", "analysis_launch_hosts") and exp != "samdev":
+            logit.log("launch_jobs -- {} is not a {} experiment node ".format(lt.launch_host, exp))
+            output = "Not Authorized: {} is not a {} experiment node".format(lt.launch_host, exp)
+            raise AssertionError(output)
 
         if role == "analysis" and lt.launch_host not in ctx.web_config.get("POMS", "analysis_launch_hosts"):
             output = "Not Authorized: {} is not a analysis launch node for exp {}".format(lt.launch_host, exp)
@@ -1695,7 +2005,7 @@ class SubmissionsPOMS:
         #             or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
 
         
-        # proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
+        #proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         proxyheld = False
         if allheld or csheld or proxyheld:
 
@@ -1742,7 +2052,7 @@ class SubmissionsPOMS:
                 DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
                 DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).order_by(desc(DataDispatcherSubmission.created)).first()
         if do_data_dispatcher:
-            if cs.completion_type != "complete":
+            if cs.completion_type == "located":
                 cs.completion_type = "complete"
                 ctx.db.commit()
             if dd_project_override:
@@ -1755,7 +2065,6 @@ class SubmissionsPOMS:
             if do_data_dispatcher and dd_project_idx and not dd_project_override:
                 # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
                 dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
-                
         else:
             if not do_data_dispatcher:
                 dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
@@ -1772,10 +2081,8 @@ class SubmissionsPOMS:
                             dataset = "project_idx:%s" % dd_project.data_dispatcher_project_idx
                         else:
                             dataset = None
-        if 'dataset' in locals():
-            dataset = None                 
-        else:
-            logit.log("Dataset is: %s" % dataset)
+
+        logit.log(f"Dataset is: {repr(dataset)}")
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
@@ -1790,6 +2097,7 @@ class SubmissionsPOMS:
         submission = None
         if not test_login_setup:
             submission = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time, full_submission=True)
+            submission.depends_on = dependent_of
             sid = submission.submission_id
             #
             # keep some bookkeeping flags
@@ -1848,25 +2156,51 @@ class SubmissionsPOMS:
                 
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
-        if role == "production" and ctx.experiment == "samdev": 
+        if role == "production" and ctx.experiment == "samdev" and False: 
             # samdev doesn't have a managed token...
+            # ... but for now we're pretending it does...
             htgettokenopts = "-a %s -r default -i fermilab  --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),vaultfile, experimenter_login)
         elif role == "analysis":
-             htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"),group, vaultfile, experimenter_login)
+             htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"), group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"),group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
+            # don't set --credkey for the production account because we
+            # don't know if it should be fifeutilgpvm01 or 03...
+            htgettokenopts = "-a %s -i %s -r production " % (ctx.web_config.get("tokens", "vaultserver"), group)
 
          # add token logic if not already in login_setup:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
-                                         and "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
-                                         and "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
+                                         or "BEARER_TOKEN_FILE" in cs.login_setup_obj.launch_setup
+                                         or "XDG_CACHE_HOME" in cs.login_setup_obj.launch_setup)
+        
+        if cs.login_setup_obj.launch_setup:
+            lines = cs.login_setup_obj.launch_setup.split(";")
+            pos = 0
+            new_lines = []
+            extra_line = None
+            if len(lines) > 0:
+                try:
+                    for line in lines:
+                        if line and line.strip() and "TOKENOPTS_EXTRA" in line:
+                            extra_line = str(line)
+                            extra_opts = line.split("=")[1].replace("[", "").replace("]", "").split(",")
+                            if extra_opts and len(extra_opts) > 0:
+                                for extra_opt in extra_opts:
+                                    htgettokenopts += " %s" % extra_opt.replace("\'", "")
+                        else:
+                            new_lines += [line] 
+                        pos += 1
+                except:
+                    pass
+            launch_script = launch_script.replace(extra_line, "") if extra_line else launch_script
+                    
+            
+        #ifdhc_version = "ifdhc v2_6_10," if "ifdhc " not in cs.login_setup_obj.launch_setup else ""
         
         # token logic if not defined in launch script
         token_logic = [
             ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
-            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
             f"chmod 0600 {vaultfile}; ls -l {vaultfile};" if vaultfile else "",
             #"export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/pu1ppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
@@ -1882,6 +2216,7 @@ class SubmissionsPOMS:
             "experiment": exp,
         }
         data_dispatcher_logic = []
+        project_data = {}
         if do_data_dispatcher:
             if dd_project:
                 dd_project.campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id
@@ -1891,16 +2226,16 @@ class SubmissionsPOMS:
                 dd_project.recovery_tasks_parent_submission = submission.recovery_tasks_parent
                 dd_project.job_type_snapshot_id = submission.job_type_snapshot_id
                 dd_project.status="created"
-                dd_project.named_dataset = dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
+                dd_project.named_dataset = dd_recovery_query if dd_recovery_query else dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
                 if dd_project.depends_on_submission and not dd_project.depends_on_project:
                     dd_project.depends_on_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).first()
                 if dd_project.recovery_tasks_parent_submission and not dd_project.recovery_tasks_parent_project:
-                    dd_project.recovery_tasks_parent_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none()
+                    dd_project.recovery_tasks_parent_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none().project_id
                 
             else:
                 stage_name = submission.campaign_stage_obj.name
                 methodology = submission.campaign_stage_obj.data_dispatcher_stage_methodology or "standard"
-                project_data = {
+                project_data.update( {
                     "experiment": exp,
                     "role": cs.vo_role,
                     "campaign_id": cid, 
@@ -1916,25 +2251,22 @@ class SubmissionsPOMS:
                     "creator_name": cs.experimenter_creator_obj.username,
                     "last_split": cs.cs_last_split,
                     "status": "created"
-                }
-                try:
-                    settings = cs.data_dispatcher_settings or {}
-                    project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
-                    project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                    project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
-                    project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
-                except:
-                    try:
-                        defaults = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"]
-                        project_data["virtual"] = defaults.get("data_dispatcher_project_virtual", False)
-                        project_data["idle_timeout"] = defaults.get("data_dispatcher_idle_timeout", 259200)
-                        project_data["worker_timeout"] = defaults.get("data_dispatcher_worker_timeout", 0)
-                        project_data["load_limit"] = defaults.get("data_dispatcher_load_limit", None)
-                    except:
-                        # Keep going
-                        pass
-                    
-                    
+                })
+
+                # try to get data_dispatcher settings from stage or campaign
+                settings = None
+                if cs.data_dispatcher_settings:
+                    settings = cs.data_dispatcher_settings 
+                elif "defaults" in cs.campaign_obj.defaults and "data_handling_service" in cs.campaign_obj.defaults["defaults"] and "data_dispatcher" in cs.campaign_obj.defaults["defaults"]["data_handling_service"]:
+                    settings = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"] 
+                else:
+                    settings = {}
+
+                project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                
                 def generate_project_name(type):
                     if methodology == "1P" and type == "Project ID Override":
                         type = "Initial"
@@ -1961,10 +2293,8 @@ class SubmissionsPOMS:
             if dd_project:
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_TASK_ID=%s;" % dd_project.data_dispatcher_project_idx)
                 data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
-                if dd_project.named_dataset:
-                    data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % dd_project.named_dataset)
-                if dd_project.virtual:
-                    data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_VIRTUAL=%s;" % dd_project.virtual)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % (dd_project.named_dataset if dd_project.named_dataset else " " ))
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_VIRTUAL=%s;" % (dd_project.virtual if dd_project.virtual else "False" ))
 
                 data_dispatcher_logic.append(f"export POMS_DATA_DISPATCHER_LOAD_LIMIT={dd_project.load_limit or 0};")
 
@@ -2013,13 +2343,10 @@ class SubmissionsPOMS:
             #
             "echo \"Vault file permissions:\"",
             "ls -l %s" % vaultfile if role == "analysis" else "",
-            "export X509_USER_PROXY=%s;" % proxyfile,
-            # proxy file has to belong to us, apparently, so...
-            "cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;"% (uu, uu)  if role == "analysis" else "",
-            "source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
-            "setup ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;" if do_tokens
-            #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_18; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;" if do_tokens
-            else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
+             
+            "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
+            "spack load fife-utils@3.7.3 os=fe;",
+            "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
                 % input_dict
@@ -2028,7 +2355,7 @@ class SubmissionsPOMS:
         ]
         
        
-        if not tokens_defined_in_login_setup and do_tokens:
+        if do_tokens:
             cmdl.extend(token_logic)
         
         inst = {
@@ -2038,15 +2365,6 @@ class SubmissionsPOMS:
         
             
         cmdl.extend([
-            #'setup jobsub_client v_lite;' if do_tokens else "",
-            # , -j poms_client -g current -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_18; 
-            #'UPS_OVERRIDE="" setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, -j poms_client -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
-            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            'UPS_OVERRIDE="" setup poms_client -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=0;' if do_tokens
-            else "",
-            "ups active;",
-            #"export PATH=/home/ltrestka/dd_testing/poms_jobsub_wrapper/bin:$PATH;"
-            # POMS4 'properly named' items for poms_jobsub_wrapper
             
             "export POMS4_HOST=%s;" % self.poms_service.hostname ,
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
@@ -2067,13 +2385,18 @@ class SubmissionsPOMS:
             "export POMS_TEST=%s;" % poms_test,
             "export POMS_TASK_DEFINITION_ID=%s;" % cdid,
             "export JOBSUB_GROUP=%s;" % group,
-            
+            # have to spack load this *after* POMS4_XXX variables are set so we can set the JOBSUB_xxx variables
+            # but with the old spack root we saved... so we don't mess up the spack environment they may 
+            # have laoded in their launch_setup.
+            "SSR2=$SPACK_ROOT;",
+            "SPACK_ROOT=$SSR1;",
+            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=fe);",
+            "SPACK_ROOT=$SSR2;",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
             ("vtk=%s" % vaultfile) if vaultfile and role == "analysis" else "",
             ("cp $vtk /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             ("chmod 0400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
-            "export USER=%s;" % (ctx.username if role == "analysis" else "%spro" % group),
             "export GROUP=%s;" % group,
             "echo '#!bin/sh' > /tmp/poms_record.sh;",
             "echo 'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"' >> /tmp/poms_record.sh;",

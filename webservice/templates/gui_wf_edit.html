@@ -24,9 +24,9 @@
 {%block bodytags%} onload="main()" {%endblock%}
 
 {%block header%}
-<input type="text" id="data_handling_service" value="{{data_handling_service}}" hidden/>
 <h1 class="ui header">
-    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
+    <span>Campaign Editor for</span><br>
+    <span id="camp_header1">{{campaign}}</span> {% include 'help_button.html' %}
     <!--
     <div class="sub header">
         Edit whole workflow
@@ -170,20 +170,23 @@
 <script type="text/javascript">
 
 function main() {
-    
+   const to = "{{to}}";
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
    
    console.log(["args:", args, "base:", base])
-   if (args['campaign'] != undefined) {
+   if (args['campaign'] != undefined || to != undefined) {
        var url;
        // const campaign = decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
+       if (args['campaign'] == undefined) {
+           args['campaign'] = to;
+       }
        const campaign = args['campaign'];
        //VP~ if (args['campaign'].indexOf('samples/') == 0) {
        if (campaign.startsWith('samples')) {
           url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign;
+	  url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign; 
        }
        $.ajax( {
           url: url

@@ -13,12 +13,13 @@ from helper_functions import record_queue_log, utc, set_run_number, set_run_star
 class SubmissionQueue:
     def __init__(self, cfg, agent_id):
         set_run_start(datetime.now(utc))
+        poms_env = cfg.get("submission_agent", "poms_env")
         _filepath = cfg.get("submission_agent", "submission_records_path")
         self.poms_running_query = cfg.get("submission_agent", "poms_running_query")
-        self.queue_path = f"{_filepath}/queue.json"
-        self.completed_submissions_path = f"{_filepath}/results.json"
-        self.queue_lock = FileLock(f"{_filepath}/queue.json.lock")
-        self.completed_submissions_lock = FileLock(f"{_filepath}/queue.json.lock")
+        self.queue_path = f"{_filepath}/{poms_env}.queue.json"
+        self.completed_submissions_path = f"{_filepath}/{poms_env}.results.json"
+        self.queue_lock = FileLock(f"{_filepath}/{poms_env}.queue.json.lock")
+        self.completed_submissions_lock = FileLock(f"{_filepath}/{poms_env}.results.json.lock")
         self.agent_id = agent_id
         self.session = None
         self.run_number = None
@@ -253,7 +254,7 @@ class SubmissionQueue:
                             'pomsTaskID': x[0],  
                             "group": x[2], 
                             'id': x[1], 
-                            "POMS_DATA_DISPATCHER_TASK_ID": x[3],  
+                            "POMS_DATA_DISPATCHER_TASK_ID": x[3] if len(x) > 3 else None,  
                             "queued_at": datetime.now(utc).isoformat()
                         } 
                         for x in flist 

@@ -108,6 +108,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 <th data-sorter="false" data-filter="false">Delete<br>Campaign</th>
                 <th>Tags</th>
                 <th>Creator</th>
+                <th>Role</th>
                 <th>Watch</th>
             </tr>
         </thead>
@@ -130,7 +131,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                     </a>
                 </td>
                 <td>
-                    <a href="{{landscape_base}}/kibana/app/kibana#/visualize/create?type=histogram&indexPattern=c41e97f0-92c6-11e9-b8c9-555a8104b54b&_g=(filters:!())&_a=(filters:!(('$state':(store:appState),meta:(alias:'Campaign%20ID',disabled:!f,index:c41e97f0-92c6-11e9-b8c9-555a8104b54b,key:POMS4_CAMPAIGN_ID,negate:!f,params:(query:{{s.campaign_id}},type:phrase),type:phrase,value:'{{s.campaign_id}}'),query:(match:(POMS4_CAMPAIGN_ID:(query:{{s.campaign_id}},type:phrase))))),linked:!f,query:(language:lucene,query:''),uiState:(),vis:(aggs:!((enabled:!t,id:'1',params:(customLabel:'CPU%20Time',field:cputime),schema:metric,type:sum),(enabled:!t,id:'2',params:(customLabel:Site,field:MATCH_GLIDEIN_Site,missingBucket:!f,missingBucketLabel:Missing,order:desc,orderBy:'3',otherBucket:!f,otherBucketLabel:Other,size:5),schema:segment,type:terms),(enabled:!t,id:'3',params:(customLabel:Walltime,field:walltime),schema:metric,type:sum)),params:(addLegend:!t,addTimeMarker:!f,addTooltip:!t,categoryAxes:!((id:CategoryAxis-1,labels:(show:!t,truncate:100),position:bottom,scale:(type:linear),show:!t,style:(),title:(),type:category)),grid:(categoryLines:!f,style:(color:%23eee),valueAxis:!n),legendPosition:right,orderBucketsBySum:!f,seriesParams:!((data:(id:'1',label:'CPU%20Time'),drawLinesBetweenPoints:!t,interpolate:linear,mode:stacked,show:true,showCircles:!t,type:histogram,valueAxis:ValueAxis-1),(data:(id:'3',label:Walltime),drawLinesBetweenPoints:!t,mode:stacked,show:!t,showCircles:!t,type:histogram,valueAxis:ValueAxis-1)),times:!(),type:histogram,valueAxes:!((id:ValueAxis-1,labels:(filter:!f,rotate:0,show:!t,truncate:100),name:LeftAxis-1,position:left,scale:(mode:normal,type:linear),show:!t,style:(),title:(text:'CPU%20%26%20Wall%20Time'),type:value))),title:'New%20Visualization',type:histogram))" target="_blank">
+                    <a href="{{landscape_base}}/kibana/app/kibana#/visualize/edit/30f14760-4f20-11ed-b80c-5b9a2866af74?_g=(refreshInterval:(pause:!t,value:0),time:(from:now-24h,mode:quick,to:now))&_a=(filters:!(('$state':(store:appState),meta:(alias:!n,disabled:!f,index:'fifebatch-history-*',key:POMS4_CAMPAIGN_ID,negate:!f,params:(query:'{{s.campaign_id}}',type:phrase),type:phrase,value:'{{s.campaign_id}}'),query:(match:(POMS4_CAMPAIGN_ID:(query:'{{s.campaign_id}}',type:phrase))))),linked:!f,query:(language:lucene,query:''),uiState:(),vis:(aggs:!((enabled:!t,id:'1',params:(customLabel:'CPU+Time',field:RemoteUserCpu),schema:metric,type:sum),(enabled:!t,id:'2',params:(customLabel:Site,field:MATCH_GLIDEIN_Site,missingBucket:!f,missingBucketLabel:Missing,order:desc,orderBy:'3',otherBucket:!f,otherBucketLabel:Other,size:5),schema:segment,type:terms),(enabled:!t,id:'3',params:(customLabel:Walltime,field:RemoteWallClockTime),schema:metric,type:sum)),params:(addLegend:!t,addTimeMarker:!f,addTooltip:!t,categoryAxes:!((id:CategoryAxis-1,labels:(show:!t,truncate:100),position:bottom,scale:(type:linear),show:!t,style:(),title:(),type:category)),grid:(categoryLines:!f,style:(color:%23eee),valueAxis:!n),legendPosition:right,orderBucketsBySum:!f,seriesParams:!((data:(id:'1',label:'CPU+Time'),drawLinesBetweenPoints:!t,interpolate:linear,mode:normal,show:true,showCircles:!t,type:histogram,valueAxis:ValueAxis-1),(data:(id:'3',label:Walltime),drawLinesBetweenPoints:!t,mode:stacked,show:!t,showCircles:!t,type:histogram,valueAxis:ValueAxis-1)),times:!(),type:histogram,valueAxes:!((id:ValueAxis-1,labels:(filter:!f,rotate:0,show:!t,truncate:100),name:LeftAxis-1,position:left,scale:(mode:normal,type:linear),show:!t,style:(),title:(text:'CPU+%26+Wall+Time'),type:value))),title:'CPU+%26+Wall+time+distribution+by+site',type:histogram))" target="_blank">
                         <button type="button">
                         <i class="chart bar icon"></i>
                         </button>
@@ -205,6 +206,11 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
                 <td>
                     {{s.experimenter_creator_obj.username}}
                 </td>
+                <td>
+                    {{s.creator_role}}  <!-- from campaign_stages table -->
+                    <!-- could be {{s.vo_role}} usually the same as creator_role, but not always -->
+                    <!-- not {{s.experimenter_creator_obj.session_role}} fixed to value in experimenters table -->
+                </td>
                 <td id="c_name_{{loop.index}}" style="display:none">{{s.name}}</td>
                 <td>
                     {%if data.authorized[loop.index0] %}
@@ -273,12 +279,15 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
   </h3>
   <div class="ui hidden divider"></div>
   <div class="ui text container">
-    <form id="template_clone_form" class="ui form" method="POST" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}">
-        <input type="number" id="campaign_id_to_clone" name="campaign_id" hidden/>
-        <div class="two fields">
+    <form id="template_clone_form" class="ui form" method="GET" action="{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?">
+      <div class="two fields">
         <div class="field">
           <label>Existing Campaign Name</label>
           <input type="text" id="from" name="from" readonly>
+        </div>
+        <div class="field">
+          <label>Existing Campaign Id</label>
+          <input type="text" id="campaign_id" name="campaign_id" readonly>
         </div>
         <div class="field">
           <label>Clone Campaign Name</label>
@@ -287,7 +296,7 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
+        <div class="ui button accept" id="clone" >Clone</div>
       </div>
       <input type="hidden" id="campaign" name="campaign">
     </form>
@@ -489,6 +498,7 @@ $("a.stagelink").click(function() {
 
 function clone_template(campaign_name, campaign_id) {
     $("#campaign_id_to_clone").val(campaign_id);
+    $("#campaign_id").val(campaign_id);
     $("#campaign").val(campaign_name);
     $("#from").val(campaign_name)
     $("#template_clone_modal").modal({}).modal('show');
@@ -628,6 +638,16 @@ function add_click_handler() {
         }
     });
 }
+
+const submitBtn = document.querySelector("#clone");
+submitBtn.addEventListener("click", (e) => {
+    var campaign = $("#campaign").val();
+    var to = $("#to").val();
+    var campaign_id = $("#campaign_id").val();
+    var from = $("#from").val();
+    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" + to + "&campaign_id=" + campaign_id + "&campaign=" + to;
+    window.location.href = url;
+});
 
 function do_delete(item) {
     var c_id = item.id.split("_")[0];

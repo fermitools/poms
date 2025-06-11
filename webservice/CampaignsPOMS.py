@@ -355,7 +355,7 @@ class CampaignsPOMS:
         else:
             lead = None
 
-        exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).first()
+        exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign_id).scalar()
 
         #
         # for now we're skipping multiparam datasets
@@ -587,7 +587,7 @@ class CampaignsPOMS:
             else:
                 lead = None
 
-            exp = ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign.campaign_id).first()
+            exp = str(ctx.db.query(Campaign.experiment).filter(Campaign.campaign_id == campaign.campaign_id).first())
 
             #
             # for now we're skipping multiparam datasets
@@ -629,7 +629,7 @@ class CampaignsPOMS:
                         total += sub.files_generated
         
 
-            logit.log("campaign_overview: total: %d" % total)
+            logit.log(logit.DEBUG, "campaign_overview: total: %d" % total)
 
            
 
@@ -648,9 +648,9 @@ class CampaignsPOMS:
                 consumed_map[r[0]] = r[1]
                 generated_map[r[0]] = r[2]
 
-            logit.log("show_watching: sub_list: %s" % repr(sp_list))
-            logit.log("show_watching: consumed_map: %s" % repr(consumed_map))
-            logit.log("show_watching: generated_map: %s" % repr(generated_map))
+            logit.log(logit.DEBUG, "show_watching: sub_list: %s" % sp_list)
+            logit.log(logit.DEBUG, "show_watching: consumed_map: %s" % consumed_map)
+            logit.log(logit.DEBUG, "show_watching: generated_map: %s" % generated_map)
 
 
             #csl = campaign.stages
@@ -1895,9 +1895,12 @@ class CampaignsPOMS:
                 
             # save this id for later so we dont need to check again
             creator_id = new_campaign.creator
-            creator_role = ctx.get_vo_role(creator_id)
-            if creator_role.lower() in "production-shifter":
+            #creator_role = ctx.get_vo_role(creator_id)
+            creator_role = role
+
+            if creator_role.lower() in ("production-shifter", "superuser"):
                 creator_role = campaign_to_clone.creator_role
+
             new_campaign.creator_role = creator_role
             vo_role = creator_role.capitalize()
             
@@ -1905,6 +1908,7 @@ class CampaignsPOMS:
             ctx.db.add(new_campaign)
             ctx.db.commit()
             new_campaign_id = new_campaign.campaign_id
+            logit.log("clone_campaign new_campaign_id == %s ", repr(new_campaign_id) )
             
             # Now do the same for the campaign stages
             stage_index = {}
@@ -1951,32 +1955,29 @@ class CampaignsPOMS:
                 
                 # Now use our nifty index to swap the campaign_stage_id's
                 needs = stage_index.get(dep.needs_campaign_stage_id, None)
-                provides = stage_index.get(dep.needs_campaign_stage_id, None)
+                provides = stage_index.get(dep.provides_campaign_stage_id, None)
                 if needs and provides:
                     cloned_dep.needs_campaign_stage_id = needs
                     cloned_dep.provides_campaign_stage_id = provides
+                    if not cloned_dep.file_patterns:
+                        cloned_dep.file_patterns = '%'
                     ctx.db.add(cloned_dep)
             
             ctx.db.commit()
             return self.get_ui_editor_items(ctx=ctx, campaign_id=new_campaign_id)
         except IntegrityError as e:
             ctx.db.rollback()
+            logit.log("clone_campaign IntegrityError: ".join(e.args))
+            errorstr = str(e).split("\n")[0]
         
-        raise cherrypy.HTTPError(500, "An error occurred while cloning this campaign.")
-            
-        
-        
-        
-        
-        
-        
-        
+        logit.log("clone_campaign: Error: 500") 
+        raise cherrypy.HTTPError(500, "An error '%s' occurred while cloning this campaign." % errorstr)
 
     def get_ui_editor_items(self, **kwargs):
         ctx = kwargs["ctx"]
         campaign_id = kwargs.get("campaign_id", 0)
         cstages = (ctx.db.query(CampaignStage).join(CampaignStage.campaign_obj).filter(CampaignStage.campaign_id == campaign_id).all())
-        c = cstages[0].campaign_obj
+        c = cstages[0].campaign_obj if cstages and len(cstages) > 0 else None
         print(c.defaults)
         job_types =  {jt.name: jt for jt in ctx.db.query(JobType).filter(JobType.experiment == ctx.experiment, JobType.creator_role == ctx.role, JobType.active == True).all()}
         def get_dd_settings(stages):
@@ -1994,6 +1995,7 @@ class CampaignsPOMS:
                 ctx.db.add(c_s)
             ctx.db.commit()
             return stages
+        
         cstages = get_dd_settings(cstages)
         data_handling_defaults = None
         if c.defaults:

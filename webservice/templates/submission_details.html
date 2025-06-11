@@ -75,6 +75,8 @@ a regular launch
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[50:-2]}}">Submission #{{dataset[50:-2]}}</a>
 {%elif dataset[:13] == 'poms_depends_' and dataset|length < 50  %}
 ...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{dataset[13:-2]}}">Submission #{{dataset[13:-2]}}</a>
+{%elif submission.depends_on %}
+...launched on completion of  <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{submission.depends_on}}">Submission #{{submission.depends_on}}</a>
 {%endif%}
 {%endif%}
 
@@ -83,7 +85,7 @@ a regular launch
 
 {% if recovery_ids %}
 Recoveries launched: 
-{%for id in recovery_ids %}
+{%for id in recovery_ids|sort %}
    <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
 {% endfor %}
 <br>
@@ -91,7 +93,7 @@ Recoveries launched:
 
 {% if depend_ids %}
 Dependencies launched: 
-{%for id in depend_ids %}
+{%for id in depend_ids|sort %}
    <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{id}}">Submission #{{id}}</a>
 {% endfor %}
 <br>
@@ -118,7 +120,7 @@ Dependencies launched:
 View <a href="{{pomspath}}/list_launch_file?/{{session_experiment}}/{{session_role}}campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 -->
 {%if submission_log_format == 4 %}
-View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&submission_id={{submission.submission_id}}">launch output </a> <br>
+    View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&submission_id={{submission.submission_id}}">launch output </a> <br>
 {%elif submission_log_format == 3 %}
 View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_role}}?campaign_stage_id={{submission.campaign_stage_id}}&fname={{ds}}_{{owner}}_{{submission.submission_id}}">launch output </a> <br>
 {%elif submission_log_format == 2%}
@@ -129,17 +131,15 @@ View <a href="{{pomspath}}/list_launch_file/{{session_experiment}}/{{session_rol
 
 View in
 {%if submission.jobsub_job_id %}
-{%if submission.project %}
-  <a href="{{fifemon_base}}/monitor/d/000000188/dag-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
-{% else %}
-  <a href="{{fifemon_base}}/monitor/d/000000115/job-cluster-summary?var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
-{%endif%}
+  <a href="{{fifemon_base}}/monitor/d/JL6pUwB4k/submission-summary?orgId=1&var-cluster={{cluster}}&var-schedd={{schedd}}&from={{submission.created}}000&to=now&refresh=3m&orgId=1">Landscape</a> <br>
 {%else%}
 Landscape (disabled, no info found) <br>
 {%endif%}
 
-{%if submission.project %}
+{%if submission.project and data_handling_service == "sam" %}
 View the <a href="{{sam_base}}/station_monitor/{{session_experiment}}/stations/{{session_experiment}}/projects/{{submission.project}}">SAM Project</a> <br>
+{%elif submission.data_dispatcher_submission_obj and data_handling_service == "data_dispatcher" %}
+View the <a href="https://metacat.fnal.gov:9443/mu2e_dd_prod/gui/P/project?project_id={{submission.data_dispatcher_submission_obj.project_id}}">DataDispatcher Project</a> <br>
 {%endif%}
 
 {%if submission.jobsub_job_id %}

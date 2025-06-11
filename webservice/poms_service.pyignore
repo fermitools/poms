@@ -149,6 +149,7 @@ class PomsService:
         self.poms_servicenow_url = self.web_config.get("POMS", "poms_servicenow_url")
         self.redmine_url = self.web_config.get("FNAL", "redmine_url")
         self.sam_base = self.web_config.get("SAM", "sam_base")
+        self.dd_gui_url = self.web_config.get("Shrek", "dd_gui_url")
         self.hostname = socket.getfqdn()
         self.version = version.get_version()
         global_version = self.version
@@ -732,8 +733,7 @@ class PomsService:
             "recovery_ids",
             "depend_ids",
             "statuses",
-            "data_dispatcher_projects",
-            "data_handling_service"
+            "data_dispatcher_projects"
         ],
         t="submission_details.html",
         help_page="experimenters_corner/submission_details_help",

@@ -4,6 +4,7 @@ from .get_user import get_user
 from .poms_model import Experimenter, ExperimentsExperimenters
 from sqlalchemy import and_, text, exists
 from configparser import ConfigParser
+from toml_parser import TConfig
 from . import DMRService
 
 # h2. Ctx "Context" class
@@ -47,9 +48,10 @@ class Ctx:
             self.backend_pid = pid
         self.config_get = config_get if config_get else cherrypy.config.get
         if not os.environ.get("WEB_CONFIG", None):
-            os.environ["WEB_CONFIG"] = "/home/poms/poms/webservice/poms.ini"
-        self.web_config = web_config if web_config else ConfigParser()
-        self.web_config.read(os.environ["WEB_CONFIG"])
+            os.environ["WEB_CONFIG"] = "/home/poms/private/poms/config/prod.webservice.toml"
+        #self.web_config = web_config if web_config else ConfigParser()
+        #self.web_config.read(os.environ["WEB_CONFIG"])
+        self.web_config = web_config if web_config else TConfig()
         self.headers_get = headers_get if headers_get else cherrypy.request.headers.get
         self.sam = sam if sam else cherrypy.request.samweb_lite
         self.experiment = (
@@ -116,7 +118,7 @@ class Ctx:
     def __repr__(self):
         res = ["<Ctx:"]
         for k in self.__dict__:
-            if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect"):
+            if k in ("db", "config_get", "headers_get", "sam", "HTTPError", "HTTPRedirect", "web_config"):
                 res.append("'%s': '...'," % k)
             else:
                 res.append("'%s': '%s'," % (k, self.__dict__[k]))

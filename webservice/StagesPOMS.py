@@ -7,7 +7,7 @@ Author: Felipe Alba ahandresf@gmail.com, This code is just a modify version of f
 poms_service.py written by Marc Mengel, Michael Gueith and Stephen White.
 Date: April 28th, 2017. (changes for the POMS_client)
 """
-import configparser
+#import configparser
 import ast
 import glob
 import importlib
@@ -27,6 +27,7 @@ from sqlalchemy import and_, distinct, desc, func, or_, text, Integer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import joinedload, attributes, aliased
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql.functions import coalesce
 
 from . import logit
 from .poms_model import (
@@ -691,7 +692,7 @@ class StagesPOMS:
             ctx, base_link
         )
         experimenter = ctx.get_experimenter()
-
+        stages_with_cronjob = self.read_crontab(ctx)
         csq = (
             ctx.db.query(CampaignStage)
             .options(joinedload(CampaignStage.experiment_obj))
@@ -763,6 +764,7 @@ class StagesPOMS:
         logit.log(logit.DEBUG, "show_campaign_stages: back from query")
         # check for authorization
         data["authorized"] = []
+        data["stages_with_cronjob"] = stages_with_cronjob
         for c_s in campaign_stages:
             if ctx.role != "analysis":
                 data["authorized"].append(True)
@@ -771,7 +773,6 @@ class StagesPOMS:
             else:
                 data["authorized"].append(False)
         return campaign_stages, tmin, tmax, tmins, tmaxs, tdays, nextlink, prevlink, time_range_string, data
-
     # h3. reset_campaign_split
     def reset_campaign_split(self, ctx, campaign_stage_id, test=False):
         """
@@ -782,7 +783,9 @@ class StagesPOMS:
 
         c_s = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_stage_id == campaign_stage_id).one()
         split = "%s" % (c_s.cs_split_type if not test else c_s.test_split_type)
-        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type == split).all()
+        # don't include parameters (i.e. the "(10)" in "drainingn(10)") and do a like search
+        split_pat = split[:split.find("(")] + "%"
+        dd_subs = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False, DataDispatcherSubmission.campaign_stage_id == campaign_stage_id, DataDispatcherSubmission.split_type.like(split_pat)).all()
         for sub in dd_subs:
             sub.splits_reset = True
         if not test:
@@ -1057,7 +1060,8 @@ class StagesPOMS:
                 ),
             )
             .filter(SubmissionHistory.created == subq)
-            .order_by(desc(SubmissionHistory.submission_id))
+            .order_by(coalesce(Submission.recovery_tasks_parent,SubmissionHistory.submission_id),SubmissionHistory.submission_id)
+            #.order_by(desc(SubmissionHistory.submission_id))
         ).all()
         
         sam_subs = dict({ sub.Submission.submission_id : sub.Submission for sub in tuples })
@@ -1144,6 +1148,12 @@ class StagesPOMS:
             if m:
                 depends[sid] = int(m.group(3)) if long else int(m.group(2))
                 darrow[sid] = "&#x21b3;" if m.group(1) == "depends" else "&#x21ba;"
+            elif tup.Submission.depends_on:
+                depends[sid] = tup.Submission.depends_on
+                darrow[sid] = "&#x21b3;" 
+            elif tup.Submission.recovery_tasks_parent:
+                depends[sid] = tup.Submission.recovery_tasks_parent
+                darrow[sid] = "&#x21ba;"
             else:
                 depends[sid] = None
                 darrow[sid] = ""
@@ -1223,7 +1233,7 @@ class StagesPOMS:
             if do_data_dispatcher:
                 return None
             else:
-                return camp.dataset, None
+                return camp.dataset
 
         # clean up split_type -- de-white-space it
         split_type = split_type.replace(" ", "")
@@ -1268,15 +1278,56 @@ class StagesPOMS:
         except StopIteration:
             if camp.default_clear_cronjob:
                 self.update_launch_schedule(ctx, camp.campaign_stage_id, delete="y")
+            else:
+                try:
+                    with open(ctx.web_config.get("POMS","cronjob_analysis_file"),  "r+", encoding="utf-8") as file:
+                        errors = json.load(file)
+                        stage_id = str(camp.campaign_stage_id)
+                        failed_at = datetime.now(utc).strftime("%Y-%m-%d %H:%M:%S")
+                        if "campaign_stage_id" not in errors:
+                            errors["campaign_stage_id"] = {}
+                        if stage_id not in errors["campaign_stage_id"]:
+                            errors["campaign_stage_id"][stage_id] = {}
+                        if "AssertionError" not in errors["campaign_stage_id"][stage_id]:
+                            errors["campaign_stage_id"][stage_id]["AssertionError"] = {
+                                "started_logging": failed_at,
+                                "occurrences": 1,
+                                "updated": failed_at
+                            }
+                        else:
+                            errors["campaign_stage_id"][stage_id]["AssertionError"]["occurrences"] += 1
+                            errors["campaign_stage_id"][stage_id]["AssertionError"]["updated"] = failed_at
+                        file.seek(0)
+                        json.dump(errors, file, indent=4)
+                        file.truncate()
+                except Exception as e:
+                    pass
             raise AssertionError("No more splits in this campaign.")
 
         return res
     
     def init_shrek_if_needed(self, ctx):
-        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session ["Shrek"]:
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"]:
             dmr_service = shrek.DMRService()
             dmr_service.initialize_session(ctx)
-        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session ["Shrek"])
+        return ("Shrek" in cherrypy.session and "mc_client" in cherrypy.session["Shrek"])
+    
+    
+    def read_crontab(self, ctx):
+        """
+            return crontab info for cron launches for campaign
+        """
+        my_crontab = CronTab(user=True)
+        jobs = my_crontab.find_command("/home/poms/poms/cron/launcher --campaign_stage_id=")
+        cs_with_cron = []
+        for job in jobs:
+            line = job.command
+            match = re.search(r'--campaign_stage_id=(\d+)', line)
+            if match:
+                csid = match.group(1)
+                cs_with_cron.append(int(csid))
+        
+        return cs_with_cron
     
     # h3. schedule_launch
     def schedule_launch(self, ctx, campaign_stage_id):
@@ -1387,11 +1438,11 @@ class StagesPOMS:
 
             # make job for new -- use current link for product
             pdir = os.environ.get("POMS_DIR", "/etc/poms")
-            if pdir.find("/current/") <= 0:
-                # try to find a current symlink path that points here
-                tpdir = pdir[: pdir.rfind("poms", 0, len(pdir) - 1) + 4] + "/current"
-                if os.path.exists(tpdir):
-                    pdir = tpdir
+            #if pdir.find("/current/") <= 0:
+            #    # try to find a current symlink path that points here
+            #    tpdir = pdir[: pdir.rfind("poms", 0, len(pdir) - 1) + 4] + "/current"
+            #    if os.path.exists(tpdir):
+            #        pdir = tpdir
 
             job = my_crontab.new(
                 command="{}/cron/launcher --campaign_stage_id={} --launcher={}".format(

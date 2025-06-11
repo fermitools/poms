@@ -151,7 +151,7 @@ class FilesStatus:
                     [
                         s.project,
                         "%s/station_monitor/%s/stations/%s/projects/%s"
-                        % (ctx.web_config.get("SAM", "sam_base"), cs.experiment, cs.experiment, s.project),
+                        % (ctx.web_config.get("SAM", "sam_base").replace("samsamdev","samdev"), cs.experiment, cs.experiment, s.project),
                     ],
                     [s.submission_params and s.submission_params.get("dataset", "-") or "-"],
                     [s.created.strftime("%Y-%m-%d %H:%M"), None],
@@ -649,10 +649,10 @@ def extract_failure_status(file):
     
 class LocalJsonQueue:
     def __init__(self, filepath):
-        self.queue_path = f"{filepath}/queue.json"
-        self.results_path = f"{filepath}/results.json"
-        self.queue_lock = FileLock(f"{filepath}/queue.json.lock")
-        self.results_lock = FileLock(f"{filepath}/results.json.lock")
+        self.queue_path = f"{filepath}/{os.environ['ENV']}.queue.json"
+        self.results_path = f"{filepath}/{os.environ['ENV']}.results.json"
+        self.queue_lock = FileLock(f"{filepath}/{os.environ['ENV']}.queue.json.lock")
+        self.results_lock = FileLock(f"{filepath}/{os.environ['ENV']}.results.json.lock")
         
     def enqueue(self, item):
         with self.queue_lock:
@@ -738,8 +738,11 @@ class LocalJsonQueue:
                 session_info["secret"] = base64.b64decode(session_info["secret"])
                 session_info["secret"] = cipher_suite.decrypt(session_info["secret"])
                 session_info["secret"] = session_info["secret"].decode('utf-8')
+                print("received:", session_info)
+                print("eval:", evaluate)
             for key, val in evaluate.items():
-                if not (key in session_info and session_info[key] == val):
+                print(key, "in session_info ?", key in session_info, "|", str(session_info[key]), "=", str(val), "?", str(session_info[key]) == str(val))
+                if not (key in session_info and str(session_info[key]) == str(val)):
                     print("Failed to authorize agent")
                     return False
         

@@ -7,10 +7,13 @@ import traceback
 from collections import deque
 import requests
 from poms.webservice.logit import log, logstartstop
-import configparser
+#import configparser
 
-config = configparser.ConfigParser()
-config.read(os.environ["WEB_CONFIG"])
+#config = configparser.ConfigParser()
+#config.read(os.environ["WEB_CONFIG"])
+
+from toml_parser import TConfig
+config = TConfig()
 
 class jobsub_fetcher:
     def __init__(self, cert, key):

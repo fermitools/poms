@@ -15,7 +15,10 @@ from markupsafe import Markup
 import cherrypy
 from cherrypy.process import plugins
 
-from sqlalchemy import create_engine, text
+import toml
+from toml_parser import TConfig
+
+from sqlalchemy import create_engine, text, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
@@ -163,6 +166,14 @@ class SessionTool(cherrypy.Tool):
 
     def establish_session(self):
         pass
+    
+class SessionExperiment:
+    def __init__(self, exp):
+        self.experiment = exp.experiment
+        self.name = exp.name
+        self.logbook = exp.logbook
+        self.snow_url = exp.snow_url
+        self.restricted = exp.restricted
 
 
 def urlencode_filter(s):
@@ -175,27 +186,62 @@ def urlencode_filter(s):
 
 def augment_params():
     e = cherrypy.request.db.query(Experimenter).filter(Experimenter.username == get_user()).first()
-    
-    if not e:
-        exp =  "this experiment" 
-        if len(cherrypy.url().split("/")) > 5:
-            exp = cherrypy.url().split("/")[5]
-        raise cherrypy.HTTPError(
-            401, "%s is not a registered user for %s in the POMS database" % (get_user(), exp)
-        )
-
     roles = ["analysis", "production-shifter", "production", "superuser"]
+    exps = {}
+    e2e = None
+    if e.root is True:
+        e2e = cherrypy.request.db.query(Experiment)
+        for row in e2e:
+            exps[row.experiment] = roles
+    else:
+        e2e = (
+            cherrypy.request.db.query(ExperimentsExperimenters)
+            .filter(ExperimentsExperimenters.experimenter_id == e.experimenter_id)
+            .filter(ExperimentsExperimenters.active.is_(True))
+        )
+        for row in e2e:
+            position = 0
+            if e.root is True:
+                position = 3
+            elif row.role == "superuser":
+                position = 3
+            elif row.role == "production":
+                position = 2
+            else:  # analysis
+                position = 1
+            exps[row.experiment] = roles[:position]
+
+    pathv = cherrypy.request.path_info.split("/")
+    if len(pathv) >= 4:
+        session_experiment = pathv[2]
+        session_role = pathv[3]
+        samexp = session_experiment
+    else:
+        # pick saved experiment/role
+        session_experiment = None
+        session_role = None
+        samexp = "web"
 
     root = cherrypy.request.app.root
     root.jinja_env.globals.update(
         dict(
+            session_role=session_role,
+            session_experiment=session_experiment,
+            user_authorization=exps.keys(),
+            allowed_roles=exps,
+            is_root=e.root,
+            experimenter_id=e.experimenter_id,
+            last_name=e.last_name,
+            first_name=e.first_name,
+            username=e.username,
             version=root.version,
+            hostname=socket.gethostname(),
             pomspath=root.path,
             docspath=root.docspath,
-            sam_base = root.sam_base,
+            poms_servicenow_url = root.poms_servicenow_url,
+            sam_base = root.sam_base.replace("web",samexp).replace("samsamdev","samdev"),
             landscape_base = root.landscape_base,
             fifemon_base = root.fifemon_base,
-            hostname=socket.gethostname(),
             all_roles=roles,
             ExperimentsExperimenters=ExperimentsExperimenters,
         )
@@ -261,7 +307,7 @@ if run_it:
     
     
     try:
-        cherrypy.config.update(io.StringIO(confs))
+        cherrypy.config.update(io.StringIO(confs.replace("true", "True").replace("false", "False")))
         cherrypy.config["Shrek"] = shrek_config
         # cherrypy.config.update(poms_config_path)
     except IOError as mess:
@@ -273,7 +319,10 @@ if run_it:
     # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
-    app = cherrypy.tree.mount(poms_instance, poms_instance.path, io.StringIO(confs))
+    config = TConfig()
+    cherrypy_config = config.get_cherrypy_config()
+    
+    app = cherrypy.tree.mount(poms_instance, poms_instance.path, cherrypy_config)
     cherrypy.tree.graft(make_wsgi_app(), poms_instance.path + "/metrics")
 
     SAEnginePlugin(cherrypy.engine, app).subscribe()

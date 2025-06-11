@@ -17,7 +17,7 @@ class Mail:
         config = TConfig()
         server = config.get("smtp", "server").strip('"')
         sender = config.get("smtp", "sender").strip('"')
-        debug = int(config.get("smtp", "debug"))
+        debug = config.getint("smtp", "debug")
         return (server, sender, debug)
 
     def send(self, subj, msg, to):

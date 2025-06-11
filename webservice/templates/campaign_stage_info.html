@@ -42,9 +42,9 @@ all the time...
   <div class="ui segment raised ">
 
     <!-- Campaign_info: {{Campaign_info}} -->
-<iframe scrolling="no" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
-<iframe scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
-<iframe  scrolling="no" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="yes" style="width: 38%; min-width: 25em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=2&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="yes" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=18&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
+<iframe scrolling="yes" style="width: 29%; min-width: 10em; height: 17em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/X49EUj3iz/poms-stage?var-stage={{CampaignStage.campaign_stage_id}}&orgId=1&panelId=12&from=now-30d&to=now&var-stage_name={{CampaignStage.name}}&theme=light" frameborder="0"></iframe>
 
   <br/>
   <span class="info">statistics for last 30 days</span>
@@ -217,7 +217,12 @@ all the time...
               </div>
               <div class=item>
               <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=7&tmax={{last_activity}}">
-                <i class="table icon" data-content="Campaign Stage Submissins (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
+                <i class="table icon" data-content="Campaign Stage Submissions (1wk)" data-variation="basic"></i>Campaign Stage Submissions (1wk)
+              </a>
+              </div>
+              <div class=item>
+              <a href="{{pomspath}}/campaign_stage_submissions/{{session_experiment}}/{{session_role}}?campaign_name={{CampaignStage.campaign_obj.name}}&stage_name={{CampaignStage.name}}&campaign_stage_id={{CampaignStage.campaign_stage_id}}&tdays=1&tmax={{last_activity}}">
+                <i class="table icon" data-content="Campaign Stage Submissions (24hrs)" data-variation="basic"></i>Campaign Stage Submissions (24hrs)
               </a>
               </div>
               <div class=item>
