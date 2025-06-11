@@ -645,7 +645,7 @@ submitBtn.addEventListener("click", (e) => {
     var to = $("#to").val();
     var campaign_id = $("#campaign_id").val();
     var from = $("#from").val();
-    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" + to + "&campaign_id=" + campaign_id;
+    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" + to + "&campaign_id=" + campaign_id + "&campaign=" + to;
     window.location.href = url;
 });
 
