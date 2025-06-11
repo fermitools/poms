@@ -286,13 +286,17 @@ Campaigns {{ show_hint('#campaigns', 'Campaigns') }}
           <input type="text" id="from" name="from" readonly>
         </div>
         <div class="field">
+          <label>Existing Campaign Id</label>
+          <input type="text" id="campaign_id" name="campaign_id" readonly>
+        </div>
+        <div class="field">
           <label>Clone Campaign Name</label>
           <input type="text" id="to" name="to">
         </div>
       </div>
       <div class="actions">
         <div class="ui button deny red">Cancel</div>
-        <input type="submit" id="clone" name="clone" value="Clone" class="ui button teal">
+        <div class="ui button accept" id="clone" >Clone</div>
       </div>
       <input type="hidden" id="campaign" name="campaign">
     </form>
@@ -494,6 +498,7 @@ $("a.stagelink").click(function() {
 
 function clone_template(campaign_name, campaign_id) {
     $("#campaign_id_to_clone").val(campaign_id);
+    $("#campaign_id").val(campaign_id);
     $("#campaign").val(campaign_name);
     $("#from").val(campaign_name)
     $("#template_clone_modal").modal({}).modal('show');
@@ -638,8 +643,9 @@ const submitBtn = document.querySelector("#clone");
 submitBtn.addEventListener("click", (e) => {
     var campaign = $("#campaign").val();
     var to = $("#to").val();
+    var campaign_id = $("#campaign_id").val();
     var from = $("#from").val();
-    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" +to;
+    var url = "{{pomspath}}/gui_wf_clone/{{session_experiment}}/{{session_role}}?from=" + from + "&to=" + to + "&campaign_id=" + campaign_id;
     window.location.href = url;
 });
 
