@@ -1512,6 +1512,7 @@ class SubmissionsPOMS:
             # else we use the current submission as the project because we don't want to re-submit the same files
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
+            
             project_idx = None
             
             if iterate:
@@ -1520,6 +1521,12 @@ class SubmissionsPOMS:
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True
+                
+            if s.recovery_position == 0:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            else:
+                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
+
 
             if do_data_dispatcher:
                 #logit.log("launch_recovery_if_needed: do_data_dispatcher rtype.name=%s" % rtype.name)
@@ -2005,7 +2012,6 @@ class SubmissionsPOMS:
         #             or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
 
         
-        #proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         proxyheld = False
         if allheld or csheld or proxyheld:
 
@@ -2341,11 +2347,12 @@ class SubmissionsPOMS:
             #  * by the analysis user uploading their vault token...
             #
             #
+
             "echo \"Vault file permissions:\"",
             "ls -l %s" % vaultfile if role == "analysis" else "",
              
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.3 os=fe;",
+            "spack load fife-utils@3.7.5 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
@@ -2390,7 +2397,7 @@ class SubmissionsPOMS:
             # have laoded in their launch_setup.
             "SSR2=$SPACK_ROOT;",
             "SPACK_ROOT=$SSR1;",
-            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=fe);",
+            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os);",
             "SPACK_ROOT=$SSR2;",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
@@ -2409,9 +2416,10 @@ class SubmissionsPOMS:
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+
+            # "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
             "rm -v -f /tmp/vt_$CONDOR_VAULT_STORER_ID /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;" if vaultfile else ""
-            "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
+            # "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
 
