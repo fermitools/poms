@@ -2,7 +2,6 @@
 
 {%block title%}
 <title>POMS Campaign Overview</title>
-
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
 <script type="text/javascript">
 	function confirm_call(msg, url, icon = null) {
@@ -30,6 +29,7 @@
 	}
 </style>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.min.css" rel="stylesheet" type="text/css">
+
 {%endblock%}
 
 {%block header%}
@@ -44,6 +44,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 {%endblock%}
 
 {%block content %}
+<script src="{{pomspath}}/static/js/data_dispatcher.js"></script>
 <div class="ui horizontal segments" >
 	<div class="ui segment raised">
 		<h3>Campaign Overview</h3>
@@ -110,7 +111,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 				</button>
 			</div>
 			<div class=item>
-				<button onclick="location.href='{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}'">
+				<button onclick="location.href='{{pomspath}}/gui_wf_edit/{{session_experiment}}/{{session_role}}?campaign={{s.name|urlencode}}&campaign_id={{s.campaign_id}}&data_handling_service={{s.data_handling_service}}'">
 					<i class="edit icon blue"></i> Edit Campaign
 				</button>
 			</div>
@@ -126,6 +127,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 	<div class="ui segment raised">
 		<h3>Campaign Details</h3>
 		<b>Name</b>: {{s.name}}<br/>
+		<b>Data Handling Service</b>: {{s.data_handling_service}}<br/>
 		<b>Experiment</b>: {{s.experiment}}<br/>
 		<b>Creator</b>: {{s.experimenter_creator_obj.username}}<br/>
 		<b>Defaults</b>: {{s.defaults}}<br/>
@@ -138,6 +140,7 @@ Campaign: <a class="stagelink" href="{{pomspath}}/show_campaign_stages/{{session
 		{% endfor %}
 	</div>
 </div>
+{% include 'data_dispatcher_projects.html' %}
 		
 
 {%endblock%}

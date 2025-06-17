@@ -18,17 +18,20 @@ from cherrypy.process import plugins
 import toml
 from toml_parser import TConfig
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import sqlalchemy.exc
 
+import toml
+
 from prometheus_client import make_wsgi_app
 
-from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment
+from poms.webservice.poms_model import Experimenter, ExperimentsExperimenters, Experiment, FilterOutArchived
 from poms.webservice.get_user import get_user
 from poms.webservice import poms_service
 from poms.webservice import jobsub_fetcher
 from poms.webservice import samweb_lite
+from poms.webservice import DMRService
 from poms.webservice import logging_conf
 from poms.webservice import logit
 
@@ -96,11 +99,14 @@ class SATool(cherrypy.Tool):
         the request terminates.
         """
         cherrypy.Tool.__init__(self, "on_start_resource", self.bind_session, priority=20)
-        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+        self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
         self.jobsub_fetcher = jobsub_fetcher.jobsub_fetcher(
             cherrypy.config.get("Elasticsearch", "cert"), cherrypy.config.get("Elasticsearch", "key")
         )
         self.samweb_lite = samweb_lite.samweb_lite()
+        logit.log(f"Setting DMR Service")
+        self.dmr_service = DMRService.DMRService(cherrypy.config.get("Shrek", {})) # Data-Dispatcher/Metacat/Rucio
+        logit.log(f"cherrypy.request.dmr_service exists: {self.dmr_service is not None}")
 
     def _setup(self):
         cherrypy.Tool._setup(self)
@@ -111,6 +117,8 @@ class SATool(cherrypy.Tool):
         cherrypy.request.db = self.session
         cherrypy.request.jobsub_fetcher = self.jobsub_fetcher
         cherrypy.request.samweb_lite = self.samweb_lite
+        cherrypy.request.dmr_service = self.dmr_service
+        logit.log(f"cherrypy.request.dmr_service exists: {self.dmr_service is not None}")
         try:
             # Disabiling pylint false positives
             self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
@@ -122,19 +130,22 @@ class SATool(cherrypy.Tool):
             cherrypy.engine.start()
             cherrypy.engine.publish("bind", self.session)
             cherrypy.request.db = self.session
-            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False))
+            self.session = scoped_session(sessionmaker(autoflush=True, autocommit=False, query_cls=FilterOutArchived))
             self.session.execute(text("SET SESSION lock_timeout = '300s';"))  # pylint: disable=E1101
             self.session.execute(text("SET SESSION statement_timeout = '400s';"))  # pylint: disable=E1101
             self.session.commit()  # pylint: disable=E1101
-
+            
     def release_session(self):
         # flushing here deletes it too soon...
         # cherrypy.request.jobsub_fetcher.flush()
         cherrypy.request.samweb_lite.flush()
+        cherrypy.request.dmr_service.flush()
         cherrypy.request.db.close()
         cherrypy.request.db = None
         cherrypy.request.jobsub_fetcher = None
         cherrypy.request.samweb_lite = None
+        cherrypy.request.dmr_service = None
+        logit.log("Releasing session")
         self.session.remove()
 
 
@@ -255,6 +266,7 @@ def pidfile():
 def parse_command_line():
     parser = argparse.ArgumentParser()
     parser.add_argument("-cs", "--config", help="Filepath for POMS config file.")
+    parser.add_argument("-sc", "--shrek_config", help="Filepath for SHREK config file.")
     parser.add_argument("--use-wsgi", dest="use_wsgi", action="store_true", help="Run behind WSGI. (Default)")
     parser.add_argument("--no-wsgi", dest="use_wsgi", action="store_false", help="Run without WSGI.")
     parser.set_defaults(use_wsgi=True)
@@ -265,34 +277,39 @@ def parse_command_line():
 # if __name__ == '__main__':
 run_it = True
 if run_it:
+
+    poms_config_path = "config/poms.ini"
+    shrek_config_path = "config/shrek.toml"
     parser, args = parse_command_line()
     if args.config:
         poms_config_path = args.config
-    elif "WEB_CONFIG" in os.environ:
-        poms_config_path = os.environ["WEB_CONFIG"]
-    else:
-        raise EnvironmentError("Missing Configuration")
-    #if args.shrek_config:
-    #    shrek_config_path = args.shrek_config
-    #if "SHREK_CONFIG" in os.environ:
-    #    shrek_config_path = os.environ["SHREK_CONFIG"]
-    #else:
-    #    raise EnvironmentError("Missing Configuration")
-    
-    config = TConfig(**{
-        "HOME": os.environ["HOME"],
-        "POMS_DIR": f"{os.environ['HOME']}/poms"
-    })
+    if args.shrek_config:
+        shrek_config_path = args.shrek_config
 
+    #
+    # make %(HOME) and %(POMS_DIR) work in various sections
+    #
+    confs = dedent(
+        """
+       [DEFAULT]
+       HOME="%(HOME)s"
+       POMS_DIR="%(POMS_DIR)s"
+    """
+        % os.environ
+    )
+
+    poms_cf = open(poms_config_path, "r")
+    confs = confs + poms_cf.read()
+    poms_cf.close()
     
-    #with open(shrek_config_path, 'r') as shrek_cf:
-    #    shrek_config = toml.load(shrek_cf)
-        
-    #config["Shrek"] = shrek_config
-    #cherrypy.config["Shrek"] = shrek_config
-    cherrypy_config = config.get_cherrypy_config()
+    with open(shrek_config_path, 'r') as shrek_cf:
+        shrek_config = toml.load(shrek_cf)
+    
+    
     try:
-        cherrypy.config.update(cherrypy_config)
+        cherrypy.config.update(io.StringIO(confs.replace("true", "True").replace("false", "False")))
+        cherrypy.config["Shrek"] = shrek_config
+        # cherrypy.config.update(poms_config_path)
     except IOError as mess:
         print(mess, file=sys.stderr)
         parser.print_help()
@@ -302,6 +319,7 @@ if run_it:
     # dapp = cherrypy.tree.mount(dowser.Root(), '/dowser')
 
     poms_instance = poms_service.PomsService()
+    config = TConfig()
     cherrypy_config = config.get_cherrypy_config()
     
     app = cherrypy.tree.mount(poms_instance, poms_instance.path, cherrypy_config)
@@ -323,16 +341,18 @@ if run_it:
     pidfile()
 
     poms_instance.post_initialize()
+    
 
     if args.use_wsgi:
         cherrypy.server.unsubscribe()
 
     cherrypy.engine.start()
-
+    
     if not args.use_wsgi:
         cherrypy.engine.block()  # Disable built-in HTTP server when behind wsgi
         logit.log("Starting Cherrypy HTTP")
-
+        
+    
     application = cherrypy.tree
 
     # END

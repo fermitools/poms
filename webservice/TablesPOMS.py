@@ -15,7 +15,7 @@ import json
 from sqlalchemy import text
 from . import logit
 from .utc import utc
-
+import os
 
 class TablesPOMS:
     # h3. __init__
@@ -165,10 +165,13 @@ class TablesPOMS:
                 and poms_model.__dict__[k].__module__ == "poms.webservice.poms_model"
             ):
                 self.admin_map[k] = poms_model.__dict__[k]
-                found = self.admin_map[k]()
-                columns = found._sa_instance_state.class_.__table__.columns
-                for fieldname in list(columns.keys()):
-                    if columns[fieldname].primary_key:
-                        self.pk_map[k] = fieldname
+                if poms_model.__dict__[k].__name__ == "FilterOutArchived" or poms_model.__dict__[k].__name__ ==  "NotArchivedMixin":
+                    pass
+                else:
+                    found = self.admin_map[k]()
+                    columns = found._sa_instance_state.class_.__table__.columns
+                    for fieldname in list(columns.keys()):
+                        if columns[fieldname].primary_key:
+                            self.pk_map[k] = fieldname
         logit.log(" ---- admin map: %s " % repr(self.admin_map))
         logit.log(" ---- pk_map: %s " % repr(self.pk_map))

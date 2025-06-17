@@ -1,0 +1,324 @@
+@keyframes flashing {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes fadein {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes fadeout {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes fadeinout {
+  0% {
+    opacity: 0;
+    top: -150px;
+  }
+  5% {
+    opacity: 1;
+    top: 0;
+  }
+  80%{
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.dd-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #e20e0e;
+  width: 50%;
+  box-shadow: 8px 8px 8px 8px rgba(0,0,0,0.2);
+  max-width: 600px;
+  padding: 20px;
+  text-align: center;
+  transition: 0.3s;
+  border-radius: 10px;
+  color: white;
+  font-size: large;
+  font-weight: bold;
+  opacity: 0;
+  z-index: 1;
+}
+
+.dd-banner.clickable:hover{
+  box-shadow: 16px 16px 16px 16px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+.dd-banner.clicked {
+  animation:fadeout 0.6s linear !important;
+}
+.dd-banner.pass {
+  background-color: green;
+  animation:fadeout 3s linear;
+}
+.dd-banner.fail {
+  background-color: red;
+  animation:fadeinout 6s linear;
+}
+
+.highlight {
+  background-color: yellow;
+}
+
+.dd-search-container {
+  position: relative;
+  display: inline-block;
+}
+#project_state_selector{
+  background-color: white;
+  font-size: larger;
+  font-weight: bold;
+  color: #042b42;
+}
+
+.dd-search-container .dd-search-result-icon {
+  opacity: 0;
+  transition: background-color 0.3s;
+  background-color: gray;
+  position: absolute;
+  top: 35%;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dd-search-result-icon.pending {
+  animation:flashing 1s infinite;
+}
+.dd-search-result-icon.success {
+  background-color: green;
+  animation:fadeout 3s linear;
+}
+.dd-search-result-icon.error {
+  background-color: red;
+  animation:fadeout 3s linear;
+}
+
+.dd-results-row-label{
+    font-size: medium;
+    min-height: 42%;
+    width:100%;
+    max-width: 19%;
+    margin-right: 3px;
+    margin-left: 3px;
+    height: 35px;
+    text-align: center;
+    background-color: gainsboro;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    box-shadow: 4px 4px 4px 4px rgba(0,0,0,0.2);
+}
+.project_handle_label{
+  min-height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.dd-results-row-label:hover{
+    transition: 0.3s;
+    cursor: pointer;
+    color: #0000EE;
+    box-shadow: 8px 8px 8px 8px rgba(0,0,0,0.2);
+}
+.dd-results-row-label-selected {
+  background-color: blue;
+  color: white;
+  border-bottom: 0;
+  transition: 0.3s;
+  box-shadow: 4px 4px 4px 4px rgba(0,0,0,0.2);
+}
+.dd-results-row-label-selected:hover {
+  cursor: pointer;
+  color: white;
+  transition: 0.3s;
+  box-shadow: 8px 8px 8px 8px rgba(0,0,0,0.2);
+}
+.dd-results-box {
+    display: inline-block;
+    padding: 2px 16px;
+    width: 100%;
+    max-height: 750px;
+}
+.dd-results-row-header{
+  display: flex;
+  flex-wrap: wrap;
+}
+.dd-results-row {
+  width: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px,max-content));
+  border-style: solid;
+  border-width: 2px;
+  border-color: black;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  max-height: 700px;
+  overflow-y: scroll;
+  grid-auto-flow: dense;
+  grid-auto-rows: minmax(100px,max-content);
+}
+#active_project_handles{
+  max-height: 600px !important;
+  grid-template-columns: 100%;
+}
+.dd-row-toggle-active .dd-results-card{
+  opacity: 1; 
+}
+.dd-row-toggle-inactive .dd-results-card{
+  opacity: 0;
+}
+.dd-results-card {
+    /* Add shadows to create the "card" effect */
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: opacity 0.5s;
+    border-radius: 10px;
+    margin-right: 5px;
+    position: relative;
+    flex-direction: row;
+    width: 350px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    width: 100% !important;
+  }
+
+  sl-card::part(header) {
+    font-weight: bold;
+    background-color: #00B5AD;
+    color: #fff;
+  }
+  sl-details::part(header) {
+    font-weight: bold !important;
+    border: 1px solid #00B5AD;
+  }
+  sl-details.initial::part(header) {
+    color: black !important;
+    background-color: rgba(255, 255, 0, 0.9) !important;
+  }
+  sl-details.done::part(header) {
+    background-color: rgba(81, 178, 172, 0.9) !important;
+  }
+  sl-details.failed::part(header) {
+    background-color: rgba(255, 0, 0, 0.9) !important;
+    color: whitesmoke !important;
+  }
+  sl-details.reserved::part(header) {
+    color: black !important;
+    background-color: rgba(255, 165, 0, 0.9) !important;
+  }
+  sl-badge::part(base) {
+    font-weight: bold;
+    width: 65px;
+  }
+  sl-badge.initial::part(base) {
+    color: black !important;
+    background-color: rgba(255, 255, 0, 0.9) !important;
+  }
+  sl-badge.done::part(base) {
+    background-color: rgba(81, 178, 172, 0.9) !important;
+  }
+  sl-badge.failed::part(base) {
+    background-color: rgba(255, 0, 0, 0.9) !important;
+    color: white !important;
+  }
+  sl-badge.reserved::part(base) {
+    color: black !important;
+    background-color: rgba(255, 165, 0, 0.9) !important;
+  }
+  sl-card {
+    --sl-card-background-color: #fff; /* Adjust based on your dd-results-card background */
+    --sl-card-border-color: #ccc; /* Your .dd-results-card border color */
+    --sl-card-border-radius: 10px; /* Matched to your dd-results-card */
+    --sl-card-border-width: 1px; /* Your dd-results-card border width */
+    --sl-card-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow similar to dd-results-card */
+  }
+  sl-drawer::part(panel) {
+    position: fixed;
+    border: 1px solid #000;
+    width: 765px;
+  }
+  
+  .dd-results-card-header {
+    grid-template-columns: 90% 10%;
+    display: grid;
+    overflow-wrap: break-word;
+    flex-wrap: wrap;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+
+  .dd-results-card-body {
+    position: relative;
+    margin-bottom: 30px;
+    padding: 5px;
+    display: inline-block;
+    flex-grow: 1;
+    padding: 10px;
+  }
+  .dd-results-card-body a span {
+    word-break: break-word;
+  }
+  .dd-results-card-footer {
+    padding-top:5px;
+    transition: 0.3s;
+    border-radius: 10px;
+    background-color: gainsboro;
+    text-align: center;
+    align-content: center;
+    width: 100%;
+    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.2);
+    bottom: 0;
+    padding: 5px;
+  }
+  .dd-results-card-footer:hover {
+    transition: 0.3s;
+    cursor: pointer;
+    color: #0000EE;
+    box-shadow: 2px 2px 2px 2px rgba(0,0,0,0.2);
+  }
+  .dd-results-card-footer-active {
+    background-color: blue;
+    color: white;
+    transition: 0.3s;
+  }
+  .dd-results-card-footer-active:hover {
+    cursor: pointer;
+    color: white;
+    transition: 0.3s;
+    box-shadow: 2px 2px 2px 2px rgba(0,0,0,0.2);
+  }
+  .dd-results-card:hover {
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+  }
+  .dd-results-card{
+    position: relative;
+    width: fit-content;
+    height: fit-content;
+  }
+  .project_handles_segment{
+    min-height: 60px;
+  }
+  
