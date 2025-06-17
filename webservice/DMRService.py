@@ -205,7 +205,7 @@ class DMRService:
             # Try logging in
             logit.log("DMR-Service  | login_with_x509() | Data Dispatcher Client Login on behalf of: %s" % cherrypy.session["Shrek"]["current_experiment"])
             cherrypy.session["Shrek"]["dd_status"] = cherrypy.session["Shrek"]["dd_client"].login_x509('poms', poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
-            print("Login X509 | subject: %s | expiration: %s" % cherrypy.session["Shrek"]["dd_status"])
+            #print("Login X509 | subject: %s | expiration: %s" % cherrypy.session["Shrek"]["dd_status"])
             logit.log("DMR-Service  | login_with_x509() | Metacat Client Login on behalf of: %s" % cherrypy.session["Shrek"]["current_experiment"])
             cherrypy.session["Shrek"]["mc_status"] = cherrypy.session["Shrek"]["mc_client"].login_x509('poms', poms_config.get("POMS", "POMS_CERT"), poms_config.get("POMS", "POMS_KEY"))
             if cherrypy.session["Shrek"]["dd_status"]:
@@ -425,9 +425,9 @@ class DMRService:
             retval = project_info.get("file_handles", []) if project_info else None
             state = [state] if state and not isinstance(state, list) else state
             not_state = [not_state] if not_state and not isinstance(not_state, list) else not_state
-            print(retval)
-            print("State = %s" % state)
-            print("NOT State = %s" % not_state)
+            #print(retval)
+            #print("State = %s" % state)
+            #print("NOT State = %s" % not_state)
             if state:
                 retval = [ handle for handle in retval if handle.get("state", None) in state ]
             if not_state:
@@ -739,10 +739,10 @@ class DMRService:
             return queue.authorize_agent(ctx, agent_header)
         
     def calculate_dd_project_completion(self, ctx, agent_header, dd_submission_id = None, dd_submission_ids=None):
-        print("Submission Agent | Authorizing Agent | %s" % agent_header)
+        logit.log("Submission Agent | Authorizing Agent | %s" % agent_header)
         if not self._authorize_agent(ctx, agent_header):
             return {"error": "Unauthorized"}
-        print("Submission Agent | Authorized")
+        logit.log("Submission Agent | Authorized")
         retval = {}
         self.db = self.db if self.db else cherrypy.request.db
         if not self.db:
@@ -1239,13 +1239,13 @@ class DMRService:
                     not_states = ["done"] if rtype.name == "state_not_done" else None
                     states = ["failed"] if rtype.name == "state_failed" else None
                     handles = self.get_project_handles(project.project_id, state=states, not_state=not_states).get("project_handles", [])
-                print(handles)
+                #print(handles)
                 recovery_files = list(cherrypy.session["Shrek"]["mc_client"].get_files(handles, with_metadata=True, with_provenance=True)) if methodology == "standard" else []
             elif rtype.name in ["reprocess_orphans", "added_files"]:
                 cdate = submission.created.timestamp()
                 handle_dict = {handle["name"]: handle for handle in self.get_project_handles(project.project_id, state=["done", "failed"]).get("project_handles", [])}
                 handles = []
-                print(handle_dict)
+                #print(handle_dict)
                 for file in list(cherrypy.session["Shrek"]["mc_client"].get_files(handle_dict.values(), with_provenance=True)):
                     if rtype.name == "reprocess_orphans" and not len(file.get("children", [])) > 0:
                         handles.append(handle_dict[file["name"]])
@@ -1258,7 +1258,7 @@ class DMRService:
             
             
             nfiles = len(recovery_files) if methodology == "standard" else len(handles)
-            print(project_name)
+            #print(project_name)
             logit.log("DMR-Service  | create_recovery_dataset | File Count: %s" % (nfiles))
             
             if nfiles == 0:
