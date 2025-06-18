@@ -34,7 +34,7 @@ class drainingn:
 
     def peek(self):
 
-        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"]:
+        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
             self.dmr_service = shrek.DMRService()
             self.dmr_service.initialize_session(self.ctx, cron_session=True)
         if 'mc_client' in cherrypy.session["Shrek"]:
