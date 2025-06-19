@@ -23,6 +23,9 @@ class drainingn:
         self.cs.data_dispatcher_dataset_only = False
         self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService(cherrypy.session.get("Shrek", {}))
         self.dmr_service.initialize_session(ctx)
+        self.dmr_service.set_data_dispatcher_client()
+        self.dmr_service.set_metacat_client()
+  
         self.n = int(cs.cs_split_type[10:].strip(")")) if not self.test else int(cs.test_split_type[10:].strip(")"))
         if self.test:
             self.last_split = self.cs.last_split_test

@@ -15,6 +15,7 @@ import threading
 import uuid
 import hashlib
 import base64
+import traceback
 
 import utc
 from . import logit
@@ -48,6 +49,8 @@ class AuthenticationError(Exception):
     pass
 
 class DMRService:
+
+    remember_config = None
     
     def __init__(self, config = cherrypy.config.get("Shrek", {})):
         self.db = None
@@ -62,7 +65,12 @@ class DMRService:
         self.metacat_token_file = None
         self.rucio_client = None
         self.test = None
+        if config and not DMRService.remember_config:
+             DMRService.remember_config = config
+        if not config and DMRService.remember_config:
+             config = DMRService.remember_config
         self.config = config
+        logit.log(f"Shrek | __init__ | self.config: {repr(self.config)}")
         
     
     def initialize_session(self, ctx, agent_session=None, cron_session=False):
@@ -88,7 +96,8 @@ class DMRService:
             session_info = { 'user': ctx.username, 'experiment':ctx.experiment , 'role': ctx.role, 'session': cherrypy.session.id }
             secure_session_id = hashlib.sha256(json.dumps(session_info).encode()).hexdigest()
             session_info["session"] = secure_session_id
-            logit.log(f"Shrek | New Session Info | {ctx.username}: {session_info}" )
+            logit.log(f"Shrek | New Session Info | session_id_only: {session_id_only}  {ctx.username}: {session_info}" )
+            logit.log(f"Shrek | self.config: {repr(self.config)}")
             if not session_id_only:
                 cherrypy.session["Shrek"] = {
                         "onboarded": self.config.get(ctx.experiment, None) is not None,
@@ -105,6 +114,8 @@ class DMRService:
             self.db = ctx.db if not self.db and ctx.db else cherrypy.request.db
             if cherrypy.session["Shrek"]["onboarded"]:
                 return self.set_configuration(cron_session)
+            else:
+                logit.log(f"Shrek | not onboarded? " )
         cherrypy.session["Shrek"]["user"] = ctx.username
         cherrypy.session["Shrek"]["role"] = ctx.role
     
@@ -130,6 +141,7 @@ class DMRService:
     def set_configuration(self, cron_session=False):
         # SET DATA_DISPATCHER CREDS
         experiment = cherrypy.session["Shrek"]["current_experiment"]
+        logit.log("DMR-Service | set_configuration | experiment %s config %s" % (experiment, repr(self.config[experiment])))
         self.dd_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_URL"]
         self.dd_auth_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_AUTH_URL"]
         self.dd_token_file = self.config[experiment]["data_dispatcher"]["TOKEN_FILE"]
@@ -168,6 +180,7 @@ class DMRService:
             return True
         except Exception as e:
             logit.log("DMR-Service | set_data_dispatcher_client() | Exception: %s" % repr(e))
+            logit.log(traceback.format_exc())
             return False
     
     def set_metacat_client(self):
