@@ -40,6 +40,8 @@ class drainingn:
         if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
             self.dmr_service = shrek.DMRService()
             self.dmr_service.initialize_session(self.ctx, cron_session=True)
+            self.dmr_service.set_data_dispatcher_client()
+            self.dmr_service.set_metacat_client()
         if 'mc_client' in cherrypy.session["Shrek"]:
             self.dmr_service.metacat_client = cherrypy.session["Shrek"]['mc_client']
 
