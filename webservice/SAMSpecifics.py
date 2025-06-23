@@ -75,6 +75,7 @@ class sam_specifics:
 
             # recovery dimensions can return an empty (or all blanks)
             # string if there is nothing to do.
+
             if not recovery_dims.strip():
                 return 0, ""
         elif rtype.name == "added_files":
