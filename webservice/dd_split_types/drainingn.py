@@ -42,7 +42,7 @@ class drainingn:
             self.dmr_service.initialize_session(self.ctx, cron_session=True)
             self.dmr_service.set_data_dispatcher_client()
             self.dmr_service.set_metacat_client()
-        if 'mc_client' in cherrypy.session["Shrek"]:
+        if 'mc_client' in cherrypy.session["Shrek"] and cherrypy.session["Shrek"]['mc_client']:
             self.dmr_service.metacat_client = cherrypy.session["Shrek"]['mc_client']
 
         dont_use = []
