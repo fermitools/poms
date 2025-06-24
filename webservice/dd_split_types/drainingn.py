@@ -21,7 +21,7 @@ class drainingn:
         self.cs = cs
         self.db = ctx.db
         self.cs.data_dispatcher_dataset_only = False
-        self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService())
+        self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService()
         self.dmr_service.initialize_session(ctx)
         self.dmr_service.set_data_dispatcher_client()
         self.dmr_service.set_metacat_client()
