@@ -21,7 +21,7 @@ class drainingn:
         self.cs = cs
         self.db = ctx.db
         self.cs.data_dispatcher_dataset_only = False
-        self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService(cherrypy.session.get("Shrek", {}))
+        self.dmr_service = ctx.dmr_service  if ctx.dmr_service else shrek.DMRService())
         self.dmr_service.initialize_session(ctx)
         self.dmr_service.set_data_dispatcher_client()
         self.dmr_service.set_metacat_client()
@@ -37,13 +37,14 @@ class drainingn:
 
     def peek(self):
 
-        if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
-            self.dmr_service = shrek.DMRService()
-            self.dmr_service.initialize_session(self.ctx, cron_session=True)
-            self.dmr_service.set_data_dispatcher_client()
-            self.dmr_service.set_metacat_client()
-        if 'mc_client' in cherrypy.session["Shrek"] and cherrypy.session["Shrek"]['mc_client']:
-            self.dmr_service.metacat_client = cherrypy.session["Shrek"]['mc_client']
+        if not self.dmr_service.metacat_client:
+            if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
+                self.dmr_service = shrek.DMRService()
+                self.dmr_service.initialize_session(self.ctx, cron_session=True)
+                self.dmr_service.set_data_dispatcher_client()
+                self.dmr_service.set_metacat_client()
+            if 'mc_client' in cherrypy.session["Shrek"] and cherrypy.session["Shrek"]['mc_client']:
+                self.dmr_service.metacat_client = cherrypy.session["Shrek"]['mc_client']
 
         dont_use = []
         if not self.last_split:
