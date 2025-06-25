@@ -1244,7 +1244,7 @@ class DMRService:
             project_name = "Recovery | stage: %s | method: %s | mode: %s | parent_sid: %s | pos: %s" % (campaign_stage.name, methodology, mode, recovery_parent, recovery_position)
             recovery_files = []
             handles = []
-            if cherrypy.session["Shrek"]["current_experiment"] == "samdev":
+            if cherrypy.session["Shrek"]["current_experiment"] !=  str(submission.campaign_stage_obj.experiment):
                 cherrypy.session["Shrek"]["current_experiment"] = str(submission.campaign_stage_obj.experiment)
                 self.set_configuration(True)
             if rtype.name in ["state_not_done", "state_failed", "reprocess_all"]:
