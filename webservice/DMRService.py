@@ -115,7 +115,8 @@ class DMRService:
             if cherrypy.session["Shrek"]["onboarded"]:
                 return self.set_configuration(cron_session)
             else:
-                logit.log(f"Shrek | not onboarded? " )
+                logit.log(f"Shrek | {ctx.experiment} not onboarded? " )
+                logit.log(traceback.format_stack())
         cherrypy.session["Shrek"]["user"] = ctx.username
         cherrypy.session["Shrek"]["role"] = ctx.role
     
@@ -159,8 +160,9 @@ class DMRService:
         try:
             self.set_data_dispatcher_client()
             self.set_metacat_client()
-            if cron_session:
+            if not self.dd_client and cron_session:
                 self.dd_client = cherrypy.session.get("Shrek", {}).get("dd_client")
+            if not self.metacat_client and cron_session:
                 self.metacat_client = cherrypy.session.get("Shrek", {}).get("mc_client")
             
             return True

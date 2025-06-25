@@ -587,7 +587,8 @@ class SubmissionsPOMS:
             tim = launch_time
         else:
             tim = datetime.now(utc)
-            
+
+
         if submission_id:
 
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
@@ -2071,6 +2072,7 @@ class SubmissionsPOMS:
             else:
                 if not dd_project_idx and not dd_project_override:
                     # we are here if doing a split type launch
+                    logit.log(f"launch_jobs | about to cal get_dataset_for ctx.experiment: {ctx.experiment} ")
                     dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, True)
                     if dd_project:
                         if dd_project.named_dataset:
