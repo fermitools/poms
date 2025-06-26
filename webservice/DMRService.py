@@ -125,18 +125,19 @@ class DMRService:
         
     
     def flush(self):
-        self.db = None
-        self.experiment = None
-        self.dd_client = None
-        self.dd_server_url = None
-        self.dd_auth_server_url = None
-        self.dd_token_file = None
-        self.metacat_client = None
-        self.metacat_server_url = None
-        self.metacat_auth_server_url = None
-        self.metacat_token_file = None
-        self.rucio_client = None
-        self.test = None
+        logit.log("dmr_service flush()")
+        #self.db = None
+        #self.experiment = None
+        #self.dd_client = None
+        #self.dd_server_url = None
+        #self.dd_auth_server_url = None
+        #self.dd_token_file = None
+        #self.metacat_client = None
+        #self.metacat_server_url = None
+        #self.metacat_auth_server_url = None
+        #self.metacat_token_file = None
+        #self.rucio_client = None
+        #self.test = None
         
     
     def set_configuration(self, cron_session=False):
@@ -176,6 +177,8 @@ class DMRService:
         try:
             if not cherrypy.session["Shrek"].get("dd_client", None):
                 cherrypy.session["Shrek"]["dd_client"] = DataDispatcherClient(server_url=self.dd_server_url, auth_server_url=self.dd_auth_server_url, token_library=self.dd_token_file)
+            if not self.dd_client:
+                self.dd_client = cherrypy.session["Shrek"]["dd_client"]
 
             cherrypy.session["Shrek"]["dd_client"] = cherrypy.session["Shrek"]["dd_client"]
             logit.log("DMR-Service | set_data_dispatcher_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["dd_client"].version()))
@@ -189,6 +192,8 @@ class DMRService:
         try:
             if not cherrypy.session["Shrek"].get("mc_client", None):
                 cherrypy.session["Shrek"]["mc_client"] = MetaCatClient(server_url=self.metacat_server_url, auth_server_url=self.metacat_auth_server_url, token_library=self.metacat_token_file)
+            if not self.metacat_client:
+                self.metacat_client = cherrypy.session["Shrek"]["mc_client"] 
             logit.log("DMR-Service | set_metacat_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["mc_client"].get_version()))
             return True
         except Exception as e:
