@@ -1283,7 +1283,7 @@ class DMRService:
             
             if nfiles == 0:
                 logit.log("DMR-Service  | create_recovery_dataset | no matching files exist | recovery not needed")
-                return 0, None, None
+                return 0, None, None, []
             self.db = self.db if self.db else cherrypy.request.db
             if methodology == "1P":
                 # Pass a DID list of files to reset
