@@ -15,6 +15,7 @@ import threading
 import uuid
 import hashlib
 import base64
+import traceback
 
 import utc
 from . import logit
@@ -48,6 +49,8 @@ class AuthenticationError(Exception):
     pass
 
 class DMRService:
+
+    remember_config = None
     
     def __init__(self, config = cherrypy.config.get("Shrek", {})):
         self.db = None
@@ -62,7 +65,12 @@ class DMRService:
         self.metacat_token_file = None
         self.rucio_client = None
         self.test = None
+        if config and not DMRService.remember_config:
+             DMRService.remember_config = config
+        if not config and DMRService.remember_config:
+             config = DMRService.remember_config
         self.config = config
+        logit.log(f"Shrek | __init__ | self.config: {repr(self.config)}")
         
     
     def initialize_session(self, ctx, agent_session=None, cron_session=False):
@@ -88,7 +96,7 @@ class DMRService:
             session_info = { 'user': ctx.username, 'experiment':ctx.experiment , 'role': ctx.role, 'session': cherrypy.session.id }
             secure_session_id = hashlib.sha256(json.dumps(session_info).encode()).hexdigest()
             session_info["session"] = secure_session_id
-            logit.log(f"Shrek | New Session Info | {ctx.username}: {session_info}" )
+            logit.log(f"Shrek | New Session Info | session_id_only: {session_id_only}  {ctx.username}: {session_info}" )
             if not session_id_only:
                 cherrypy.session["Shrek"] = {
                         "onboarded": self.config.get(ctx.experiment, None) is not None,
@@ -105,6 +113,9 @@ class DMRService:
             self.db = ctx.db if not self.db and ctx.db else cherrypy.request.db
             if cherrypy.session["Shrek"]["onboarded"]:
                 return self.set_configuration(cron_session)
+            else:
+                logit.log(f"Shrek | {ctx.experiment} not onboarded? " )
+                logit.log(traceback.format_stack())
         cherrypy.session["Shrek"]["user"] = ctx.username
         cherrypy.session["Shrek"]["role"] = ctx.role
     
@@ -113,23 +124,25 @@ class DMRService:
         
     
     def flush(self):
-        self.db = None
-        self.experiment = None
-        self.dd_client = None
-        self.dd_server_url = None
-        self.dd_auth_server_url = None
-        self.dd_token_file = None
-        self.metacat_client = None
-        self.metacat_server_url = None
-        self.metacat_auth_server_url = None
-        self.metacat_token_file = None
-        self.rucio_client = None
-        self.test = None
+        logit.log("dmr_service flush()")
+        #self.db = None
+        #self.experiment = None
+        #self.dd_client = None
+        #self.dd_server_url = None
+        #self.dd_auth_server_url = None
+        #self.dd_token_file = None
+        #self.metacat_client = None
+        #self.metacat_server_url = None
+        #self.metacat_auth_server_url = None
+        #self.metacat_token_file = None
+        #self.rucio_client = None
+        #self.test = None
         
     
     def set_configuration(self, cron_session=False):
         # SET DATA_DISPATCHER CREDS
         experiment = cherrypy.session["Shrek"]["current_experiment"]
+        logit.log("DMR-Service | set_configuration | experiment %s config %s" % (experiment, repr(self.config[experiment])))
         self.dd_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_URL"]
         self.dd_auth_server_url = self.config[experiment]["data_dispatcher"]["DATA_DISPATCHER_AUTH_URL"]
         self.dd_token_file = self.config[experiment]["data_dispatcher"]["TOKEN_FILE"]
@@ -147,8 +160,9 @@ class DMRService:
         try:
             self.set_data_dispatcher_client()
             self.set_metacat_client()
-            if cron_session:
+            if not self.dd_client and cron_session:
                 self.dd_client = cherrypy.session.get("Shrek", {}).get("dd_client")
+            if not self.metacat_client and cron_session:
                 self.metacat_client = cherrypy.session.get("Shrek", {}).get("mc_client")
             
             return True
@@ -162,18 +176,23 @@ class DMRService:
         try:
             if not cherrypy.session["Shrek"].get("dd_client", None):
                 cherrypy.session["Shrek"]["dd_client"] = DataDispatcherClient(server_url=self.dd_server_url, auth_server_url=self.dd_auth_server_url, token_library=self.dd_token_file)
+            if not self.dd_client:
+                self.dd_client = cherrypy.session["Shrek"]["dd_client"]
 
             cherrypy.session["Shrek"]["dd_client"] = cherrypy.session["Shrek"]["dd_client"]
             logit.log("DMR-Service | set_data_dispatcher_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["dd_client"].version()))
             return True
         except Exception as e:
             logit.log("DMR-Service | set_data_dispatcher_client() | Exception: %s" % repr(e))
+            logit.log(traceback.format_exc())
             return False
     
     def set_metacat_client(self):
         try:
             if not cherrypy.session["Shrek"].get("mc_client", None):
                 cherrypy.session["Shrek"]["mc_client"] = MetaCatClient(server_url=self.metacat_server_url, auth_server_url=self.metacat_auth_server_url, token_library=self.metacat_token_file)
+            if not self.metacat_client:
+                self.metacat_client = cherrypy.session["Shrek"]["mc_client"] 
             logit.log("DMR-Service | set_metacat_client() | Client set to %s - Version: %s" % (cherrypy.session["Shrek"]["current_experiment"], cherrypy.session["Shrek"]["mc_client"].get_version()))
             return True
         except Exception as e:
@@ -1229,7 +1248,7 @@ class DMRService:
             project_name = "Recovery | stage: %s | method: %s | mode: %s | parent_sid: %s | pos: %s" % (campaign_stage.name, methodology, mode, recovery_parent, recovery_position)
             recovery_files = []
             handles = []
-            if cherrypy.session["Shrek"]["current_experiment"] == "samdev":
+            if cherrypy.session["Shrek"]["current_experiment"] !=  str(submission.campaign_stage_obj.experiment):
                 cherrypy.session["Shrek"]["current_experiment"] = str(submission.campaign_stage_obj.experiment)
                 self.set_configuration(True)
             if rtype.name in ["state_not_done", "state_failed", "reprocess_all"]:
@@ -1263,7 +1282,7 @@ class DMRService:
             
             if nfiles == 0:
                 logit.log("DMR-Service  | create_recovery_dataset | no matching files exist | recovery not needed")
-                return 0, None, None
+                return 0, None, None, []
             self.db = self.db if self.db else cherrypy.request.db
             if methodology == "1P":
                 # Pass a DID list of files to reset
@@ -1342,7 +1361,7 @@ class DMRService:
             self.db.rollback()
         except Exception as e:
             logit.log("DMR-Service  | create_recovery_dataset | Exception: %s" % e)
-        return 0, None, None
+        return 0, None, None, []
     
     def dependency_definition(self, submission, jobtype, i, test=False):
         dd_project = submission.data_dispatcher_submission_obj
