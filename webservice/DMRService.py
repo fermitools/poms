@@ -97,7 +97,6 @@ class DMRService:
             secure_session_id = hashlib.sha256(json.dumps(session_info).encode()).hexdigest()
             session_info["session"] = secure_session_id
             logit.log(f"Shrek | New Session Info | session_id_only: {session_id_only}  {ctx.username}: {session_info}" )
-            logit.log(f"Shrek | self.config: {repr(self.config)}")
             if not session_id_only:
                 cherrypy.session["Shrek"] = {
                         "onboarded": self.config.get(ctx.experiment, None) is not None,
@@ -1362,7 +1361,7 @@ class DMRService:
             self.db.rollback()
         except Exception as e:
             logit.log("DMR-Service  | create_recovery_dataset | Exception: %s" % e)
-        return 0, None, None
+        return 0, None, None, []
     
     def dependency_definition(self, submission, jobtype, i, test=False):
         dd_project = submission.data_dispatcher_submission_obj
