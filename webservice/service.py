@@ -308,7 +308,7 @@ if run_it:
     
     try:
         cherrypy.config.update(io.StringIO(confs.replace("true", "True").replace("false", "False")))
-        cherrypy.config["Shrek"] = shrek_config
+        cherrypy.config.update({"Shrek":shrek_config})
         # cherrypy.config.update(poms_config_path)
     except IOError as mess:
         print(mess, file=sys.stderr)
@@ -338,6 +338,9 @@ if run_it:
     log_level = section["log_level"]
     logit.setlevel(log_level)
     logit.log("POMSPATH: %s" % poms_instance.path)
+    logit.log("poms_config_path: %s" % poms_config_path)
+    logit.log("shrek_config_path: %s" % shrek_config_path)
+    logit.log("cherrypy.config['Shrek']: %s" % repr(cherrypy.config["Shrek"]))
     pidfile()
 
     poms_instance.post_initialize()

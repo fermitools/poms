@@ -564,7 +564,6 @@ class Agent:
             record_queue_log("Begin", groups= full_list)
 
         thispass = set()
-
         all_submissions_pre = {}
         sublist = []
         all_task_ids = {}
