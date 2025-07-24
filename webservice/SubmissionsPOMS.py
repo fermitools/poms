@@ -2348,7 +2348,7 @@ class SubmissionsPOMS:
             "ls -l %s" % vaultfile if role == "analysis" else "",
              
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.5 os=default_os;",
+            "spack load fife-utils@3.7.7 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
