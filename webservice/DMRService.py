@@ -409,6 +409,7 @@ class DMRService:
                 child_close = ")" * int(depths.get(project_items[item["project_id"].campaign_stage_id],1))
                 queries[item["project_id"]] = f"{child_open}{fids}{child_close}"
             
+        logit.log(f"DMR-Service  | get_file_output_queries_for |  End | session: {cherrypy.session['Shrek']['session']}")
         return queries
     
     def list_filtered_projects(self, **kwargs):
