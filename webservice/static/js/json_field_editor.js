@@ -4,23 +4,26 @@ function json_field_editor() {
     ;
 }
 
-json_field_editor.recovery_start = function (id, dd=true) {
+json_field_editor.recovery_start = function (id) {
     var e, e_text, r, i, j, k, si;
     var hang_onto, recoveries;
 
     console.log("recovery_start(" + id + ")")
 
-    const sam_recoveries = {
+    // this used to switch based on a "dd" flag, but job_types don't
+    // actually know if they are for data_dispatcher or not so... 
+    // const sam_recoveries = {
+    const all_recoveries = {
         '-': '',
         'added_files': 'Include files added to definition since previous job ran',
         'consumed_status': 'Include files from the total dataset which were not flagged "consumed" by the original job',
         'delivered_not_consumed': 'Include only delivered files which were not "consumed" by the original job',
         'pending_files': 'Include files from total dataset which do not have suitable children declared for this version of software',
         'process_status': 'Like consumed status, but also include files from that were processed by jobs that say they failed',
-    }
-
-    const dd_recoveries = {
-        '-': '',
+    //}
+    //
+    //const dd_recoveries = {
+    //    '-': '',
         'added_files': 'Include files added to definition since previous job ran',
         'state_failed': 'Reset files that failed during processing, and resubmit.',
         'state_not_done': 'Reset files with a reserved or failed state, and resubmit.',
@@ -32,7 +35,8 @@ json_field_editor.recovery_start = function (id, dd=true) {
         'process_status': 'state_failed'
     }
 
-    recoveries = dd ? dd_recoveries: sam_recoveries;
+    //recoveries = dd ? dd_recoveries: sam_recoveries;
+    recoveries = all_recoveries
 
     e = document.getElementById(id);
     e_text = document.getElementById(id + '_text');
