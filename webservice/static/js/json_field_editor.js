@@ -4,7 +4,7 @@ function json_field_editor() {
     ;
 }
 
-json_field_editor.recovery_start = function (id) {
+json_field_editor.recovery_start = function (id, dd=false) {
     var e, e_text, r, i, j, k, si;
     var hang_onto, recoveries;
 
