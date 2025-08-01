@@ -255,9 +255,7 @@ Launch Recovery for Submission
 <h3>History</h3>
 
 {% for sh in history %}
-{% if loop.previtem and loop.previtem.status_id != sh.status_id %}
 {{sh.created}} {{statusmap[sh.status_id]}} <br>
-{% endif %}
 {% endfor %}
 
 </div>

@@ -1114,16 +1114,16 @@ class CampaignsPOMS:
             campaign = None
 
         if campaign_stage_id is not None:
-            cidl1 = (
+            cidl1 = [x[0] for x in (
                 ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
-                .values()
-            )
-            cidl2 = (
+                .all()
+            )]
+            cidl2 = [x[0] for x in (
                 ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
-                .values()
-            )
+                .all()
+            )]
             s = set([campaign_stage_id])
             s.update(cidl1)
             s.update(cidl2)
