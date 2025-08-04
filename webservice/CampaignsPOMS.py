@@ -1114,16 +1114,16 @@ class CampaignsPOMS:
             campaign = None
 
         if campaign_stage_id is not None:
-            cidl1 = (
+            cidl1 = [x[0] for x in (
                 ctx.db.query(CampaignDependency.needs_campaign_stage_id)
                 .filter(CampaignDependency.provides_campaign_stage_id == campaign_stage_id)
-                .values()
-            )
-            cidl2 = (
+                .all()
+            )]
+            cidl2 = [x[0] for x in (
                 ctx.db.query(CampaignDependency.provides_campaign_stage_id)
                 .filter(CampaignDependency.needs_campaign_stage_id == campaign_stage_id)
-                .values()
-            )
+                .all()
+            )]
             s = set([campaign_stage_id])
             s.update(cidl1)
             s.update(cidl2)
@@ -1616,7 +1616,8 @@ class CampaignsPOMS:
                 dataset = form.pop("sam_settings", {})
                 if isinstance(dataset, str):
                     dataset = json.loads(dataset)
-                dataset = dataset.get("dataset_or_split_data", None)
+                if dataset and isinstance(dataset, dict):
+                    dataset = dataset.get("dataset_or_split_data", None)
                 
             elif "data_dispatcher_settings" in form and form["data_dispatcher_settings"] != "":
                 data_dispatcher_settings = form.pop("data_dispatcher_settings", {
@@ -1798,7 +1799,7 @@ class CampaignsPOMS:
                 .scalar()
             )
 
-            file_pattern = list(form.values())[0]
+            file_pattern = form['file_pattern_1']
             dep = CampaignDependency(
                 provides_campaign_stage_id=to_id, needs_campaign_stage_id=from_id, file_patterns=file_pattern
             )
