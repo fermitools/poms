@@ -64,7 +64,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <th>Parent Id</th>
                 <th>Jobsub Id</th>
                 <th>Available<br>Output</th>
-                <th>DD File Status Summary</th>
+                <th>File Status Summary</th>
                 <th>Commands</th>
                 <!-- <th>Handler</th> -->
                 <th>Status</th> <!--(History/Current)-->
@@ -120,16 +120,23 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             </td>
             <td>
-                Total Files in Dataset<br>
-                Submission % Completed<br>
-                Parents<br>
-                Submitted<br>
-                Not Submitted<br>
-                Unknown<br>
-                Done<br>
-                Failed<br>
-                Children<br>
-                Reserved
+                {% if rec.handler == 'SAM' %}
+                  Total Files in Dataset<br>
+                  Submission % Completed<br>
+                  Parents<br>
+                  Submitted<br>
+                  Not Submitted<br>
+                  Unknown<br>
+                  Done<br>
+                  Failed<br>
+                  Children<br>
+                  Reserved
+                {% elif rec.handler == 'Data Dispatcher' %}
+                  Initial
+                  Reserved
+                  Done
+                  Total
+                {% endif %}
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
@@ -170,7 +177,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                         <i class="history icon"></i>
                 </button>
                 {{rec.status}}</td>
-            <td>{{rec.created}}</td>
+            <td>{{rec.created.strftime('%y-%m-%d %H:%M:%S')}}</td>
             <td>{{rec.creator}}</td>
         </tr>
         {% endfor %}
