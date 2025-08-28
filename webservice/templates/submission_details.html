@@ -258,16 +258,28 @@ Launch Recovery for Submission
 {{sh.created}} {{statusmap[sh.status_id]}} <br>
 {% endfor %}
 
+
+
 </div>
 <div class="ui segment raised">
-<h3>File Stats</h3>
 
-{% for stat in statuses %}
-<span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
-{% endfor %}
+{% if data_handling_service == "sam" %}
+    <h3>SAM File Stats</h3>
+    {% for stat in statuses %}
+        <span class="fn">{{ stat[0] }}</span> <a href="{{ stat[2] }}"><span class="val">{{ stat[1] }}</span></a><br>
+    {% endfor %}
+
+{% elif submission.data_dispatcher_submission_obj and data_handling_service == "data_dispatcher" %}
+    <h3>DD File Stats</h3>
+    {% for stat in statuses %}
+        <span class="fn">{{ stat[0] }}</span> <a href="{{ stat[2] }}"><span class="val">{{ stat[1] }}</span></a><br>
+    {% endfor %}
+
+{% endif %}
 
 </div>
 </div>
+
 {% include 'data_dispatcher_projects.html' %}
 <div class="ui horizontal segments">
 <div class="ui segment raised">

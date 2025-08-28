@@ -1096,26 +1096,8 @@ class SubmissionsPOMS:
             pending = partpending
             statuses = [
                 ["Available output: ", output_list[i], listfiles % output_files[i]],
-                ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-                ["Delivered to SAM: ",
-                    "%d"
-                    % (
-                        psummary.get("tot_consumed", 0)
-                        + psummary.get("tot_cancelled", 0)
-                        + psummary.get("tot_failed", 0)
-                        + psummary.get("tot_skipped", 0)
-                        + psummary.get("tot_delivered", 0)
-                    ),
-                    listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
-                ],
-                ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-                ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
-                ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-                ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-                ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-                ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
+                ["Submitted to SAM: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                ["Consumed by SAM: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
                 ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
             ]
         elif data_handling_service == "data_dispatcher":
@@ -1144,17 +1126,10 @@ class SubmissionsPOMS:
             else:
                 listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
             statuses = [
-                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
-                ["Submission % Completed: ", details.get("statistics",{}).get("pct_complete", "0%"), listfiles],
-                ["Available output: ",details.get("statistics",{}).get("children", 0), listfiles + "&querying=output&mc_query=%s" % details.get("children", None)],
-                ["Parents: ",details.get("statistics",{}).get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % details.get("parents", None)],
-                ["Submitted: ",details.get("statistics",{}).get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % details.get("submitted", None)],
-                ["Not Submitted: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
-                ["Unknown: ", details.get("statistics",{}).get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % details.get("unknown", None)],
-                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
-                ["Failed: ", details.get("statistics",{}).get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % details.get("failed", None)],
-                ["Children: ", details.get("statistics",{}).get("children", 0), listfiles  + "&querying=children&mc_query=%s" % details.get("children", None)],
+                ["Initial: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
                 ["Reserved: ", details.get("statistics",{}).get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
+                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
+                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
             ] 
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
