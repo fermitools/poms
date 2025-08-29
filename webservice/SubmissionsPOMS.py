@@ -258,6 +258,30 @@ class SubmissionsPOMS:
         logit.log("got file pattern list: %s" % repr(plist))
         return plist
 
+    # update file counts for dd submissions:
+    def update_dd_file_counts(self, ctx,  submission_id):
+        logit.log(logit.DEBUG, f"update_file_counts: submission {submission_id}")
+        submission = ctx.db.query(Submission).options(joinedload(Submission.campaign_stage_obj)).filter(Submission.submission_id == submission_id).first()
+
+        if not submission.data_dispatcher_submission_obj:
+             logit.log(logit.DEBUG, f"update_file_counts: not a data_dispatcher submission")
+             return
+        if not hasattr(ctx, 'dmr_service'):
+            ctx.dmr_service = shrek.DMRService()
+
+        ctx.experiment = submission.campaign_stage_obj.experiment
+        ctx.dmr_service.initialize_session(ctx)
+
+        dd_task = submission.data_dispatcher_submission_obj
+
+        project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+        attempted = [ph for ph in project_handles if ph["state"] != "initial" ]
+        done = [ph for ph in project_handles if ph["state"] == "done" ]
+        submission.files_consumed = len(attempted)
+        submission.files_generated = len(done)
+        ctx.db.add(submission)
+        ctx.db.flush()
+
     # utility for strong_dd completion type
     def all_dd_handles_not_reserved(self, ctx,  submission_id):
         # make sure we have the DMRService initialized
@@ -274,6 +298,8 @@ class SubmissionsPOMS:
         # need DMR session stutff for this submissions's experiment..
         ctx.experiment = submission.campaign_stage_obj.experiment
         ctx.dmr_service.initialize_session(ctx)
+
+
 
         # do two passes, first check if the reserved handles have
         # timed out, if not, bail.
@@ -400,6 +426,9 @@ class SubmissionsPOMS:
         projects_submissions = {}
         
         for submission_id, submission_details in all_subs.items():
+            
+            self.update_dd_file_counts(ctx, submission_id)
+
             if submission_details["completion_type"] == "complete":
                 completed.add(submission_id)
                 append_submission(submission_id, submission_details) # completed
@@ -2348,7 +2377,7 @@ class SubmissionsPOMS:
             "ls -l %s" % vaultfile if role == "analysis" else "",
              
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.5 os=default_os;",
+            "spack load fife-utils@3.7.7 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
