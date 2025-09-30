@@ -1315,9 +1315,11 @@ class PomsService:
             return {"status": "400 Bad Request", "message": "No Campaign section in the file"}
 
         camp_name = campaign_s["name"]
+        camp_keywords = json.dumps(campaign_s["campaign_keywords"])
         campaign_d["stages"].append(
             {"id": "campaign {}".format(camp_name), "label": camp_name, "clean": False, "form": cfg.get("campaign_defaults", {})}
         )
+        campaign_d["stages"][0]["form"]["campaign_keywords"] = camp_keywords
         # Process stages
         stage_names = [k for k in cfg if k.startswith("campaign_stage ")]
         if not stage_names:

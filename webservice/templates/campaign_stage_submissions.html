@@ -103,6 +103,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                     {{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.depends[rec.submission_id]|safe}}</td>
                     </a>
                 {% endif %}
+            </td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
                     {{rec.jobsub_job_id | replace('.fnal.gov', '')}}
@@ -120,7 +121,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             </td>
             <td>
-                 {% for stat in statuses %}
+                 {% for stat in rec.statuses %}
                   <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
                  {% endfor %}
             </td>
