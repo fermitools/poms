@@ -1327,7 +1327,10 @@ class PomsService:
 
         for name in stage_names:
             sn = name.split(" ", 1)[1]
+            stage_dd_config_loads = json.loads(cfg[name]["data_dispatcher_settings"])
+            stagenum = len(campaign_d["stages"]) # current size = next to be added
             campaign_d["stages"].append({"id": sn, "label": sn, "clean": False, "form": cfg[name]})
+            campaign_d["stages"][stagenum]["form"]["data_dispatcher_settings"] = stage_dd_config_loads
         # Process dependencies
         dep_names = [k for k in cfg if k.startswith("dependencies ")]
         for name in dep_names:
