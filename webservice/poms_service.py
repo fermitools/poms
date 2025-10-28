@@ -1042,9 +1042,9 @@ class PomsService:
 
     # h4. set_job_launches
 
-    @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
-    def set_job_launches(self, ctx, **kwargs):
-        return self.submissionsPOMS.set_job_launches(ctx, hold)  # FIXME: 'hold' is undefined
+    @poms_method(p=[{"p": "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
+    def set_job_launches(self, ctx, hold, **kwargs):
+        return self.submissionsPOMS.set_job_launches(ctx, hold)  
 
     # see &l=webservice/SubmissionsPOMS.py#set_job_launches&
 
