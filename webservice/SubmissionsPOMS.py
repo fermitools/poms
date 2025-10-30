@@ -2405,6 +2405,7 @@ class SubmissionsPOMS:
             ("cp $vtk /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             ("chmod 0400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             "export GROUP=%s;" % group,
+            "export EXPERIMENT=%s;" % exp,
             "echo '#!bin/sh' > /tmp/poms_record.sh;",
             "echo 'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"' >> /tmp/poms_record.sh;",
             "echo 'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'  >> /tmp/poms_record.sh; "
