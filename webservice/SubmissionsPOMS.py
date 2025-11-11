@@ -478,7 +478,7 @@ class SubmissionsPOMS:
                 submission_details["dependency_file_patterns"].append(str(submission_details["output_file_patterns"].split(",")))
             # get urls for these, for later use
             if submission_details.get("project", "None") != "None":
-                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]).replace("samsamdev","samdev"), submission_details["experiment"], submission_details["project"])
+                submission_details["url"] = ("%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]), submission_details["experiment"], submission_details["project"])).replace("hypot","samdev").replace("samsamdev","samdev")
                 urls.append(submission_details["url"])
         
         logit.log(logit.DEBUG, f"wrapup_tasks | got urls: {urls}")  
@@ -1523,6 +1523,8 @@ class SubmissionsPOMS:
             if iterate:
                 s.recovery_position = s.recovery_position + 1
                 ctx.db.add(s)
+                # don't lose recovery position if something goes wrong
+                ctx.db.commit()
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True

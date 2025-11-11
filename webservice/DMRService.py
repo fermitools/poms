@@ -81,6 +81,10 @@ class DMRService:
             ctx.experiment = agent_session["experiment"]
             ctx.username = "poms"
 
+        if not ctx.experiment:
+            logit.log("DMR-Service | Not Initializing Session -- no experiment")
+            return
+            
         if not cherrypy.session.get("Shrek", None):
             logit.log("DMR-Service | Initializing Session")
             needs_new = True
@@ -555,8 +559,13 @@ class DMRService:
             if child_query in query_index:
                 query_index[child_query].append(id)
             else:
+                logit.log(f"DMR-Service | child_query: {child_query}")
                 query_index[child_query] = [id]
-                unique_queries[child_query] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query, None))
+                if child_query == "children(files )":
+                    # bug upstream, but don't try it...
+                    unique_queries[child_query] = []
+                else:
+                    unique_queries[child_query] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query, None))
                 total_processed += 1
         logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Finished Running Queries | {get_elapsed_time()} ')
 

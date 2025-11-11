@@ -1096,7 +1096,7 @@ class StagesPOMS:
                 some_kids_list,
                 some_kids_decl_list,
                 all_kids_decl_list,
-            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_subs.values(), ctx.experiment)
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(list(sam_subs.values()), ctx.experiment)
 
         try:
             changes_made = False

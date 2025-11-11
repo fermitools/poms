@@ -311,7 +311,14 @@ class Agent:
 
         ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
 
-        if ntot > 0:
+        #
+        # this was checking for ntot > 0, but 1 total job may just be 
+        # the start job in a jobsub --dataset-definition DAG finishing, 
+        # (or similar) so don't compute a percentage if the total is 1
+        # also, if there really is just one job in the submission, the
+        # "done" flag will be true, so it won't matter.
+        #
+        if ntot > 1:
             report_pct_complete = ncomp * 100.0 / ntot
         else:
             report_pct_complete = None
