@@ -1484,6 +1484,7 @@ class SubmissionsPOMS:
         if s.recovery_position == None:
             s.recovery_position = 0
             ctx.db.add(s)
+            ctx.db.commit()
             iterate = False
             logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
         else:
@@ -1586,6 +1587,10 @@ class SubmissionsPOMS:
 
     # h3. set_job_launches
     def set_job_launches(self, ctx, hold):
+
+        # getting bogus holds as "poms" user somehow, blocking here.
+        if ctx.username == 'poms':
+            return
 
         experimenter = ctx.get_experimenter()
         if hold not in ["hold", "allowed"]:
@@ -1883,7 +1888,16 @@ class SubmissionsPOMS:
             # update ctx bookkeping we might need for DMR later
             ctx.role = cs.creator_role
             ctx.username = launcher_experimenter.username
-            ctx.experiment = cs.experiment
+
+            if ctx.experiment != cs.experiment:
+                ctx.experiment = cs.experiment 
+
+                if cs.data_dispatcher_dataset_query:
+                    # if we are setting the experiment and using dd then
+                    # reinitialize to be on right experiment dd connection
+                    if not hasattr(ctx, 'dmr_service'):
+                        ctx.dmr_service = shrek.DMRService()
+                    ctx.dmr_service.initialize_session(ctx)
                 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj

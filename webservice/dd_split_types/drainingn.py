@@ -40,7 +40,7 @@ class drainingn:
 
     def peek(self):
 
-        logit.log(f"drainingn split peek: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client}")
+        logit.log(f"drainingn split peek: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client} mc_metacat_url: {self.dmr_service.metacat_server_url}")
         if not self.dmr_service.metacat_client:
             if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
                 logit.log("drainingn split peek: metacat_client not found, reinitializing DMRService")
