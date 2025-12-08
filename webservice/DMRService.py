@@ -914,7 +914,7 @@ class DMRService:
                 logit.log("DMR-Service  | store_project | fail: no database access | session %s" % (cherrypy.session["Shrek"]["session"]))
                 raise Exception("DMR-Service  | store_project | fail: no database access")
 
-        if "campaign_stage_id" in kwargs and check_stage:
+        if "campaign_stage_id" in kwargs: 
             cs = self.db.query(CampaignStage).join(Campaign).filter(CampaignStage.campaign_stage_id == int(kwargs["campaign_stage_id"])).first()
             if cs and (cs.data_dispatcher_settings 
                        or cs.data_dispatcher_project_virtual is not None 
@@ -926,8 +926,9 @@ class DMRService:
                 project_attributes["campaign_name"] = cs.campaign_obj.name
                 project_attributes["campaign_stage_name"] = cs.name
                 project_attributes["software_version"] = cs.software_version
-                idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                if check_stage:
+                    idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                    worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
         new_project = cherrypy.session["Shrek"]["dd_client"].create_project(files, 
                                                                             users=users,
                                                                             query=dataset, 
