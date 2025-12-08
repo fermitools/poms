@@ -923,6 +923,9 @@ class DMRService:
                        or cs.data_dispatcher_load_limit):
                 project_attributes["virtual"] = cs.data_dispatcher_settings.get("virtual", cs.data_dispatcher_project_virtual) or False
                 project_attributes["load_limit"] = cs.data_dispatcher_settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                project_attributes["campaign_name"] = cs.campaign_obj.name
+                project_attributes["campaign_stage_name"] = cs.name
+                project_attributes["software_version"] = cs.software_version
                 idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
                 worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
         new_project = cherrypy.session["Shrek"]["dd_client"].create_project(files, 
