@@ -125,7 +125,7 @@ class sam_specifics:
             )
 
         try:
-            recovery_dims = self.try_format_with_keywords(recovery_dims, s.campaign_stage_snapshot_obj.campaign_obj.campaign_keywords)
+            recovery_dims = self.try_format_with_keywords(recovery_dims, s.campaign_obj.campaign_keywords)
             logit.log("counting files dims %s" % recovery_dims)
             nfiles = self.ctx.sam.count_files(s.campaign_stage_snapshot_obj.experiment, recovery_dims, dbhandle=self.ctx.db)
            
