@@ -2368,7 +2368,7 @@ class SubmissionsPOMS:
             "ls -l %s" % vaultfile if role == "analysis" else "",
              
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.7 os=default_os;",
+            "spack load fife-utils@3.7.8 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
@@ -2423,8 +2423,9 @@ class SubmissionsPOMS:
             "export GROUP=%s;" % group,
             "export EXPERIMENT=%s;" % exp,
             "echo '#!bin/sh' > /tmp/poms_record.sh;",
-            "echo 'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"' >> /tmp/poms_record.sh;",
-            "echo 'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'  >> /tmp/poms_record.sh; "
+            "echo '\"'\"'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"'\"'\"' >> /tmp/poms_record.sh;",
+            "echo '\"'\"'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'\"'\"'  >> /tmp/poms_record.sh; "
+
         ])
         if do_data_dispatcher and data_dispatcher_logic:
             cmdl.extend(data_dispatcher_logic)
