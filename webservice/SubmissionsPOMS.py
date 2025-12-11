@@ -1279,13 +1279,17 @@ class SubmissionsPOMS:
                         status = "Completed"
                     if status is not None:
                         submission_statuses_to_update[submission.submission_id] = status
+
                     if "pct_complete" in data_entry:
                         submission.pct_complete = data_entry["pct_complete"]
+                        ctx.db.add(submission)
                     if "jobsub_job_id" in data_entry:
                         submission.jobsub_job_id = data_entry["jobsub_job_id"]
+                        ctx.db.add(submission)
                     if "project" in data_entry:
                         submission.project = data_entry["project"]
-                    
+                        ctx.db.add(submission)
+
                     # Data dispatcher updates
                     if "dd_task_id" in data_entry:
                         data_entry["dd_task_id"] = int(data_entry["dd_task_id"])
