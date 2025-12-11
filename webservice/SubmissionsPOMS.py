@@ -741,6 +741,9 @@ class SubmissionsPOMS:
             
             lasthist = submissions_dict[s.submission_id].get("last_history_status", None)
             lasthist_created = submissions_dict[s.submission_id].get("last_history_created", "")
+ 
+            if lasthist is None:
+                   lasthist = self.get_last_history(ctx, s.submission_id)
 
             logit.log(
                 "update_submission_statuses: submission_id: %s  newstatus %s  lasthist: status %s created %s "
@@ -753,15 +756,15 @@ class SubmissionsPOMS:
             # have falsely concluded that the launch failed...
             final_states = (self.status_Located, self.status_Removed, self.status_Failed)
             if lasthist and lasthist in final_states and ctx.username == "poms":
-                return
+                continue
 
             # don't roll back Completed
             if lasthist == self.status_Completed and status_id <= self.status_Completed:
-                return
+                continue
 
             # don't put in duplicates
             if lasthist == status_id:
-                return
+                continue
 
             sh = SubmissionHistory()
             sh.submission_id = s.submission_id
@@ -1364,7 +1367,7 @@ class SubmissionsPOMS:
             else:
                 final_states = (self.status_Located, self.status_Removed, self.status_Failed, self.status_Cancelled)
             if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
-                return
+                continue
 
             # don't roll back Completed
             if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
