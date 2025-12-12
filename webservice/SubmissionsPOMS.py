@@ -1375,11 +1375,11 @@ class SubmissionsPOMS:
 
             # don't roll back Completed
             if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
-                return
+                continue
 
             # don't put in duplicates
             if lasthist and lasthist.status_id == status_id:
-                return
+                continue
 
             sh = SubmissionHistory()
             sh.submission_id = submission.submission_id
@@ -1394,6 +1394,7 @@ class SubmissionsPOMS:
             if status_id in final_states:
                 submission.updated = sh.created
                 ctx.db.add(submission)
+        ctx.db.commit()
 
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
