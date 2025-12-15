@@ -302,16 +302,23 @@ class Agent:
         
         ntot = int(entry.get("njobs", (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 
-                int(entry["failed"]) + int(entry["cancelled"]))))
+                int(entry["cancelled"]))))
 
         if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
             self.known["maxjobs"][entry["pomsTaskID"]] = ntot
         else:
             ntot = self.known["maxjobs"][entry["pomsTaskID"]]
 
-        ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
+        ncomp = int(entry["completed"]) + int(entry["held"]) + int(entry["cancelled"])
 
-        if ntot > 0:
+        #
+        # this was checking for ntot > 0, but 1 total job may just be 
+        # the start job in a jobsub --dataset-definition DAG finishing, 
+        # (or similar) so don't compute a percentage if the total is 1
+        # also, if there really is just one job in the submission, the
+        # "done" flag will be true, so it won't matter.
+        #
+        if ntot > 1:
             report_pct_complete = ncomp * 100.0 / ntot
         else:
             report_pct_complete = None

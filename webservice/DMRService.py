@@ -81,6 +81,10 @@ class DMRService:
             ctx.experiment = agent_session["experiment"]
             ctx.username = "poms"
 
+        if not ctx.experiment:
+            logit.log("DMR-Service | Not Initializing Session -- no experiment")
+            return
+            
         if not cherrypy.session.get("Shrek", None):
             logit.log("DMR-Service | Initializing Session")
             needs_new = True
@@ -555,8 +559,13 @@ class DMRService:
             if child_query in query_index:
                 query_index[child_query].append(id)
             else:
+                logit.log(f"DMR-Service | child_query: {child_query}")
                 query_index[child_query] = [id]
-                unique_queries[child_query] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query, None))
+                if child_query == "children(files )":
+                    # bug upstream, but don't try it...
+                    unique_queries[child_query] = []
+                else:
+                    unique_queries[child_query] = list(cherrypy.session["Shrek"]["mc_client"].query(child_query, None))
                 total_processed += 1
         logit.log(f'DMR-Service  | get_output_file_details_for_submissions | Finished Running Queries | {get_elapsed_time()} ')
 
@@ -905,7 +914,7 @@ class DMRService:
                 logit.log("DMR-Service  | store_project | fail: no database access | session %s" % (cherrypy.session["Shrek"]["session"]))
                 raise Exception("DMR-Service  | store_project | fail: no database access")
 
-        if "campaign_stage_id" in kwargs and check_stage:
+        if "campaign_stage_id" in kwargs: 
             cs = self.db.query(CampaignStage).join(Campaign).filter(CampaignStage.campaign_stage_id == int(kwargs["campaign_stage_id"])).first()
             if cs and (cs.data_dispatcher_settings 
                        or cs.data_dispatcher_project_virtual is not None 
@@ -914,8 +923,12 @@ class DMRService:
                        or cs.data_dispatcher_load_limit):
                 project_attributes["virtual"] = cs.data_dispatcher_settings.get("virtual", cs.data_dispatcher_project_virtual) or False
                 project_attributes["load_limit"] = cs.data_dispatcher_settings.get("load_limit", cs.data_dispatcher_load_limit) or None
-                idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
-                worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                project_attributes["campaign_name"] = cs.campaign_obj.name
+                project_attributes["campaign_stage_name"] = cs.name
+                project_attributes["software_version"] = cs.software_version
+                if check_stage:
+                    idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                    worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
         new_project = cherrypy.session["Shrek"]["dd_client"].create_project(files, 
                                                                             users=users,
                                                                             query=dataset, 

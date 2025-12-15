@@ -1096,8 +1096,8 @@ class StagesPOMS:
                 some_kids_list,
                 some_kids_decl_list,
                 all_kids_decl_list,
-            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_subs.values(), ctx.experiment, just_output=True)
-                
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(list(sam_subs.values()), ctx.experiment)
+
         try:
             changes_made = False
             for sub in sam_subs.values():
@@ -1126,6 +1126,7 @@ class StagesPOMS:
         darrow = {}
         sids = []
         slist = []
+        statuses = []
         submissions = []
         
         dd_output = [] if not dd_submissions else dd_output
@@ -1162,9 +1163,15 @@ class StagesPOMS:
             # Define output
             handler= "Unknown"
             if sid in sam_subs:
+                cs = tup.Submission.campaign_stage_snapshot_obj.campaign_stage
+                listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
                 handler = "SAM"
                 output = sam_output_files[i]
                 output_length = sam_output_list[i]
+                psummary = summary_list[i]
+                statuses = [
+                    ["Available output: ", sam_output_list[i], listfiles % sam_output_files[i]],
+                ]
             elif sid in submission_ids_dd and "query" in dd_output[sid]:
                 handler = "Data Dispatcher"
                 output = dd_output[sid]["query"]
@@ -1197,6 +1204,7 @@ class StagesPOMS:
                 "available_output": output_length,
                 "output_dims": output,
                 "handler": handler,
+                "statuses": statuses,
             }
             submissions.append(row)
             if handler == "SAM":

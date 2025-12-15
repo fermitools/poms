@@ -1,4 +1,3 @@
-from math import log
 import poms.webservice.logit as logit
 import poms.webservice.DMRService as shrek
 import cherrypy
@@ -8,7 +7,7 @@ from poms.webservice.poms_model import DataDispatcherSubmission
 from sqlalchemy import text
 
 
-class drainingn:
+class drainingn_new:
     """
        This type, when filled out as drainign(n) for some integer
        n, will pull at most n files at a time from the dataset
@@ -26,10 +25,12 @@ class drainingn:
         self.dmr_service.initialize_session(ctx)
         self.dmr_service.set_data_dispatcher_client()
         self.dmr_service.set_metacat_client()
-        logit.log(f"drainingn split __init__: ctx.experiment {ctx.experiment}")
-        logit.log(f"drainingn split __init__: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client}")
+        self.peek_files = []
+
+        logit.log(f"drainingn_new split __init__: ctx.experiment {ctx.experiment}")
+        logit.log(f"drainingn_new split __init__: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client}")
   
-        self.n = int(cs.cs_split_type[10:].strip(")")) if not self.test else int(cs.test_split_type[10:].strip(")"))
+        self.n = int(cs.cs_split_type[14:].strip(")")) if not self.test else int(cs.test_split_type[14:].strip(")"))
         if self.test:
             self.last_split = self.cs.last_split_test
         else:
@@ -40,61 +41,45 @@ class drainingn:
 
     def peek(self):
 
-        logit.log(f"drainingn split peek: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client} mc_metacat_url: {self.dmr_service.metacat_server_url}")
+        logit.log(f"drainingn_new split peek: mc: {self.dmr_service.metacat_client} dd: {self.dmr_service.metacat_client}")
         if not self.dmr_service.metacat_client:
             if "Shrek" not in cherrypy.session or "mc_client" not in cherrypy.session["Shrek"] or not cherrypy.session["Shrek"]["mc_client"]:
-                logit.log("drainingn split peek: metacat_client not found, reinitializing DMRService")
                 self.dmr_service = shrek.DMRService()
                 self.dmr_service.initialize_session(self.ctx, cron_session=True)
                 self.dmr_service.set_data_dispatcher_client()
                 self.dmr_service.set_metacat_client()
-                logit.log(f"drainingn split peek: reinitialized mc")
-                
 
-        dont_use = []
         if not self.last_split:
-            logit.log("drainingn split peek: first run, no last_split found")
-            self.last_split = 0
-            project_name = ("TEST | " if self.test else "") + "%s | draining(%d) | First Run" % (self.cs.name, self.n)
-            query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-            all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
-            logit.log(f"drainingn split peek: query: {query} returned {len(all_files)} files")
-        else:
-            logit.log(f"drainingn split peek: continuing from last_split: {self.last_split}")
-            previous_subs = [submission.project_id for submission in self.db.query(DataDispatcherSubmission).filter(
-                DataDispatcherSubmission.experiment == self.cs.experiment, 
-                DataDispatcherSubmission.campaign_stage_id == self.cs.campaign_stage_id,
-                DataDispatcherSubmission.split_type.like("drainingn(%"),
-                DataDispatcherSubmission.project_id != None,
-                DataDispatcherSubmission.splits_reset == False,
-                DataDispatcherSubmission.archive == False).all()]
-            logit.log(f"drainingn split peek: found {len(previous_subs)} previous submissions")
-            for project_id in previous_subs:
-                dont_use.extend([file.get("fid") for file in self.dmr_service.get_file_info_from_project_id(project_id)])
-            project_name = ("TEST | " if self.test else "") +  "%s | draining(%d) | Slice: %d" % (self.cs.name, self.n, self.last_split)
-            if len(dont_use) > 0:
-                query = "%s - (fids %s) limit %d" % (self.cs.data_dispatcher_dataset_query, ",".join(list(set(dont_use))), self.n)
-            else:
-                query = "%s limit %d" % (self.cs.data_dispatcher_dataset_query, self.n)
-            logit.log(f"drainingn split peek: query: {query}")
+            # blank because first time *or* we were reset...
+            # use a 'standard' name
+            self.last_split = f"poms:drainingn_used_cs_{cs.campaign_stage_id}"
+            self.cs.last_split = self.last_split
+            self.db.commit()
+            # if there is an existing one dataset, we were reset, so
+            # remove it to complete the reset
+            try:
+                existing = self.dmr_service.metacat_client.get_dataset(did=self.last_split)
+                self.dmr_service.metacat_client.remove_dataset(did=self.last_split)
+            except ValueError:
+                # no existing dataset, it really is the first time
+                pass
+
+        # now create a fresh dataset
+        self.dmr_service.metacat_client.create_dataset(did=self.last_split)
+        base_query =self.cs.data_dispatcher_datset_query 
+        query = f"{base_query} minus files from {self.last_split} limit {self.n}"
         all_files = list(self.dmr_service.metacat_client.query(query, with_metadata=True))
-        logit.log(f"drainingn split peek: query returned {len(all_files)} files")
         if len(all_files) == 0:
             raise StopIteration
+        self.peek_files = all_files
 
-        project_files = [file for file in all_files[0:min(self.n, len(all_files))] if file.get("fid", "") not in dont_use]
-        logit.log(f"drainingn split peek: selected {len(project_files)} files for the project")
-        return self.create_project(project_name, project_files, named_dataset = query)
-
+        return self.create_project(project_name, all_files, named_dataset = query)
     def next(self):
         dd_project = self.peek()
 
-        if self.test:
-            self.cs.last_split_test = dd_project.project_id
-        else:
-            self.cs.cs_last_split = dd_project.project_id
+        # add the files we got to the used dataset:
+        self.dmr_service.metacat_client.add_files(self.last_split, self.peek_files)
         dd_project.last_split = dd_project.project_id
-        self.db.commit()
         return dd_project
 
     def len(self):

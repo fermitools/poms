@@ -478,7 +478,7 @@ class SubmissionsPOMS:
                 submission_details["dependency_file_patterns"].append(str(submission_details["output_file_patterns"].split(",")))
             # get urls for these, for later use
             if submission_details.get("project", "None") != "None":
-                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]).replace("samsamdev","samdev"), submission_details["experiment"], submission_details["project"])
+                submission_details["url"] = ("%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]), submission_details["experiment"], submission_details["project"])).replace("hypot","samdev").replace("samsamdev","samdev")
                 urls.append(submission_details["url"])
         
         logit.log(logit.DEBUG, f"wrapup_tasks | got urls: {urls}")  
@@ -741,6 +741,9 @@ class SubmissionsPOMS:
             
             lasthist = submissions_dict[s.submission_id].get("last_history_status", None)
             lasthist_created = submissions_dict[s.submission_id].get("last_history_created", "")
+ 
+            if lasthist is None:
+                   lasthist = self.get_last_history(ctx, s.submission_id)
 
             logit.log(
                 "update_submission_statuses: submission_id: %s  newstatus %s  lasthist: status %s created %s "
@@ -753,15 +756,15 @@ class SubmissionsPOMS:
             # have falsely concluded that the launch failed...
             final_states = (self.status_Located, self.status_Removed, self.status_Failed)
             if lasthist and lasthist in final_states and ctx.username == "poms":
-                return
+                continue
 
             # don't roll back Completed
             if lasthist == self.status_Completed and status_id <= self.status_Completed:
-                return
+                continue
 
             # don't put in duplicates
             if lasthist == status_id:
-                return
+                continue
 
             sh = SubmissionHistory()
             sh.submission_id = s.submission_id
@@ -1096,26 +1099,8 @@ class SubmissionsPOMS:
             pending = partpending
             statuses = [
                 ["Available output: ", output_list[i], listfiles % output_files[i]],
-                ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-                ["Delivered to SAM: ",
-                    "%d"
-                    % (
-                        psummary.get("tot_consumed", 0)
-                        + psummary.get("tot_cancelled", 0)
-                        + psummary.get("tot_failed", 0)
-                        + psummary.get("tot_skipped", 0)
-                        + psummary.get("tot_delivered", 0)
-                    ),
-                    listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
-                ],
-                ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-                ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-                ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
-                ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-                ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-                ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-                ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-                ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
+                ["Submitted to SAM: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                ["Consumed by SAM: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
                 ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
             ]
         elif data_handling_service == "data_dispatcher":
@@ -1144,17 +1129,10 @@ class SubmissionsPOMS:
             else:
                 listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
             statuses = [
-                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
-                ["Submission % Completed: ", details.get("statistics",{}).get("pct_complete", "0%"), listfiles],
-                ["Available output: ",details.get("statistics",{}).get("children", 0), listfiles + "&querying=output&mc_query=%s" % details.get("children", None)],
-                ["Parents: ",details.get("statistics",{}).get("parents", 0), listfiles + "&querying=parents&mc_query=%s" % details.get("parents", None)],
-                ["Submitted: ",details.get("statistics",{}).get("submitted", 0), listfiles  + "&querying=submitted&mc_query=%s" % details.get("submitted", None)],
-                ["Not Submitted: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
-                ["Unknown: ", details.get("statistics",{}).get("unknown", 0), listfiles  + "&querying=unknown&mc_query=%s" % details.get("unknown", None)],
-                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
-                ["Failed: ", details.get("statistics",{}).get("failed", 0), listfiles  + "&querying=failed&mc_query=%s" % details.get("failed", None)],
-                ["Children: ", details.get("statistics",{}).get("children", 0), listfiles  + "&querying=children&mc_query=%s" % details.get("children", None)],
+                ["Initial: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
                 ["Reserved: ", details.get("statistics",{}).get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
+                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
+                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
             ] 
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
@@ -1301,13 +1279,17 @@ class SubmissionsPOMS:
                         status = "Completed"
                     if status is not None:
                         submission_statuses_to_update[submission.submission_id] = status
+
                     if "pct_complete" in data_entry:
                         submission.pct_complete = data_entry["pct_complete"]
+                        ctx.db.add(submission)
                     if "jobsub_job_id" in data_entry:
                         submission.jobsub_job_id = data_entry["jobsub_job_id"]
+                        ctx.db.add(submission)
                     if "project" in data_entry:
                         submission.project = data_entry["project"]
-                    
+                        ctx.db.add(submission)
+
                     # Data dispatcher updates
                     if "dd_task_id" in data_entry:
                         data_entry["dd_task_id"] = int(data_entry["dd_task_id"])
@@ -1389,15 +1371,15 @@ class SubmissionsPOMS:
             else:
                 final_states = (self.status_Located, self.status_Removed, self.status_Failed, self.status_Cancelled)
             if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
-                return
+                continue
 
             # don't roll back Completed
             if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
-                return
+                continue
 
             # don't put in duplicates
             if lasthist and lasthist.status_id == status_id:
-                return
+                continue
 
             sh = SubmissionHistory()
             sh.submission_id = submission.submission_id
@@ -1412,6 +1394,7 @@ class SubmissionsPOMS:
             if status_id in final_states:
                 submission.updated = sh.created
                 ctx.db.add(submission)
+        ctx.db.commit()
 
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
@@ -1509,6 +1492,7 @@ class SubmissionsPOMS:
         if s.recovery_position == None:
             s.recovery_position = 0
             ctx.db.add(s)
+            ctx.db.commit()
             iterate = False
             logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
         else:
@@ -1548,6 +1532,8 @@ class SubmissionsPOMS:
             if iterate:
                 s.recovery_position = s.recovery_position + 1
                 ctx.db.add(s)
+                # don't lose recovery position if something goes wrong
+                ctx.db.commit()
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True
@@ -1609,6 +1595,10 @@ class SubmissionsPOMS:
 
     # h3. set_job_launches
     def set_job_launches(self, ctx, hold):
+
+        # getting bogus holds as "poms" user somehow, blocking here.
+        if ctx.username == 'poms':
+            return
 
         experimenter = ctx.get_experimenter()
         if hold not in ["hold", "allowed"]:
@@ -1906,7 +1896,16 @@ class SubmissionsPOMS:
             # update ctx bookkeping we might need for DMR later
             ctx.role = cs.creator_role
             ctx.username = launcher_experimenter.username
-            ctx.experiment = cs.experiment
+
+            if ctx.experiment != cs.experiment:
+                ctx.experiment = cs.experiment 
+
+                if cs.data_dispatcher_dataset_query:
+                    # if we are setting the experiment and using dd then
+                    # reinitialize to be on right experiment dd connection
+                    if not hasattr(ctx, 'dmr_service'):
+                        ctx.dmr_service = shrek.DMRService()
+                    ctx.dmr_service.initialize_session(ctx)
                 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -2377,7 +2376,7 @@ class SubmissionsPOMS:
             "ls -l %s" % vaultfile if role == "analysis" else "",
              
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.7 os=default_os;",
+            "spack load fife-utils@3.7.8 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
@@ -2430,9 +2429,11 @@ class SubmissionsPOMS:
             ("cp $vtk /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             ("chmod 0400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             "export GROUP=%s;" % group,
+            "export EXPERIMENT=%s;" % exp,
             "echo '#!bin/sh' > /tmp/poms_record.sh;",
-            "echo 'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"' >> /tmp/poms_record.sh;",
-            "echo 'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'  >> /tmp/poms_record.sh; "
+            "echo '\"'\"'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"'\"'\"' >> /tmp/poms_record.sh;",
+            "echo '\"'\"'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'\"'\"'  >> /tmp/poms_record.sh; "
+
         ])
         if do_data_dispatcher and data_dispatcher_logic:
             cmdl.extend(data_dispatcher_logic)

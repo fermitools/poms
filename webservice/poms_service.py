@@ -1042,9 +1042,9 @@ class PomsService:
 
     # h4. set_job_launches
 
-    @poms_method(p=[{"p", "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
-    def set_job_launches(self, ctx, **kwargs):
-        return self.submissionsPOMS.set_job_launches(ctx, hold)  # FIXME: 'hold' is undefined
+    @poms_method(p=[{"p": "is_superuser"}], rtype="redirect", redirect="%(poms_path)s/index/%(experiment)s/%(role)s")
+    def set_job_launches(self, ctx, hold, **kwargs):
+        return self.submissionsPOMS.set_job_launches(ctx, hold)  
 
     # see &l=webservice/SubmissionsPOMS.py#set_job_launches&
 
@@ -1315,9 +1315,11 @@ class PomsService:
             return {"status": "400 Bad Request", "message": "No Campaign section in the file"}
 
         camp_name = campaign_s["name"]
+        camp_keywords = campaign_s["campaign_keywords"]
         campaign_d["stages"].append(
             {"id": "campaign {}".format(camp_name), "label": camp_name, "clean": False, "form": cfg.get("campaign_defaults", {})}
         )
+        campaign_d["stages"][0]["form"]["campaign_keywords"] = camp_keywords
         # Process stages
         stage_names = [k for k in cfg if k.startswith("campaign_stage ")]
         if not stage_names:
@@ -1325,7 +1327,10 @@ class PomsService:
 
         for name in stage_names:
             sn = name.split(" ", 1)[1]
+            stage_dd_config_loads = json.loads(cfg[name]["data_dispatcher_settings"])
+            stagenum = len(campaign_d["stages"]) # current size = next to be added
             campaign_d["stages"].append({"id": sn, "label": sn, "clean": False, "form": cfg[name]})
+            campaign_d["stages"][stagenum]["form"]["data_dispatcher_settings"] = stage_dd_config_loads
         # Process dependencies
         dep_names = [k for k in cfg if k.startswith("dependencies ")]
         for name in dep_names:

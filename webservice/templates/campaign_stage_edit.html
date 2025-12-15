@@ -9,6 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-store" />
 <title>POMS</title>
 
+
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <script src="{{pomspath}}/static/js/split_type_picker.js"></script>
 {% if data.campaign_stages[0].Campaign.data_handling_service == "data_dispatcher" %}
@@ -98,11 +99,6 @@ Campaign Stages
           <!-- <i class="large copy icon link blue icon" onclick="edit_campaign({{loop.index}},'CLONE');"></i> -->
           {% endif %}
         </td>
-        <td id="c_campaign_stage_id_{{loop.index}}" style="display:none">{{row.CampaignStage.campaign_stage_id}}</td>
-        {% if row.CampaignStage.campaign_stage_id|int == jump_to_campaign|default(-1)|int %}
-
-        </script>
-        {% endif %}
         <td id="c_campaign_stage_clear_cronjob_{{loop.index}}" style="display:none">{{row.CampaignStage.default_clear_cronjob}}</td>
         <td id="c_authorized_{{loop.index}}" style="display:none">{{data.authorized[loop.index0]}}</td>
         <td id="c_campaign_definition_id_{{loop.index}}" style="display:none">{{row.CampaignStage.job_type_id}}</td>
