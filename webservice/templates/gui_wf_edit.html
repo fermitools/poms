@@ -3,10 +3,17 @@
 
 {%block title%}
 <title>POMS Campaign Editor</title>
+
 <script src="{{pomspath}}/static/js/split_type_picker.js"></script>
-<script src="{{pomspath}}/split_type_javascript"></script>
+{% if data_handling_service == "data_dispatcher" %}
+<script src="{{pomspath}}/split_type_javascript?data_dispatcher=true"></script>
+{% else %}
+<script src="{{pomspath}}/split_type_javascript?data_dispatcher=false"></script>
+{% endif %}
+
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
 <script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
+
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.19.1/vis.js"></script>
@@ -18,7 +25,8 @@
 
 {%block header%}
 <h1 class="ui header">
-    Campaign Editor for <span id="camp_header1">{{campaign}}</span> {%include 'help_button.html'%}
+    <span>Campaign Editor for</span><br>
+    <span id="camp_header1">{{campaign}}</span> {% include 'help_button.html' %}
     <!--
     <div class="sub header">
         Edit whole workflow
@@ -66,9 +74,18 @@
 </div>
 
 
-<h3>Campaign <span id="camp_header2">{{campaign}}</span>
-    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button><span id="savebusy"></span>
+<h3>Campaign 
+    <span id="camp_header2">{{campaign}}</span>
+    <button class="ui button" onclick="gui_editor.save('gui_editor_0');">Save</button>
+    <span id="savebusy"></span>
 </h3>
+<!--
+    TODO: Maybe replace the editors with templates?
+    This would make new fields easier to add later
+
+<button onclick="openModal()">Open Modal</button>
+{% include "gui_editor/campaign_defaults.html" %}
+    -->
 <!--
 <div id="mydefaults" oncontextmenu='return false;' contextmenu=""></div>
 -->
@@ -115,6 +132,9 @@
         <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
             Done <!-- <i class="checkmark icon"></i> -->
         </div>
+        <div class="ui positive right __labeled icon button" onclick="gui_editor.update_jobtypes();">
+            Done <!-- <i class="checkmark icon"></i> -->
+        </div>
     </div>
 </div>
 
@@ -146,27 +166,33 @@
         </div>
     </div>
 </div>
-
+<script src="{{pomspath}}/static/js/data_handling_service_config.js"></script>
 <script type="text/javascript">
 
 function main() {
+   const to = "{{to}}";
    var args = mwm_utils.getSearchParams()
    var base = mwm_utils.getBaseURL()
+   
    console.log(["args:", args, "base:", base])
-   if (args['campaign'] != undefined) {
+   if (args['campaign'] != undefined || to != undefined) {
        var url;
        // const campaign = decodeURIComponent(args['campaign'].replace(/\+/g, ' '));
+       if (args['campaign'] == undefined) {
+           args['campaign'] = to;
+       }
        const campaign = args['campaign'];
        //VP~ if (args['campaign'].indexOf('samples/') == 0) {
        if (campaign.startsWith('samples')) {
           url = base + '/static/' + campaign.replace(/%2F/g, '/');
        } else {
-          url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign;
+	  url = base +'/campaign_deps_ini/{{session_experiment}}/{{session_role}}?full=1&name=' + campaign; 
        }
        $.ajax( {
           url: url
        }).done( function(data) {
            var ge = new gui_editor("outer_gui_editor_frame");
+           ge.set_data_handling_config("data_dispatcher");
            var args = mwm_utils.getSearchParams();
             if ('clone' in args && 'Clone' == args['clone']) {
                 const from = decodeURIComponent(args['from'].replace(/\+/g, ' '));

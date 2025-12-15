@@ -27,7 +27,24 @@ p:first-child {
 p:last-child {
     margin-bottom: 0em;
 }
-
+.query-code {
+    white-space: pre-wrap;  /* Allow line breaks but respect white spaces */
+    word-break: break-word;
+    font-family: monospace;
+    display: block;
+    border-radius: 8px;
+}
+#copyButton {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 15px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+  
 /*----------------
  *       Footer
  *       -----------------*/
@@ -139,7 +156,10 @@ blockquote .author {
     width: 35px;
     margin-right: 1em;
 }
-
+.fa-circle-question:hover{
+    cursor: pointer;
+    color: #6DFFFF;
+}
 #example #toc > :last-child {
     padding-bottom: 2em;
 }
@@ -2087,6 +2107,7 @@ code .chunk {
     padding: 0.5rem 0.25rem;
 }
 
+
 /*******************************
  *            Advert
  *            *******************************/
@@ -2528,3 +2549,22 @@ code .chunk {
         /*display: initial;*/
         visibility: visible;
     }
+
+    .expandable {
+        font-size: large;
+        height: 30px;
+        width: 100%;
+        max-width: 48%;
+        border-radius:10px;
+        margin: 5px;
+        background-color: aqua;
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        box-shadow: 4px 4px 4px 4px rgba(0,0,0,0.2);
+      }
+      .expandable:hover{
+        cursor: pointer;
+        box-shadow: 8px 8px 8px 8px rgba(0,0,0,0.2);
+        font:bolder;
+      }

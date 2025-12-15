@@ -73,8 +73,8 @@ class Permissions:
             else:
                 rows = ctx.db.query(Experimenter.root).filter(Experimenter.username == ctx.username).all()
             self.sucache[ctx.username] = rows[0].root
-        logit.log("is_superuser(%s) returning %s" % (ctx.username, self.sucache[ctx.username]))
-        return self.sucache[ctx.username]
+        logit.log("is_superuser(%s) returning %s" % (ctx.username, self.sucache.get(ctx.username,False)))
+        return self.sucache.get(ctx.username, False)
 
     def check_experiment_role(self, ctx):
         if self.is_superuser(ctx):

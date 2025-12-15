@@ -150,7 +150,7 @@ class JobsPOMS:
             launch_setup = launch_setup.replace("\n", ";")
             launch_setup = launch_setup.strip(";")
             launch_setup = (
-                "source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;setup poms_client -g poms31 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db; "
+                "source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups; setup poms_client -g current -z /cvmfs/fermilab.opensciencegrid.org/products/common/db; "
                 + launch_setup
             )
             launch_setup = (

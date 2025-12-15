@@ -1,3 +1,66 @@
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1;
+    border: 5px solid black;
+}
+#draggableArea{
+    border: 2px ridge black;
+    background-color: #5394ed;
+    padding: 5px;
+}
+.draggableModal{
+    position:relative;
+}
+td{
+    text-align: left;
+    padding:2px !important;
+}
+td a{
+    text-align: left;
+    width: 200px;
+    display: inline-block;
+}
+td input[type="text"], td select{
+    text-align: left;
+    width: 300px;
+    display: inline-block;
+    padding: 2px;
+}
+td input:disabled{
+    background-color: rgba(175, 175, 175, 0.458);
+}
+.card-header h2{
+    margin-top: 5px;
+}
+.card-body{
+    margin-top: 10px;
+}
+.modal-content {
+    background-color: #fff;
+    padding: 0;
+    width: min-content;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    text-align: left;
+    border: 2px ridge black;
+}
+.modal-content table {
+    margin: 5px;
+}
+
+/* Close button styles */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
 
 div.gui_editor_frame {
     width: 100%;
@@ -80,8 +143,21 @@ div.box.selected {
     margin: 2px;
     padding: 1em;
     opacity: 1;
-    width: 40em;
+    width: 45em;
     box-shadow: 10px 10px 20px grey;
+}
+
+.form-field{
+    margin: 3px !important;
+}
+.form-field:hover label {
+    pointer-events: none;
+}
+.form-field:hover label i {
+    pointer-events:painted;
+}
+.form-field:hover input[type="checkbox"], .form-field:hover select{
+    cursor: pointer;
 }
 
 .helpbutton:before {
@@ -98,7 +174,7 @@ div.box.selected {
 }
 .popup_form label {
     display: inline-block;
-    width: 30%;
+    width: 40%;
 }
 
 .rightbutton {
@@ -106,9 +182,9 @@ div.box.selected {
   float: right;
 }
 
-.wakefields:before { content: "\25a6"; width: 1em; height 1em; font-size: larger; }
-.wakedeps:before { content: "\269f"; width: 1em; height 1em;  font-size: larger; }
-.deletebutton:before { content: "\267b"; width: 1em; height 1em;  font-size: larger; }
+.wakefields:before { content: "\25a6"; width: 1em; height: 1em; font-size: larger; }
+.wakedeps:before { content: "\269f"; width: 1em; height: 1em;  font-size: larger; }
+.deletebutton:before { content: "\267b"; width: 1em; height: 1em;  font-size: larger; }
 
 #outer_gui_editor_frame {
     width: 1000px;

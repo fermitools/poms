@@ -74,7 +74,12 @@ class jobsub_q_scraper:
             try:
                 r = self.psess.post(
                     "%s/update_submission" % self.poms_uri,
-                    {"submission_id": submission_id, "jobsub_job_id": jobsub_job_id, "project": project, "status": status},
+                    {
+                        "submission_id": submission_id,
+                        "jobsub_job_id": jobsub_job_id, 
+                        "project": project, 
+                        "status": status
+                    },
                     verify=False,
                 )
                 r.raise_for_status()
@@ -88,7 +93,7 @@ class jobsub_q_scraper:
 
         if r.text != "Ok.":
             logit.error("update_submission: Failed.")
-
+            
     def scan(self):
 
         """
@@ -132,6 +137,7 @@ class jobsub_q_scraper:
             # we want the min jobsub job_id for the POMS_TASK_ID...
             # either the cluster leader or the dagman...
             # turns out string compare mostly works..
+            
             if jobsub_job_id < d.get("jobsub_job_id", "zzzzzzzzzz"):
                 d["jobsub_job_id"] = jobsub_job_id
 
@@ -166,13 +172,13 @@ class jobsub_q_scraper:
         for submission_id in pass_submissions:
             if pass_submissions[submission_id] != self.known_submissions.get(submission_id, None):
                 d = pass_submissions[submission_id]
+                    
                 self.update_submission(
                     submission_id,
                     d.get("jobsub_job_id", ""),
                     status=self.statusmap[d.get("status", "0")],
-                    project=d.get("project-name", ""),
+                    project=d.get("project-name", "")
                 )
-
             self.known_submissions[submission_id] = d
 
     def poll(self):

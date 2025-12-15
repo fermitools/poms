@@ -6,13 +6,14 @@ class byrun:
        one run per batch. Bug:  It does not handle empty runs well
     """
 
-    def __init__(self, cs, samhandle, dbhandle):
+    def __init__(self, cs, samhandle, dbhandle, test=False):
+        self.test = test
         self.cs = cs
         self.ds = cs.dataset
         self.low = 1
         self.high = 999999
         self.id = uuid.uuid4()
-        parms = cs.cs_split_type[6:].split(",")
+        parms = cs.cs_split_type[6:].split(",") if not self.test else int(cs.test_split_type[6:].split(","))
         low = 1
         for p in parms:
             if p.endswith(")"):
