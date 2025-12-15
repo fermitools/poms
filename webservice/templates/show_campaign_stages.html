@@ -77,6 +77,7 @@ Campaign Stages {{ show_hint('#campaign-stages', 'Campaign Stages') }}
                 <th data-sorter="false" data-filter="false">Stats</th>
                 <th>s_id</th>
                 <th>Active</th>
+                <th>Cron Jobs</th>
                 <th>Queued By</th>
                 <th>Creator</th>
                 <th data-sorter="shortDate" data-dateFormat="yyyymmdd">Created</th>
@@ -103,6 +104,7 @@ Campaign Stages {{ show_hint('#campaign-stages', 'Campaign Stages') }}
                     </td>
                     <td style="width: 4em; text-align:right">{{stage.campaign_stage_id}}</td>
                     <td>{{ 'Yes' if stage.campaign_obj.active else 'No' }}</td>
+                    <td><a href="{{pomspath}}/schedule_launch/{{session_experiment}}/{{session_role}}?campaign_stage_id={{stage.campaign_stage_id}}" target="_blank">{{ 'Yes' if stage.campaign_stage_id in data.stages_with_cronjob else 'No' }}</a></td>
                     <td>{{stage.experimenter_holder_obj.username}}</td>
                     <td>{{stage.experimenter_creator_obj.username}}</td>
                     <td>{{stage.created.strftime('%Y-%m-%d %H:%M:%S')}}</td>

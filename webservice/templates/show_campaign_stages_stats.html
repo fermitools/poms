@@ -13,7 +13,6 @@ Selected Campaign Stages{%include 'help_button.html'%}
   {%set column_heads = ['All','Idle','Running','Held','Total Completed','Completed', 'Located', 'Removed', 'Failed', 'efficiency', 'pending'] %}
 
   <div id="double-scroll" class="ui _scrollable">
-
    <table id="campaign_stages" class="ui celled _table unstackable tablesorter tablesorter-ice">
     <thead>
         <tr>
@@ -33,13 +32,13 @@ Selected Campaign Stages{%include 'help_button.html'%}
 
             <td>
 
-<iframe scrolling="no" style="width: 100%; min-width: 25em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
+<iframe scrolling="yes" style="width: 100%; min-width: 25em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=2" frameborder="0"></iframe>
             </td>
             <td>
-<iframe scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
+<iframe scrolling="yes" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;"  src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=18"frameborder="0"></iframe>
             </td>
             <td>
-<iframe  scrolling="no" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
+            <iframe scrolling="yes" style="width: 100%; min-width: 10em; height: 10em; overflow: hidden !important;" src="{{fifemon_base}}/monitor/d-solo/otZRzhImk/poms-campaign?theme=light&from=now-30d&to=now&var-campaign={{cs.campaign_stage_id}}&orgId=1&panelId=12" frameborder="0"></iframe>
             </td>
          </tr>
      {% endfor %}

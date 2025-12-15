@@ -1,0 +1,57 @@
+{% if all_rses %}
+    <h3>Results</h3>
+    <div class="ui horizontal segments">
+        <div class="ui segment raised" style="max-width: 100%;">
+            <div class="ui horizontal segments">
+                <div class="ui segment raised" style="max-width: 15%;">
+                    <b>Filter Options: </b>
+                </div>
+                <div class="ui segment raised" style="max-width: 85%;">
+                    <div class="dd-search-container">
+                        <label for="rse-name">RSE: </label>
+                        <input class="dd-search" type="text" id="rse-name">
+                        <div class="dd-search-result-icon"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="dd-results-box" id="all_rse_result">
+                <div class="dd-results-row-header">
+                    <div class="dd-results-row-label dd-toggle-active rse-label"><h2>Active</h2></div>
+                    <div class="dd-results-row-label dd-toggle-inactive rse-label"><h2>Inactive</h2></div>
+                </div>
+                <div class="dd-results-row dd-row-toggle-inactive rses_row" id="active_rses" style="display: none;">
+                    {% for rse in all_rses if rse.is_enabled %}
+                        <div class="dd-results-card">
+                            <div class="dd-results-card-header">
+                                <p><span class="active-rses-rse-name">{{rse.name}}</span></p>
+                            </div>
+                            <div class="dd-results-card-body">
+                                {% for key, value in rse.items() %}
+                                    {% if (not (key == "name" or key == "is_available") and value) or value == 0 %}
+                                    <a>* {{key|replace("_", " ")|title }}: <span class='active-rses-rse-{{key|replace("_", "-")}}' >{{value}}</span></a><br/>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="dd-results-row dd-row-toggle-inactive rses_row" id="inactive_rses" style="display: none;">
+                    {% for rse in all_rses if not rse.is_enabled %}
+                        <div class="dd-results-card">
+                            <div class="dd-results-card-header">
+                                <p><span class="inactive-rses-rse-name">{{rse.name}}</span></p>
+                            </div>
+                            <div class="dd-results-card-body">
+                                {% for key, value in rse.items() %}
+                                    {% if (not (key == "name" or key == "is_available") and value) or value == 0 %}
+                                        <a>* {{key|replace("_", " ")|title }}: <span class='inactive-rses-rse-{{key|replace("_", "-")}}' >{{value}}</span></a><br/>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div> 
+{% endif %}

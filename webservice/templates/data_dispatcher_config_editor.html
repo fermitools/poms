@@ -1,0 +1,69 @@
+
+<form class="popup_form_json" style="position: absolute;"
+    id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config" data-np-autofill-form-type="other"
+    data-np-checked="1" data-np-watching="1">
+    <input type="hidden" id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config_count" value="1">
+    <h3 style="margin-top: 0">Data Dispatcher Project Configuration</h3>
+    <table style="border-spacing: 5px; border-collapse: separate; border: 1px solid gray;">
+        <thead>
+            <tr>
+                <td>Key
+                    <a target="_blank" href="/docs/experimenters_corner/campaign_edit_help#Key">
+                        <i class="icon help circle link"></i>
+                    </a>
+                </td>
+                <td>Value
+                    <a htarget="_blank" ref="/docs/experimenters_corner/campaign_edit_help#Value">
+                        <i class="icon help circle link"></i>
+                    </a>
+                </td>
+                <td>&nbsp;</td>
+            </tr>
+        </thead>
+        <tbody id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_dd_config_tbody">
+          <tr>
+                <td>
+                    <label id="edit_form__inpcampaign_stage">Project ID <i style="color:gray; font-size:small;">(Override)</i>
+                        <a target="_blank">
+                            <i style="float: none; color: red" class="icon small help circle link tooltip">
+                                <span class="tooltiptext">If a Project ID Override is provided, POMS will use this Data Dispatcher Project for each submission. 'Split Type' and 'Dataset Query' will be ignored if this value is set.</span>
+                            </i>
+                        </a>
+                    </label>
+                </td>
+                <td>
+                    <input id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config_project_id">
+                </td>
+          </tr>
+          <tr>
+                <td>
+                    <label id="edit_form__inpcampaign_stage">Dataset Query</label>
+                </td>
+                <td>
+                    <input id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config_query">
+                </td>
+          </tr>
+          <tr>
+                <td>
+                    <label id="edit_form__inpcampaign_stage">Options Params</label>
+                </td>
+                <td>
+                    <input id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config_opts">
+                </td>
+          </tr>
+          <tr>
+                <td>
+                    <label id="edit_form__inpcampaign_stage">Use Metacat Dataset Metadata</label>
+                </td>
+                <td>
+                    <input id="edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config_use_mc_dataset_meta">
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    &nbsp;&nbsp;&nbsp;
+    <button type="button" class="ui button deny red"
+        onclick="json_field_editor.cancel('edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config')">Cancel</button>
+    <button type="button" class="ui button approve teal"
+        onclick="json_field_editor.dictsave('edit_form__inpcampaign_stage dd_sample_campaign_stage_1_config')">Accept</button>
+</form>

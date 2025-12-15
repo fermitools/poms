@@ -20,6 +20,8 @@ import cherrypy
 from collections import OrderedDict, deque
 from datetime import datetime, timedelta
 
+from sqlalchemy import and_, desc, func, text, Integer
+from sqlalchemy.orm import joinedload
 from sqlalchemy import and_, distinct, func, or_, text, Integer
 from sqlalchemy.orm import joinedload, aliased
 from sqlalchemy.orm.attributes import flag_modified
@@ -44,10 +46,12 @@ from .poms_model import (
     Submission,
     SubmissionHistory,
     SubmissionStatus,
+    DataDispatcherSubmission
 )
 from .utc import utc
 from .SAMSpecifics import sam_project_checker, sam_specifics
-from .condor_log_parser import get_joblogs
+#from .condor_log_parser import get_joblogs
+from LensChecker import LensChecker
 
 DEFAULT_ROLE = "analysis"
 # from exceptions import KeyError
@@ -95,6 +99,7 @@ class SubmissionsPOMS:
         self.status_Located = None
         self.status_Completed = None
         self.status_New = None
+        self.status_Held = None
         
 
     # h3. init_statuses
@@ -106,6 +111,8 @@ class SubmissionsPOMS:
         self.status_Removed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Removed").first()[0]
         self.status_New = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "New").first()[0]
         self.status_Failed = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Failed").first()[0]
+        self.status_Cancelled = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Cancelled").first()[0]
+        self.status_Held = ctx.db.query(SubmissionStatus.status_id).filter(SubmissionStatus.status == "Held").first()[0]
         self.init_status_done = True
 
     # h3. session_status_history
@@ -251,6 +258,70 @@ class SubmissionsPOMS:
         logit.log("got file pattern list: %s" % repr(plist))
         return plist
 
+    # update file counts for dd submissions:
+    def update_dd_file_counts(self, ctx,  submission_id):
+        logit.log(logit.DEBUG, f"update_file_counts: submission {submission_id}")
+        submission = ctx.db.query(Submission).options(joinedload(Submission.campaign_stage_obj)).filter(Submission.submission_id == submission_id).first()
+
+        if not submission.data_dispatcher_submission_obj:
+             logit.log(logit.DEBUG, f"update_file_counts: not a data_dispatcher submission")
+             return
+        if not hasattr(ctx, 'dmr_service'):
+            ctx.dmr_service = shrek.DMRService()
+
+        ctx.experiment = submission.campaign_stage_obj.experiment
+        ctx.dmr_service.initialize_session(ctx)
+
+        dd_task = submission.data_dispatcher_submission_obj
+
+        project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+        attempted = [ph for ph in project_handles if ph["state"] != "initial" ]
+        done = [ph for ph in project_handles if ph["state"] == "done" ]
+        submission.files_consumed = len(attempted)
+        submission.files_generated = len(done)
+        ctx.db.add(submission)
+        ctx.db.flush()
+
+    # utility for strong_dd completion type
+    def all_dd_handles_not_reserved(self, ctx,  submission_id):
+        # make sure we have the DMRService initialized
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: submission {submission_id}")
+        # find submission
+        submission = ctx.db.query(Submission).options(joinedload(Submission.campaign_stage_obj)).filter(Submission.submission_id == submission_id).first()
+        dd_task = submission.data_dispatcher_submission_obj
+
+        logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: dd_task.project_id {dd_task.project_id}")
+
+        if not hasattr(ctx, 'dmr_service'):
+            ctx.dmr_service = shrek.DMRService()
+
+        # need DMR session stutff for this submissions's experiment..
+        ctx.experiment = submission.campaign_stage_obj.experiment
+        ctx.dmr_service.initialize_session(ctx)
+
+
+
+        # do two passes, first check if the reserved handles have
+        # timed out, if not, bail.
+        # then cancel the project, which should prevent new reservations
+        # but then do a second pass to make sure no-one snuck in a 
+        # reservation just behind our checks
+        # this is basically in case of zombie jobs rising from 
+        # the dead after Lens thinks our submission is completed
+
+        for passnum in [0,1]:
+            project_handles = ctx.dmr_service.get_project_handles(project_id=dd_task.project_id).get("project_handles", [])
+            for ph in project_handles:
+                logit.log(logit.DEBUG, f"all_dd_handles_not_reserved: file: {ph['name']} state: {ph['state']}")
+
+                if ph["state"] == "reserved":
+                    # nope, still at least one reserved...
+                    return False
+            if not passnum:
+                cherrypy.session["Shrek"]["dd_client"].cancel_project(dd_task.project_id)
+        # yay! none are reserved
+        return True
+
     # h3. wrapup_tasks
     def wrapup_tasks(self, ctx: Ctx):
         # this function call another function that is not in this module, it
@@ -355,9 +426,17 @@ class SubmissionsPOMS:
         projects_submissions = {}
         
         for submission_id, submission_details in all_subs.items():
+            
+            self.update_dd_file_counts(ctx, submission_id)
+
             if submission_details["completion_type"] == "complete":
                 completed.add(submission_id)
                 append_submission(submission_id, submission_details) # completed
+            elif submission_details["completion_type"] == "strong_dd":
+                # wait for all data_dispatcher handles to timeout
+                if self.all_dd_handles_not_reserved(ctx, submission_id):
+                    append_submission(submission_id, submission_details) 
+
             elif submission_details["completion_type"] == "located":
                 # after two days, call it on time...
                 if now - submission_details["created"] > timedelta(days=2) or (
@@ -399,7 +478,7 @@ class SubmissionsPOMS:
                 submission_details["dependency_file_patterns"].append(str(submission_details["output_file_patterns"].split(",")))
             # get urls for these, for later use
             if submission_details.get("project", "None") != "None":
-                submission_details["url"] = "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]).replace("samsamdev","samdev"), submission_details["experiment"], submission_details["project"])
+                submission_details["url"] = ("%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0" % (base.replace("web",submission_details["experiment"]), submission_details["experiment"], submission_details["project"])).replace("hypot","samdev").replace("samsamdev","samdev")
                 urls.append(submission_details["url"])
         
         logit.log(logit.DEBUG, f"wrapup_tasks | got urls: {urls}")  
@@ -498,6 +577,7 @@ class SubmissionsPOMS:
         user=None,
         campaign_stage_id=None,
         test=None,
+        full_submission=False
     ):
         if submission_id == None and task_id != None:
             submission_id = task_id
@@ -536,7 +616,8 @@ class SubmissionsPOMS:
             tim = launch_time
         else:
             tim = datetime.now(utc)
-            
+
+
         if submission_id:
 
             s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).one()
@@ -583,8 +664,31 @@ class SubmissionsPOMS:
             ctx.db.add(sh)
         logit.log("get_task_id_for: returning %s" % s.submission_id)
         ctx.db.commit()
-        return s.submission_id
+        
+        if full_submission:
+            return s
+        else:
+            return s.submission_id
 
+    def get_last_histories(self, ctx, submission_ids):
+        # get our latest history...
+        sq = (
+            ctx.db.query(func.max(SubmissionHistory.created).label("latest"))
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .subquery()
+        )
+
+        lasthist = (
+            ctx.db.query(SubmissionHistory)
+            .filter(SubmissionHistory.created == sq.c.latest)
+            .filter(SubmissionHistory.submission_id.in_(submission_ids))
+            .all()
+        )
+        lasthist = {sub.submission_id: sub for sub in lasthist}
+
+        logit.log("get_last_histories: sub_id %s returns %s" % (submission_ids, lasthist))
+        return lasthist
+        
     # h3. get_last_history
     #
     #   query to find curent status of a submission; factored out
@@ -637,6 +741,9 @@ class SubmissionsPOMS:
             
             lasthist = submissions_dict[s.submission_id].get("last_history_status", None)
             lasthist_created = submissions_dict[s.submission_id].get("last_history_created", "")
+ 
+            if lasthist is None:
+                   lasthist = self.get_last_history(ctx, s.submission_id)
 
             logit.log(
                 "update_submission_statuses: submission_id: %s  newstatus %s  lasthist: status %s created %s "
@@ -649,15 +756,15 @@ class SubmissionsPOMS:
             # have falsely concluded that the launch failed...
             final_states = (self.status_Located, self.status_Removed, self.status_Failed)
             if lasthist and lasthist in final_states and ctx.username == "poms":
-                return
+                continue
 
             # don't roll back Completed
             if lasthist == self.status_Completed and status_id <= self.status_Completed:
-                return
+                continue
 
             # don't put in duplicates
             if lasthist == status_id:
-                return
+                continue
 
             sh = SubmissionHistory()
             sh.submission_id = s.submission_id
@@ -710,7 +817,7 @@ class SubmissionsPOMS:
             .with_for_update(read=True)
             .first()
         )
-
+        
         # don't mark recovery jobs Failed -- they get just
         # the jobs that didn't pass the original submission,
         # the recovery is still a success even if they all fail again.
@@ -731,6 +838,10 @@ class SubmissionsPOMS:
             "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
             % (submission_id, status_id, lasthist.status_id if lasthist else "", lasthist.created if lasthist else "")
         )
+        
+        # Data dispatcher status is shown for informational purposes, so can update at will
+        if s.data_dispatcher_project_idx:
+            ctx.dmr_service.update_status(ctx, s.data_dispatcher_project_idx, status)
 
         # don't roll back Located, Failed, or Removed (final states)
         # note that we *intentionally don't* have LaunchFailed here, as we
@@ -766,11 +877,13 @@ class SubmissionsPOMS:
     # h3. mark_failed_submissions
     def mark_failed_submissions(self, ctx):
         """
-            find all the recent submissions that are still "New" but more
+            find all the recent submissions that are still "New" or "Held" but more
             than two hours old, and mark them "LaunchFailed"
         """
         self.init_statuses(ctx)
         now = datetime.now(utc)
+
+        lens_checker = LensChecker()
 
         cert = ctx.web_config.get("Elasticsearch", "cert")
         key = ctx.web_config.get("Elasticsearch", "key")
@@ -785,8 +898,8 @@ class SubmissionsPOMS:
             .group_by(SubmissionHistory.submission_id)
             .having(
                 and_(
-                    func.max(SubmissionHistory.status_id) == self.status_New,
-                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=4),
+                    func.max(SubmissionHistory.status_id) in (self.status_New, self.status_Held),
+                    func.min(SubmissionHistory.created) < datetime.now(utc) - timedelta(hours=2),
                 )
             )
             .all()
@@ -794,7 +907,7 @@ class SubmissionsPOMS:
 
         failed_sids = [x[0] for x in newtups]
 
-        res = []
+        res = ["mark_failed_submissions: Starting..."]
         for submission in (
             ctx.db.query(Submission)
             .filter(Submission.submission_id.in_(failed_sids))
@@ -802,34 +915,30 @@ class SubmissionsPOMS:
             .with_for_update(read=True)
             .all()
         ):
-            # sometimes jobs complete quickly, and we do not see them go by..
-            # so if we got a jobsub_job_id, check for a job log to find
-            # out what happened
-            if submission.jobsub_job_id:
-                logit.log("checking for log for %s:" % submission.jobsub_job_id)
-                job_data = get_joblogs(
-                    ctx.db,
-                    submission.jobsub_job_id,
-                    cert,
-                    key,
-                    submission.campaign_stage_obj.experiment,
-                    submission.campaign_stage_obj.creator_role,
-                )
-
-                if job_data:
-                    res.append("found job log for %s!" % submission.submission_id)
-                    logit.log("found job log for %s!" % submission.submission_id)
-
-                    if len(job_data["completed"]) == len(job_data["idle"]):
+            data = lens_checker.check_submission(submission.submission_id)
+            if data:
+                if data["done"]:
+                    if data["failed"] / data["completed"] < 0.5:
                         self.update_submission_status(ctx, submission.submission_id, status="Completed")
                         res.append("submission %s Completed")
                         logit.log("submission %s Completed")
-
-                continue
-            res.append("failing launch for %s" % submission.submission_id)
-            logit.log("failing launch for %s" % submission.submission_id)
-            self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                    else:
+                        self.update_submission_status(ctx, submission.submission_id, status="Failed")
+                        res.append("submission %s Failed")
+                        logit.log("submission %s Failed")
+                elif data["running"] > 0:
+                    self.update_submission_status(ctx, submission.submission_id, status="Running")
+                    res.append("submission %s Running")
+                    logit.log("submission %s Running")
+                else:
+                    res.append("submission %s unchanged`")
+                    logit.log("submission %s unchanged")
+            else:
+                self.update_submission_status(ctx, submission.submission_id, status="LaunchFailed")
+                res.append("failing launch for %s" % submission.submission_id)
+                logit.log("failing launch for %s" % submission.submission_id)
         ctx.db.commit()
+        res.append("...completed")
         return "\n".join(res)
 
     # h3. submission_details
@@ -923,7 +1032,13 @@ class SubmissionsPOMS:
             flist = glob.glob(pattern)
             pattern2 = "{}/{}*".format(dirname, ds2[:-2])
             flist.extend(glob.glob(pattern2))
+            pattern = "{}/{}*".format(dirname, ds[:-2])
+            flist = glob.glob(pattern)
+            pattern2 = "{}/{}*".format(dirname, ds2[:-2])
+            flist.extend(glob.glob(pattern2))
 
+            logit.log("datestamps: '%s' '%s'" % (ds, ds2))
+            logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
             logit.log("datestamps: '%s' '%s'" % (ds, ds2))
             logit.log("found list of submission files:(%s -> %s)" % (pattern, repr(flist)))
 
@@ -942,59 +1057,98 @@ class SubmissionsPOMS:
             elif "{}/{}".format(dirname, ds2) in flist:
                 ds = ds2
                 submission_log_format = 1
+            if "{}/{}_{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                submission_log_format = 3
+            if "{}/{}_{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username, submission.submission_id) in flist:
+                ds = ds2
+                submission_log_format = 3
+            elif "{}/{}_{}".format(dirname, ds, submission.experimenter_creator_obj.username) in flist:
+                submission_log_format = 2
+            elif "{}/{}_{}".format(dirname, ds2, submission.experimenter_creator_obj.username) in flist:
+                ds = ds2
+                submission_log_format = 2
+            elif "{}/{}".format(dirname, ds) in flist:
+                submission_log_format = 1
+            elif "{}/{}".format(dirname, ds2) in flist:
+                ds = ds2
+                submission_log_format = 1
        
+        print("Log format: %s" %submission_log_format)
         statuses = []
         cs = submission.campaign_stage_snapshot_obj.campaign_stage
-        listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
-        (
-            summary_list,
-            some_kids_decl_needed,
-            some_kids_needed,
-            base_dim_list,
-            output_files,
-            output_list,
-            all_kids_decl_needed,
-            some_kids_list,
-            some_kids_decl_list,
-            all_kids_decl_list,
-        ) = sam_specifics(ctx).get_file_stats_for_submissions([submission], cs.experiment)
+        data_handling_service = cs.campaign_obj.data_handling_service 
         
-        i = 0
-        psummary = summary_list[i]
-        partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
-        # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
-        pending = partpending
-      
-        statuses = [
-            ["Available output: ", output_list[i], listfiles % output_files[i]],
-            ["Submitted: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
-            ["Delivered to SAM: ",
-                "%d"
-                % (
-                    psummary.get("tot_consumed", 0)
-                    + psummary.get("tot_cancelled", 0)
-                    + psummary.get("tot_failed", 0)
-                    + psummary.get("tot_skipped", 0)
-                    + psummary.get("tot_delivered", 0)
-                ),
-                listfiles % (base_dim_list[i] + " and consumed_status consumed,cancelled,completed,failed,skipped,delivered "),
-            ],
-            ["Unknown to SAM: ", "%d" % psummary.get("tot_unknown", 0), listfiles % base_dim_list[i] + " and consumed_status unknown"],
-            ["Consumed: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
-            ["Cancelled: ", psummary.get("tot_cancelled", 0), listfiles % base_dim_list[i] + " and consumed_status cancelled"],
-            ["Failed: ", psummary.get("tot_failed", 0), listfiles % base_dim_list[i] + " and consumed_status failed"],
-            ["Skipped: ", psummary.get("tot_skipped", 0), listfiles % base_dim_list[i] + " and consumed_status skipped"],
-            ["With some kids declared: ", some_kids_decl_list[i], listfiles % some_kids_decl_needed[i]],
-            ["With all kids declared: ",all_kids_decl_list[i], listfiles % all_kids_decl_needed[i]],
-            ["With kids located: ",some_kids_list[i], listfiles % some_kids_needed[i]],
-            ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
-        ]
+        if data_handling_service == "sam":
+            listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
+            (
+                summary_list,
+                some_kids_decl_needed,
+                some_kids_needed,
+                base_dim_list,
+                output_files,
+                output_list,
+                all_kids_decl_needed,
+                some_kids_list,
+                some_kids_decl_list,
+                all_kids_decl_list,
+            ) = sam_specifics(ctx).get_file_stats_for_submissions([submission], cs.experiment)
+            i = 0
+            psummary = summary_list[i]
+            partpending = psummary.get("files_in_snapshot", 0) - some_kids_list[i]
+            # pending = psummary.get('files_in_snapshot', 0) - all_kids_list[i]
+            pending = partpending
+            statuses = [
+                ["Available output: ", output_list[i], listfiles % output_files[i]],
+                ["Submitted to SAM: ",psummary.get("files_in_snapshot", 0), listfiles % base_dim_list[i]],
+                ["Consumed by SAM: ", psummary.get("tot_consumed", 0), listfiles % base_dim_list[i] + " and consumed_status co%"],
+                ["Pending: ", pending, listfiles % (base_dim_list[i] + " minus ( %s ) " % all_kids_decl_needed[i])],
+            ]
+        elif data_handling_service == "data_dispatcher":
+            dd_submissions = ctx.db.query(
+                    DataDispatcherSubmission.data_dispatcher_project_idx.label("data_dispatcher_project_idx"),
+                    DataDispatcherSubmission.project_id.label("project_id"),
+                    DataDispatcherSubmission.submission_id.label("submission_id"),
+                    DataDispatcherSubmission.named_dataset.label("named_dataset"),
+                    CampaignStage.campaign_stage_id.label("campaign_stage_id"), 
+                    CampaignStage.output_ancestor_depth.label("output_ancestor_depth"),
+                ).join(CampaignStage, CampaignStage.campaign_stage_id == DataDispatcherSubmission.campaign_stage_id)
+            
+            if submission.data_dispatcher_project_idx:
+                dd_submissions = dd_submissions.filter(DataDispatcherSubmission.archive == False, 
+                                                       DataDispatcherSubmission.data_dispatcher_project_idx == submission.data_dispatcher_project_idx
+                                    ).all()
+            else:
+                dd_submissions = dd_submissions.filter(DataDispatcherSubmission.archive == False,
+                        DataDispatcherSubmission.experiment == cs.experiment,
+                        DataDispatcherSubmission.submission_id == submission.submission_id
+                    ).all()
+            details = ctx.dmr_service.get_file_stats_for_submissions(dd_submissions).get(submission.submission_id, {})
+            i = 0
+            if "project_id" in details:
+                listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_id", 0))
+            else:
+                listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
+            statuses = [
+                ["Initial: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
+                ["Reserved: ", details.get("statistics",{}).get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
+                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
+                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
+            ] 
+        data_dispatcher_projects = None
+        campaign = submission.campaign_stage_obj.campaign_obj
+        if campaign.data_handling_service == "data_dispatcher":
+            data_dispatcher_projects = ctx.dmr_service.list_filtered_projects(campaign_id = campaign.campaign_id, campaign_stage_id=submission.campaign_stage_id, submission_id=submission.submission_id)
 
+        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses, data_dispatcher_projects, data_handling_service
+
+    def flatten_submission_ids(self, submission_ids):
+        if all(isinstance(item, int) for item in submission_ids):
+            # The result is already a flat list of integers, return it as is
+            return submission_ids
+        else:
+            # The result is a list of tuples, extract the first element of each tuple
+            return [sid for (sid,) in submission_ids]
         
-
-
-        return submission, history, dataset, rmap, smap, ds, submission_log_format, recovery_ids, depend_ids, statuses
-
     # h3. running_submissions
     def running_submissions(self, ctx, campaign_id_list, status_list=["New", "Idle", "Running"]):
 
@@ -1002,25 +1156,25 @@ class SubmissionsPOMS:
 
         logit.log("INFO", "running_submissions(%s)" % repr(cl))
         sq = (
-            ctx.db.query(SubmissionHistory.submission_id, func.max(SubmissionHistory.created).label("latest"))
+            ctx.db.query(SubmissionHistory.submission_id, func.coalesce(func.max(SubmissionHistory.created),func.min(SubmissionHistory.created)).label("latest"))
             .filter(SubmissionHistory.created > datetime.now(utc) - timedelta(days=4))
             .group_by(SubmissionHistory.submission_id)
             .subquery()
         )
 
-        running_sids = (
+        running_sids_results = (
             ctx.db.query(SubmissionHistory.submission_id)
             .join(SubmissionStatus, SubmissionStatus.status_id == SubmissionHistory.status_id)
             .join(sq, SubmissionHistory.submission_id == sq.c.submission_id)
             .filter(SubmissionStatus.status.in_(status_list), SubmissionHistory.created == sq.c.latest)
             .all()
         )
-        running_sids = [x[0] for x in running_sids]
+        running_sids = [x[0] for x in running_sids_results]
 
         if cl and cl != "None":
 
             ccl = (
-                ctx.db.query(CampaignStage.campaign_id, func.count(Submission.submission_id))
+                ctx.db.query(CampaignStage.campaign_id, func.coalesce(func.count(Submission.submission_id), 0))
                 .join(Submission, Submission.campaign_stage_id == CampaignStage.campaign_stage_id)
                 .filter(CampaignStage.campaign_id.in_(cl), Submission.submission_id.in_(running_sids))
                 .group_by(CampaignStage.campaign_id)
@@ -1076,13 +1230,20 @@ class SubmissionsPOMS:
         s = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).with_for_update(read=True).first()
         if not s:
             return "Unknown."
+        
+        dd_project = s.data_dispatcher_submission_obj
 
         if jobsub_job_id and s.jobsub_job_id != jobsub_job_id:
             s.jobsub_job_id = jobsub_job_id
+            if dd_project:
+                dd_project.jobsub_job_id = jobsub_job_id
             ctx.db.add(s)
 
-        if project and s.project != project:
-            s.project = project
+        if (project and s.project != project) or dd_project:
+            if not dd_project:
+                s.project = project
+            else:
+                s.project = dd_project.project_name
             ctx.db.add(s)
 
         # amend status for completion percent
@@ -1094,18 +1255,160 @@ class SubmissionsPOMS:
 
         ctx.db.commit()
         return "Ok."
+    
+     # h3. update_submissions
+    def update_submissions(self, ctx, data=None):
+        retval = {}
+        try:
+            logit.log("SubmissionsPOMS | update_submissions | All data: %s" % data)
+            data = {int(key): val for key,val in data.items()}
+            submission_ids = list(set(data.keys()))
+            logit.log("SubmissionsPOMS | update_submissions | All submission_ids: %s" % submission_ids)
+            submissions = ctx.db.query(Submission).filter(Submission.submission_id.in_(submission_ids)).with_for_update(read=True).all()
+            
+            if submissions:
+                submission_statuses_to_update = {}
+                for submission in submissions:
+                    retval[submission.submission_id] = True
+                    data_entry = data[submission.submission_id]
+                    status = str(data_entry.get("status", None))
+                    
+                    # Submission updates
+                    print("submission status: sub=%s, status=%s" % (submission.submission_id, status))
+                    if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct:
+                        status = "Completed"
+                    if status is not None:
+                        submission_statuses_to_update[submission.submission_id] = status
+
+                    if "pct_complete" in data_entry:
+                        submission.pct_complete = data_entry["pct_complete"]
+                        ctx.db.add(submission)
+                    if "jobsub_job_id" in data_entry:
+                        submission.jobsub_job_id = data_entry["jobsub_job_id"]
+                        ctx.db.add(submission)
+                    if "project" in data_entry:
+                        submission.project = data_entry["project"]
+                        ctx.db.add(submission)
+
+                    # Data dispatcher updates
+                    if "dd_task_id" in data_entry:
+                        data_entry["dd_task_id"] = int(data_entry["dd_task_id"])
+                        if submission.data_dispatcher_project_idx != data_entry["dd_task_id"]:
+                            submission.data_dispatcher_project_idx = data_entry["dd_task_id"]
+                            ctx.db.commit()
+                        dd_task = submission.data_dispatcher_submission_obj
+                        if "jobsub_job_id" in data_entry:
+                            dd_task.jobsub_job_id = data_entry["jobsub_job_id"]
+                        if "pct_complete" in data_entry:
+                            dd_task.pct_complete = data_entry["pct_complete"]
+                        if "dd_status" in data_entry:
+                            dd_task.status = data_entry["dd_status"]
+                        if "dd_project_id" in data_entry:
+                            data_entry["dd_project_id"] = int(data_entry["dd_project_id"])
+                            dd_task.project_id = data_entry["dd_project_id"]
+                        ctx.db.add(dd_task)
+                        
+                        
+                    ctx.db.commit()
+                    del data[submission.submission_id] 
+                if len(submission_statuses_to_update) > 0:
+                    self.update_submission_statuses(ctx, submission_statuses_to_update)
+                    ctx.db.commit()
+            for unprocessed in list(data.keys()):
+                retval[unprocessed] = False
+
+        except Exception as e:
+            logit.log("SubmissionsPOMS | update_submissions | exception: %s" % e)
+            return {"status": "Fail", "response": e}
+        logit.log("SubmissionsPOMS | update_submissions | done | submissions found/processed: %s" % len(submissions))
+        return {"status": "Success", "response": retval}
+    
+    
+    # h3. update_submission_status
+    def update_submission_statuses(self, ctx, data, when=None):
+        self.init_statuses(ctx)
+        if when == None:
+            when = datetime.now(utc)
+
+        submissions = (
+            ctx.db.query(Submission)
+            .filter(Submission.submission_id.in_(list(data.keys())))
+            .order_by(Submission.submission_id)
+            .with_for_update(read=True)
+            .all()
+        )
+        
+        known_statuses = {status.status:status.status_id for status in ctx.db.query(SubmissionStatus).all()}
+        latest_submission_histories = self.get_last_histories(ctx, list(data.keys()))
+        for submission in submissions:
+            # don't mark recovery jobs Failed -- they get just
+            # the jobs that didn't pass the original submission,
+            # the recovery is still a success even if they all fail again.
+            
+            lasthist = latest_submission_histories.get(submission.submission_id, None)
+            
+            status = data[submission.submission_id]
+            if status == "Failed" and submission.recovery_tasks_parent:
+                status = "Completed"
+            status_id = known_statuses.get(status, None)
+            print("sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist))
+            if not status_id:
+                # not a known status, go to next data_entry
+                continue
+
+            logit.log(
+                "update_submission_status: submission_id: %s  newstatus %s  lasthist: status %s created %s "
+                % (submission.submission_id, status_id, lasthist.status_id if lasthist else "", lasthist.created if lasthist else "")
+            )
+        
+
+            # don't roll back Located, Failed, or Removed (final states)
+            # note that we *intentionally don't* have LaunchFailed here, as we
+            # *could*  have a launch that took a Really Long Time, and we might
+            # have falsely concluded that the launch failed...
+            if submission.data_dispatcher_submission_obj:
+                final_states = (self.status_Completed, self.status_Removed, self.status_Failed, self.status_Cancelled)
+            else:
+                final_states = (self.status_Located, self.status_Removed, self.status_Failed, self.status_Cancelled)
+            if lasthist and lasthist.status_id in final_states and ctx.username == "poms":
+                continue
+
+            # don't roll back Completed
+            if lasthist and lasthist.status_id == self.status_Completed and status_id <= self.status_Completed:
+                continue
+
+            # don't put in duplicates
+            if lasthist and lasthist.status_id == status_id:
+                continue
+
+            sh = SubmissionHistory()
+            sh.submission_id = submission.submission_id
+            sh.status_id = status_id
+            sh.created = when
+            ctx.db.add(sh)
+
+            #
+            # update Submission.updated *only* if this is a final state, as
+            # this time will be used for the date range on the submission
+            #
+            if status_id in final_states:
+                submission.updated = sh.created
+                ctx.db.add(submission)
+        ctx.db.commit()
 
     # h3. launch_dependents_if_needed
     def launch_dependents_if_needed(self, ctx, s):
         logit.log("Entering launch_dependents_if_needed(%s)" % s.submission_id)
         self.init_statuses(ctx)
-
+        
+        do_data_dispatcher = s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
+        
         # if this is itself a recovery job, we go back to our parent
         # because dependants should use the parent, not the recovery job
 
         lasthist = self.get_last_history(ctx, s.submission_id)
-        if lasthist.status_id != self.status_Located:
-            logit.log("Not launching dependencies because submission is not marked Located")
+        if lasthist.status_id != self.status_Located or (do_data_dispatcher and lasthist.status_id != self.status_Completed) :
+            logit.log("Not launching dependencies because submission is not marked %s" % "Completed" if do_data_dispatcher else "Located" )
             return
 
         if s.parent_obj:
@@ -1132,15 +1435,25 @@ class SubmissionsPOMS:
             if cd.provides_campaign_stage_id == s.campaign_stage_snapshot_obj.campaign_stage_id:
                 # self-reference, just do a normal launch
                 # be the role the job we're launching based from was...
+                if do_data_dispatcher and cd.consumer.data_dispatcher_submission_obj:
+                    project_idx = cd.consumer.data_dispatcher_submission_obj.data_dispatcher_project_idx
+                else:
+                    project_idx = None
                 self.launch_jobs(
                     ctx,
                     cd.provides_campaign_stage_id,
                     launch_user.experimenter_id,
                     test_launch=s.submission_params.get("test", False),
+                    dd_project_idx = project_idx
                 )
             else:
                 i = i + 1
-                dname = sam_specifics(ctx).dependency_definition(s, cd, i)
+                dd_project = None
+                if do_data_dispatcher:
+                    # doing data dispatcher dependency launch
+                    dname, dd_project = ctx.dmr_service.dependency_definition(s.data_dispatcher_submission_obj, cd.consumer, i)
+                else:
+                    dname = sam_specifics(ctx).dependency_definition(s, cd, i)
 
                 if s.submission_params and s.submission_params.get("test", False):
                     test_launch = s.submission_params.get("test", False)
@@ -1148,8 +1461,7 @@ class SubmissionsPOMS:
                     test_launch = False
 
                 logit.log("About to launch jobs, test_launch = %s" % test_launch)
-
-                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch)
+                self.launch_jobs(ctx, cd.provides_campaign_stage_id, s.creator, dataset_override=dname, test_launch=test_launch, dd_project_idx=dd_project.project_idx if dd_project else None, dependent_of=s.submission_id)
         return 1
 
     # h3. launch_recovery_if_needed
@@ -1167,21 +1479,25 @@ class SubmissionsPOMS:
                 logit.log("Not launching recovery because submission is not marked Located")
                 return
 
+        do_data_dispatcher = s.campaign_stage_obj.campaign_obj.data_handling_service == "data_dispatcher"
         # if this is itself a recovery job, we go back to our parent
         # to do all the work, because it has the counters, etc.
         current_s = s
         if s.parent_obj:
             s = s.parent_obj
+            
         logit.log("launch_recovery_if_needed: current_s: %s" % current_s.submission_id)
         logit.log("launch_recovery_if_needed: s: %s" % s.submission_id)
         
         if s.recovery_position == None:
             s.recovery_position = 0
             ctx.db.add(s)
+            ctx.db.commit()
             iterate = False
+            logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
         else:
             iterate = True
-        logit.log("launch_recovery_if_needed: s: %s | recovery position set to: 0" % s.submission_id)
+        
 
         if recovery_type_override is not None:
             rt = ctx.db.query(RecoveryType).filter(RecoveryType.recovery_type_id == int(recovery_type_override)).all()
@@ -1211,19 +1527,33 @@ class SubmissionsPOMS:
             # May want to add a secondary condition in the future to make sure that the recovery type is the same 
             # as the previous submission if choosing current_s rather than s
             
+            project_idx = None
+            
             if iterate:
                 s.recovery_position = s.recovery_position + 1
                 ctx.db.add(s)
+                # don't lose recovery position if something goes wrong
+                ctx.db.commit()
             else:
                 # Skip the first iteration since recovery position was set from None to 0 on this round.
                 iterate = True
                 
-            if s.recovery_position == 0:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+            if do_data_dispatcher:
+                #logit.log("launch_recovery_if_needed: do_data_dispatcher rtype.name=%s" % rtype.name)
+                if s.recovery_position == 0:
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(s, rtype, rlist)
+                else:
+                    nfiles, rname, project_idx, rflist = ctx.dmr_service.create_recovery_dataset(current_s, rtype, rlist)
+                recovery_dids = [ 
+                   f"{f['namespace']}:{f['name']}" for f in rflist
+                ] 
+                dd_recovery_query = "files " + ",".join(recovery_dids)
             else:
-                nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
-
-
+                if s.recovery_position == 0:
+                    nfiles, rname = sam_specifics(ctx).create_recovery_dataset(s, rtype, rlist)
+                else:
+                    nfiles, rname = sam_specifics(ctx).create_recovery_dataset(current_s, rtype, rlist)
+                dd_recovery_query = None
             if nfiles > 0:
 
                 launch_user = ctx.db.query(Experimenter).filter(Experimenter.experimenter_id == s.creator).one()
@@ -1240,6 +1570,8 @@ class SubmissionsPOMS:
                     parent_submission_id=s.submission_id,
                     param_overrides=param_overrides,
                     test_launch=s.submission_params.get("test", False),
+                    dd_project_idx=project_idx,
+                    dd_recovery_query = dd_recovery_query
                 )
                 return res
 
@@ -1253,11 +1585,11 @@ class SubmissionsPOMS:
 
         # return lcmd, cs, campaign_stage_id, outdir, outfile
         res = self.launch_recovery_if_needed(ctx, s, kwargs["recovery_type"])
-
+        print(res)
         if res:
             if isinstance(res, int) and res == 1:
                 raise AssertionError("Recovery submissions are currently disabled.")
-            return res[3], res[4], "%s/%s" % (res[3], res[4])
+            return res[3], res[4], "%s/%s" % (res[3], res[4]), res[5]
         else:
             raise AssertionError("No recovery needed, launch skipped.")
 
@@ -1350,6 +1682,14 @@ class SubmissionsPOMS:
             ctx.role = cs.creator_role
             ctx.username = launch_user.username
             ctx.experimenter_cache = launch_user
+            do_data_dispatcher = cs.campaign_obj.data_handling_service == "data_dispatcher"
+            if do_data_dispatcher and cs.data_dispatcher_submission_obj:
+                project_idx = ctx.db.query(DataDispatcherSubmission.data_dispatcher_project_idx).filter(and_(
+                    DataDispatcherSubmission.experiment == cs.experiment,
+                    DataDispatcherSubmission.submission_id == hl.parent_submission_id
+                )).scalar()
+            else:
+                project_idx = None
 
             self.launch_jobs(
                 ctx,
@@ -1358,6 +1698,7 @@ class SubmissionsPOMS:
                 dataset_override=dataset,
                 parent_submission_id=parent_submission_id,
                 param_overrides=param_overrides,
+                dd_project_idx=project_idx
             )
             return "Launched."
         else:
@@ -1392,20 +1733,32 @@ class SubmissionsPOMS:
             return True
 
     # h3. get_output_dir_file
-    def get_output_dir_file(self, ctx, launch_time, username, campaign_stage_id=None, submission_id=None, test_login_setup=None):
+    def get_output_dir_file(self, ctx, launch_time, username, campaign_id=None, campaign_stage_id=None, submission_id=None, test_login_setup=None):
         ds = launch_time.astimezone(utc).strftime("%Y%m%d_%H%M%S")
-
-        if test_login_setup:
-            subdir = "template_tests_%d" % int(test_login_setup)
-        else:
-            subdir = "campaign_%s" % campaign_stage_id
+        if campaign_id:
             assert submission_id
+            subdir = "%s/%s/%s/%s" % (
+                        launch_time.astimezone(utc).date(), # Date of creation
+                        ctx.experiment, # Name of experiment
+                        campaign_id, # Campaign ID
+                        campaign_stage_id, # Campaign Stage ID
+                    )
+            outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
+            os.system("mkdir -p %s" % outdir)
+            outfile = "%s_%s" % (submission_id, ds)
+        else:
+            if test_login_setup:
+                subdir = "template_tests_%d" % int(test_login_setup)
+            
+            else:
+                subdir = "campaign_%s" % campaign_stage_id
+                assert submission_id
 
-        outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
-        outfile = "%s_%s" % (ds, username)
+            outdir = "%s/private/logs/poms/launches/%s" % (os.environ["HOME"], subdir)
+            outfile = "%s_%s" % (ds, username)
 
-        if submission_id:
-            outfile = "%s_%s" % (outfile, submission_id)
+            if submission_id:
+                outfile = "%s_%s" % (outfile, submission_id)
 
         outfullpath = "%s/%s" % (outdir, outfile)
 
@@ -1420,7 +1773,7 @@ class SubmissionsPOMS:
         """
         submission = ctx.db.query(Submission).filter(Submission.submission_id == submission_id).one()
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_id, submission_id
+            ctx, submission.created, submission.experimenter_creator_obj.username, submission.campaign_stage_obj.campaign_id, submission.campaign_stage_id, submission_id
         )
         re1 = re.compile("== process_id: ([0-9]+) ==")
         re2 = re.compile("== completed: ([0-9]+) ==")
@@ -1463,10 +1816,13 @@ class SubmissionsPOMS:
         test_launch=False,
         output_commands=False,
         parent=None,
+        dd_project_idx=None,
+        dependent_of=None,
+        dd_recovery_query = None,
         **kwargs,
     ):
 
-        logit.log("Entering launch_jobs(%s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides))
+        logit.log("Entering launch_jobs(%s, %s, %s, %s, %s)" % (campaign_stage_id, dataset_override, parent_submission_id, param_overrides, launcher))
 
         if launcher == None:
             launcher = ctx.username
@@ -1532,12 +1888,24 @@ class SubmissionsPOMS:
                 joinedload(CampaignStage.job_type_obj),
             ).one()
 
-            ctx.role = cs.creator_role
-
             if not cs:
                 raise KeyError("CampaignStage id %s not found" % campaign_stage_id)
             else:
                 role = cs.vo_role.lower()
+
+            # update ctx bookkeping we might need for DMR later
+            ctx.role = cs.creator_role
+            ctx.username = launcher_experimenter.username
+
+            if ctx.experiment != cs.experiment:
+                ctx.experiment = cs.experiment 
+
+                if cs.data_dispatcher_dataset_query:
+                    # if we are setting the experiment and using dd then
+                    # reinitialize to be on right experiment dd connection
+                    if not hasattr(ctx, 'dmr_service'):
+                        ctx.dmr_service = shrek.DMRService()
+                    ctx.dmr_service.initialize_session(ctx)
                 
             cd = cs.job_type_obj
             lt = cs.login_setup_obj
@@ -1634,7 +2002,7 @@ class SubmissionsPOMS:
                 vaultfilename = f"vt_{ctx.experiment}_analysis_{experimenter_login}"
         else:
             vaultfilename = f"vt_{ctx.experiment}_production_{experimenter_login}"
-        if role == "analysis" and lt.launch_host == self.poms_service.hostname:
+        if role == "analysis" and lt.launch_host == ctx.web_config.get("POMS", "POMS_HOST").replace('"',''):
             sandbox = self.poms_service.filesPOMS.get_launch_sandbox(ctx)
             vaultfile = "%s/%s" % (sandbox, vaultfilename)
             proxyfile = "%s/x509up_voms_%s_Analysis_%s" % (sandbox, exp, experimenter_login)
@@ -1647,10 +2015,13 @@ class SubmissionsPOMS:
             proxyfile = "/opt/%spro/%spro.Production.proxy" % (exp, exp)
             if exp == "samdev":
                 vaultfile = "/home/poms/uploads/%s/%s/%s" % (ctx.experiment, ctx.username, vaultfilename)
+            else:
+                vaultfile = None # Normal prod campaign uses managed tokens.
+                
             #proxyfile = "/home/poms/cfg/samdevpro.Production.proxy"
-        if role == "analysis":
-            os.system("chmod -R +777 %s;" % sandbox)
-            os.system("chmod +777 %s;" % vaultfile)
+        #if role == "analysis":
+        #    os.system("chmod -R +777 %s;" % sandbox)
+        #    os.system("chmod +777 %s;" % vaultfile)
 
         allheld = self.get_job_launches(ctx) == "hold"
         csheld = bool(cs and cs.hold_experimenter_id)
@@ -1659,10 +2030,11 @@ class SubmissionsPOMS:
         # for the moment, using fifeutilgpvm02 is code for using
         # jobsub_lite and tokens.  This needs a flag on
         # the campaigns and/or experiments instead.
-        do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
-                     or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
+        do_tokens = True
+        #do_tokens = not (("jobsub_client" in cs.login_setup_obj.launch_setup and "jobsub_client v_lite" not in cs.login_setup_obj.launch_setup) 
+        #             or ("jobsub_client" in launch_script and "jobsub_client v_lite" not in launch_script))
+
         
-        # proxyheld = role == "analysis" and not self.has_valid_proxy(proxyfile)# and not do_tokens
         proxyheld = False
         if allheld or csheld or proxyheld:
 
@@ -1697,28 +2069,71 @@ class SubmissionsPOMS:
             lcmd = ""
 
             raise ctx.HTTPError(errnum, output)
-
+            
+        do_data_dispatcher = cs.campaign_obj.data_handling_service == "data_dispatcher"
+        dd_project_override = False
+        # If override is set, we will use the defined project id. Ignoring datasets and split types
+        if not dd_project_idx and cs.data_dispatcher_project_id:
+            dd_project_override = True
+            dd_project = ctx.db.query(DataDispatcherSubmission).filter(and_(
+                DataDispatcherSubmission.archive == False,
+                DataDispatcherSubmission.experiment == cs.experiment,
+                DataDispatcherSubmission.campaign_stage_id == cs.campaign_stage_id,
+                DataDispatcherSubmission.project_id == cs.data_dispatcher_project_id)).order_by(desc(DataDispatcherSubmission.created)).first()
+        if do_data_dispatcher:
+            if cs.completion_type == "located":
+                cs.completion_type = "complete"
+                ctx.db.commit()
+            if dd_project_override:
+                dataset = None
+                
+        dd_project = None
+        dataset = None
         if dataset_override:
             dataset = dataset_override
+            if do_data_dispatcher and dd_project_idx and not dd_project_override:
+                # we are here if doing a recovery or dependency launch (by project id, by query override is later), or if a user clicked "Launch Project" on an existing project.
+                dd_project = ctx.db.query(DataDispatcherSubmission).filter(DataDispatcherSubmission.archive == False,DataDispatcherSubmission.data_dispatcher_project_idx == dd_project_idx).one_or_none()
         else:
-            dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch)
+            if not do_data_dispatcher:
+                dataset = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, False)
+            else:
+                if not dd_project_idx and not dd_project_override:
+                    # we are here if doing a split type launch
+                    logit.log(f"launch_jobs | about to cal get_dataset_for ctx.experiment: {ctx.experiment} ")
+                    dd_project = self.poms_service.stagesPOMS.get_dataset_for(ctx, cs, test_launch, True)
+                    if dd_project:
+                        if dd_project.named_dataset:
+                            dataset = dd_project.named_dataset
+                        elif dd_project.project_id:
+                            dataset = "project_id:%s" % dd_project.project_id
+                        elif dd_project.data_dispatcher_project_idx:
+                            dataset = "project_idx:%s" % dd_project.data_dispatcher_project_idx
+                        else:
+                            dataset = None
 
+        logit.log(f"Dataset is: {repr(dataset)}")
 
         if "poms" in self.poms_service.hostname:
             poms_test = ""
         elif "fermicloudmwm" in self.poms_service.hostname:
             poms_test = "int"
+        elif "fermicloud210" in self.poms_service.hostname or "fermicloud821" in self.poms_service.hostname:
+            poms_test = "1"
         else:
             poms_test = "1"
 
         # allocate task to set ownership
+        submission = None
         if not test_login_setup:
-            sid = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time)
-
+            submission = self.get_task_id_for(ctx, campaign_stage_id, parent_submission_id=parent_submission_id, launch_time=launch_time, full_submission=True)
+            submission.depends_on = dependent_of
+            sid = submission.submission_id
             #
             # keep some bookkeeping flags
             #
             pdict = {}
+            
             if dataset and dataset != "None":
                 pdict["dataset"] = dataset
             if test_launch:
@@ -1726,7 +2141,9 @@ class SubmissionsPOMS:
             if parent:
                 pdict["parent"] = parent
 
+            
             ctx.db.query(Submission).filter(Submission.submission_id == sid).update({Submission.submission_params: pdict})
+            
 
         if cs and cs.campaign_stage_type == "approval":
             # special case for approval -- don't need to really launch...
@@ -1736,7 +2153,7 @@ class SubmissionsPOMS:
             sam_specifics(ctx).declare_approval_transfer_datasets(sid)
 
             outdir, outfile, outfullpath = self.get_output_dir_file(
-                ctx, launch_time, ctx.username, campaign_stage_id, sid, test_login_setup=test_login_setup
+                ctx, launch_time, ctx.username, cid, campaign_stage_id, sid, test_login_setup=test_login_setup
             )
             lcmd = "await_approval"
             logit.log("trying to record launch in %s" % outfullpath)
@@ -1756,18 +2173,17 @@ class SubmissionsPOMS:
         # BEGIN TOKEN LOGIC
         # Sets read and write permissions for bearer token directory and vault tokens 
         # Securely copy vault token to external launch host prior to ssh'ing into the launch host
-        if role == "analysis" or ctx.experiment == "samdev": 
-            tok_permissions = "chmod +rw %s;" % (vaultfile)
-            scp_command = "scp %s %s@%s:/tmp; " % (vaultfile, lt.launch_account, lt.launch_host)
-            scp_command = scp_command + "scp %s %s@%s:/tmp;" % (proxyfile, lt.launch_account, lt.launch_host)
-            #scp_command = "rsync -r %s %s@%s:%s" % (sandbox, lt.launch_account, lt.launch_host, sandbox)
-            if lt.launch_host != self.poms_service.hostname:  
+        tok_permissions = []
+        scp_command = []
+        if role == "analysis" or ctx.experiment == "samdev":
+            if str(lt.launch_host) != self.poms_service.hostname:
+                tok_permissions.append("chmod 0600 %s;" % (vaultfile))
+                scp_command.append(f"{lt.launch_host} : {ctx.web_config.get('POMS', 'POMS_HOST')} ")
+                scp_command.append("scp %s %s@%s:/tmp" % (vaultfile, lt.launch_account, lt.launch_host))
+                scp_command.append("scp %s %s@%s:/tmp" % (proxyfile, lt.launch_account, lt.launch_host))
                 vaultfile = "/tmp/%s" % vaultfilename
                 proxyfile = "/tmp/x509up_voms_%s_Analysis_%s" % (exp, experimenter_login)
-        else:
-            tok_permissions = ""
-            scp_command = ""
-            vaultfile = ""
+                
         
         # Declare where a bearer token should be stored when launch host calls htgettoken
         if role == "production" and ctx.experiment == "samdev" and False: 
@@ -1777,7 +2193,9 @@ class SubmissionsPOMS:
         elif role == "analysis":
              htgettokenopts = "-a %s -r default -i %s --vaulttokeninfile=%s --credkey=%s" % (ctx.web_config.get("tokens", "vaultserver"), group, vaultfile, experimenter_login)
         else:
-            htgettokenopts = "-a %s -i %s -r production --credkey=%spro/managedtokens/%s " % (ctx.web_config.get("tokens", "vaultserver"), group, exp, ctx.web_config.get("tokens", "managed_tokens_server"))
+            # don't set --credkey for the production account because we
+            # don't know if it should be fifeutilgpvm01 or 03...
+            htgettokenopts = "-a %s -i %s -r production " % (ctx.web_config.get("tokens", "vaultserver"), group)
 
          # add token logic if not already in login_setup:
         tokens_defined_in_login_setup = ("HTGETTOKENOPTS" in cs.login_setup_obj.launch_setup 
@@ -1813,33 +2231,120 @@ class SubmissionsPOMS:
             ("export USER=%s; " % experimenter_login) if role == "analysis" or ctx.experiment == "samdev" else "",
             "export XDG_CACHE_HOME=/tmp/%s;" % experimenter_login if role == "analysis" or ctx.experiment == "samdev" else "",
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
-            "export HTGETTOKENOPTS=\"%s\"; " %htgettokenopts,
-            "export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/puppetlabs/bin\";",
+            f"chmod 0600 {vaultfile}; ls -l {vaultfile};" if vaultfile else "",
+            #"export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/pu1ppetlabs/bin\";",
             ("htgettoken %s;" % (htgettokenopts))
-            
-            # We are hiding this for now, and assuming that uploaded vault tokens are already stored in credmon vault
-            #if role == "production" and ctx.experiment != "samdev" and not tokens_defined_in_login_setup
-            #else
-            #("poms_condor_vault_storer -v %s_default; ") % ctx.experiment,
         ]
         # END TOKEN LOGIC
+        formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
+        input_dict = {
+            "dataset": dataset % formatdict if dataset and "%(" in dataset and ")s" in dataset else dataset,
+            "parameter": dataset % formatdict if dataset and"%(" in dataset and ")s" in dataset else dataset,
+            "version": vers % formatdict if "%(" in vers and ")s" in vers else vers,
+            "group": group % formatdict if "%(" in group and ")s" in group else group,
+            "experimenter": experimenter_login,
+            "experiment": exp,
+        }
+        data_dispatcher_logic = []
+        project_data = {}
+        if do_data_dispatcher:
+            if dd_project:
+                dd_project.campaign_stage_snapshot_id=submission.campaign_stage_snapshot_id
+                dd_project.depends_on_submission=submission.depends_on
+                dd_project.submission_id=sid
+                dd_project.recovery_position = submission.recovery_position
+                dd_project.recovery_tasks_parent_submission = submission.recovery_tasks_parent
+                dd_project.job_type_snapshot_id = submission.job_type_snapshot_id
+                dd_project.status="created"
+                dd_project.named_dataset = dd_recovery_query if dd_recovery_query else dataset if dataset and not dd_project.named_dataset else dd_project.named_dataset
+                if dd_project.depends_on_submission and not dd_project.depends_on_project:
+                    dd_project.depends_on_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.depends_on_submission).first()
+                if dd_project.recovery_tasks_parent_submission and not dd_project.recovery_tasks_parent_project:
+                    dd_project.recovery_tasks_parent_project = ctx.db.query(DataDispatcherSubmission.project_id).filter(DataDispatcherSubmission.campaign_id == DataDispatcherSubmission.campaign_id and DataDispatcherSubmission.submission_id == dd_project.recovery_tasks_parent_submission).one_or_none().project_id
+                
+            else:
+                stage_name = submission.campaign_stage_obj.name
+                methodology = submission.campaign_stage_obj.data_dispatcher_stage_methodology or "standard"
+                project_data.update( {
+                    "experiment": exp,
+                    "role": cs.vo_role,
+                    "campaign_id": cid, 
+                    "campaign_stage_id": csid, 
+                    "campaign_stage_snapshot_id": submission.campaign_stage_snapshot_id,
+                    "submission_id": sid, 
+                    "depends_on_submission": submission.depends_on,
+                    "recovery_position": submission.recovery_position,
+                    "recovery_tasks_parent_submission":  submission.recovery_tasks_parent,
+                    "job_type_snapshot_id":  submission.job_type_snapshot_id,
+                    "split_type": cs.cs_split_type if (cs.cs_split_type and cs.cs_split_type != 'None') else None,
+                    "creator": cs.experimenter_creator_obj.experimenter_id,
+                    "creator_name": cs.experimenter_creator_obj.username,
+                    "last_split": cs.cs_last_split,
+                    "status": "created"
+                })
+
+                # try to get data_dispatcher settings from stage or campaign
+                settings = None
+                if cs.data_dispatcher_settings:
+                    settings = cs.data_dispatcher_settings 
+                elif "defaults" in cs.campaign_obj.defaults and "data_handling_service" in cs.campaign_obj.defaults["defaults"] and "data_dispatcher" in cs.campaign_obj.defaults["defaults"]["data_handling_service"]:
+                    settings = cs.campaign_obj.defaults["defaults"]["data_handling_service"]["data_dispatcher"] 
+                else:
+                    settings = {}
+
+                project_data["virtual"] = settings.get("virtual", cs.data_dispatcher_project_virtual) or False
+                project_data["idle_timeout"] = settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
+                project_data["worker_timeout"] = settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0
+                project_data["load_limit"] =  settings.get("load_limit", cs.data_dispatcher_load_limit) or None
+                
+                def generate_project_name(type):
+                    if methodology == "1P" and type == "Project ID Override":
+                        type = "Initial"
+                    project_data["project_name"] = f"{stage_name} | {methodology} | {type}  | sid: {sid}" 
+                
+                if dd_project_override and not dd_project:
+                    project_data["project_id"] = cs.data_dispatcher_project_id
+                    generate_project_name("Project ID Override")
+                    dd_project = ctx.dmr_service.get_project_for_submission(**project_data)
+                
+                elif cs.data_dispatcher_dataset_query:
+                    project_data["username"] = submission.experimenter_creator_obj.username
+                    project_data["dataset"] = cs.data_dispatcher_dataset_query
+                    project_data["named_dataset"] = cs.data_dispatcher_dataset_query if not dataset else dataset
+                    use_params = (dataset != None and dataset != cs.data_dispatcher_dataset_query)
+                    if not cs.data_dispatcher_dataset_only:
+                        project_data["dataset"] = cs.data_dispatcher_dataset_query
+                        generate_project_name("Dataset Only")
+                    else:
+                        project_data["project_id"] = None
+                        generate_project_name("Dataset")
+                        
+                    dd_project = ctx.dmr_service.create_project(**project_data)
+            if dd_project:
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_TASK_ID=%s;" % dd_project.data_dispatcher_project_idx)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_ID=%s;" % dd_project.project_id)
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_DATASET_QUERY=\"%s\";" % (dd_project.named_dataset if dd_project.named_dataset else " " ))
+                data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PROJECT_VIRTUAL=%s;" % (dd_project.virtual if dd_project.virtual else "False" ))
+
+                data_dispatcher_logic.append(f"export POMS_DATA_DISPATCHER_LOAD_LIMIT={dd_project.load_limit or 0};")
+
+                if cs.data_dispatcher_dataset_only:
+                    data_dispatcher_logic.append("export POMS_DATA_DISPATCHER_PARAMETER=\"%s\";" % dd_project.named_dataset) #TODO
+                    
+                
+                submission.data_dispatcher_project_idx = dd_project.data_dispatcher_project_idx
+                ctx.db.commit()
+        
         
         cmdl = [
             "exec 2>&1;",
             "set -x;",
-            "export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
+            #"export KRB5CCNAME=/tmp/krb5cc_poms_submit_%s;" % group,
             "kinit -kt $HOME/private/keytabs/poms.keytab `klist -kt $HOME/private/keytabs/poms.keytab | tail -1 | sed -e 's/.* //'`|| true;",
-            scp_command if do_tokens and lt.launch_host != self.poms_service.hostname else "",
-            tok_permissions if do_tokens else "",
+            "; ".join(scp_command) if do_tokens and scp_command and lt.launch_host != ctx.web_config.get("POMS", "POMS_HOST") else "",
+            "; ".join(tok_permissions) if do_tokens and tok_permissions else "",
             ("ssh -tx %s@%s '" % (lt.launch_account, lt.launch_host))
-            % {
-                "dataset": dataset,
-                "parameter": dataset,
-                "experiment": exp,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-            },
+            % input_dict,
             
             "echo == process_id: $$ ==;",
             "export UPLOADS='%s';" % sandbox,
@@ -1872,24 +2377,12 @@ class SubmissionsPOMS:
             # proxy file has to belong to us, apparently, so...
             #"cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;" % (uu, uu),
              
-            #"source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
-            #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
-            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
-            # save our spack root in SSR1 for later..
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
-            "spack load fife-utils@3.7.5 os=default_os;",
+            "spack load fife-utils@3.7.8 os=default_os;",
             "SSR1=$SPACK_ROOT;",
             (
                 lt.launch_setup
-                % {
-                    "dataset": dataset,
-                    "parameter": dataset,
-                    "experiment": exp,
-                    "version": vers,
-                    "group": group,
-                    "experimenter": experimenter_login,
-                }
+                % input_dict
             ).replace("'", """'"'"'"""),
             "export _condor_SEC_CREDENTIAL_STORER=/bin/true;",
         ]
@@ -1897,14 +2390,16 @@ class SubmissionsPOMS:
        
         if do_tokens:
             cmdl.extend(token_logic)
+        
+        inst = {
+            "fermicloud821.fnal.gov": "dev",
+            "pomsgpvm01.fnal.gov":"prod"
+        }
+        
             
         cmdl.extend([
-            #'setup jobsub_client v_lite;' if do_tokens else "",
-            #'UPS_OVERRIDE="" setup -j poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, -j poms_client -g poms41 -z /grid/fermiapp/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;' if do_tokens
-            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
-            # "ups active;",
-
-            # POMS4 'properly named' items for poms_jobsub_wrapper
+            
+            "export POMS4_HOST=%s;" % self.poms_service.hostname ,
             "export POMS4_CAMPAIGN_STAGE_ID=%s;" % csid,
             'export POMS4_CAMPAIGN_STAGE_NAME="%s";' % csname,
             "export POMS4_CAMPAIGN_STAGE_TYPE=%s;" % cstype,
@@ -1913,6 +2408,8 @@ class SubmissionsPOMS:
             "export POMS4_SUBMISSION_ID=%s;" % sid,
             "export POMS4_CAMPAIGN_ID=%s;" % cid,
             "export POMS4_TEST_LAUNCH=%s;" % test_launch_flag,
+            "export POMS_ENV=%s;" % self.poms_service.hostname,
+            "export POMS_INST=%s" % inst.get(self.poms_service.hostname, "prod"),
             "export POMS_CAMPAIGN_ID=%s;" % csid,
             'export POMS_CAMPAIGN_NAME="%s";' % ccname,
             "export POMS_PARENT_TASK_ID=%s;" % (parent_submission_id if parent_submission_id else ""),
@@ -1934,14 +2431,23 @@ class SubmissionsPOMS:
             ("cp $vtk /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             ("chmod 0400 /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;") if vaultfile and role == "analysis" else "",
             "export GROUP=%s;" % group,
+            "export EXPERIMENT=%s;" % exp,
+            "echo '#!bin/sh' > /tmp/poms_record.sh;",
+            "echo '\"'\"'reporturl=\"https://$POMS_ENV:9443/poms/update_submission\"'\"'\"' >> /tmp/poms_record.sh;",
+            "echo '\"'\"'curl -o - -H \"Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})\" \"$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$1&status=New\"'\"'\"'  >> /tmp/poms_record.sh; "
+
         ])
+        if do_data_dispatcher and data_dispatcher_logic:
+            cmdl.extend(data_dispatcher_logic)
 
         cleanup_cmdl = [
             # we made either a token or a proxy copy just for
             # authenticating this launch, so clean it up...
             #"rm -f $X509_USER_PROXY $BEARER_TOKEN_FILE"
-            #"rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
-            #"rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
+
+            # "rm -v -f /tmp/proxy%s; rm -v -f $BEARER_TOKEN_FILE; rm -v -f /tmp/token%s;" % (uu, uu),
+            "rm -v -f /tmp/vt_$CONDOR_VAULT_STORER_ID /tmp/vt_$CONDOR_VAULT_STORER_ID-$JOBSUB_GROUP;" if vaultfile else ""
+            # "rm -f %s;" % proxyfile if lt.launch_host != self.poms_service.hostname and role != "production" and ctx.experiment != "samdev" else "",
             "date +%H:%M:%S.%N;",
         ]
 
@@ -1973,16 +2479,7 @@ class SubmissionsPOMS:
 
         lcmd = launch_script + " " + " ".join((x[0] + x[1]) for x in list(params.items()))
         formatdict = cs.campaign_obj.campaign_keywords if cs and cs.campaign_obj.campaign_keywords else {}
-        formatdict.update(
-            {
-                "dataset": dataset,
-                "parameter": dataset,
-                "version": vers,
-                "group": group,
-                "experimenter": experimenter_login,
-                "experiment": exp,
-            }
-        )
+        formatdict.update(input_dict)
 
         lcmd = lcmd % formatdict
         lcmd = lcmd.replace("'", """'"'"'""")
@@ -2006,7 +2503,7 @@ class SubmissionsPOMS:
 
 
         outdir, outfile, outfullpath = self.get_output_dir_file(
-            ctx, launch_time, ctx.username, campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
+            ctx, launch_time, ctx.username, campaign_id=cid,campaign_stage_id=csid, submission_id=sid, test_login_setup=test_login_setup
         )
 
         logit.log("trying to record launch in %s" % outfullpath)
@@ -2023,9 +2520,9 @@ class SubmissionsPOMS:
         logit.log("started launch ssh")
    
         
-        return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile)
+        return lcmd, cs, campaign_stage_id, outdir, os.path.basename(outfile), sid
 
     def get_file_upload_path(self, ctx, filename):
         return "%s/uploads/%s/%s/%s" % (ctx.config_get("base_uploads_dir"), ctx.experiment, ctx.username, filename)
-
+    
     
