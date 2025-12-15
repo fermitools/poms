@@ -1264,6 +1264,10 @@ class SubmissionsPOMS:
     # h3. set_job_launches
     def set_job_launches(self, ctx, hold):
 
+        # getting bogus holds as "poms" user somehow, blocking here.
+        if ctx.username == 'poms':
+            return
+
         experimenter = ctx.get_experimenter()
         if hold not in ["hold", "allowed"]:
             return

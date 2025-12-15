@@ -271,7 +271,7 @@ def poms_method(
                     redict = values
                 else:
                     redict = kwargs
-                if not redict.get("exp_obj", None):
+                if not redict.get("exp_obj", None) and ctx.experiment:
                     redict["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
                 if not redict.get("poms_servicenow_url", None):
                     redict["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
@@ -292,7 +292,7 @@ def poms_method(
                     templ = templ.replace(".html", "_confirm.html")
                 if not values:
                     values = kwargs
-                if not values.get("exp_obj", None):
+                if not values.get("exp_obj", None) and ctx.experiment:
                     values["exp_obj"] = ctx.db.query(Experiment).filter(Experiment.experiment == ctx.experiment).one()
                 if not values.get("poms_servicenow_url", None):
                     values["poms_servicenow_url"] = ctx.web_config.get("POMS", "poms_servicenow_url")
