@@ -302,14 +302,14 @@ class Agent:
         
         ntot = int(entry.get("njobs", (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 
-                int(entry["failed"]) + int(entry["cancelled"]))))
+                int(entry["cancelled"]))))
 
         if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
             self.known["maxjobs"][entry["pomsTaskID"]] = ntot
         else:
             ntot = self.known["maxjobs"][entry["pomsTaskID"]]
 
-        ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
+        ncomp = int(entry["completed"]) + int(entry["held"]) + int(entry["cancelled"])
 
         #
         # this was checking for ntot > 0, but 1 total job may just be 
