@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from http.client import HTTPConnection
+from tkinter import N
 import requests
 import configparser
 import json
@@ -21,9 +22,7 @@ from local_queue import SubmissionQueue
 from helper_functions import *
 
 
-HTTPConnection.debuglevel = 1
-
-
+HTTPConnection.debuglevel = 0
 
 
 class Agent:
@@ -41,8 +40,9 @@ class Agent:
             our experiment list from POMS
         """
         self.cfg = configparser.ConfigParser()
-        print(config)
         self.cfg.read(config)
+        set_log_level(self.cfg.get("submission_agent", "log_level", fallback="INFO"))
+        
         self.poms_uri = poms_uri if poms_uri else self.cfg.get("submission_agent", "poms_uri")
         self.submission_uri = submission_uri if submission_uri else self.cfg.get("submission_agent", "submission_uri")
         
@@ -115,6 +115,7 @@ class Agent:
         record_queue_log("Values: %s" % list(submissions.values()))
         record_queue_log("Begin call")
         start = datetime.now()
+        response = None
         try:
             sess = requests.session()
             htr = sess.post(
@@ -126,18 +127,18 @@ class Agent:
                 timeout=self.timeouts,
                 verify=False,
             )
+            response = htr.json()
 
         except requests.exceptions.ConnectionError:
             record_queue_log("Connection Reset! NOT Retrying once...", level="exception")
 
-            
-        response = htr.json()
+
         elapsed_time = datetime.now() - start
         record_queue_log("Recieved response from poms", {"status": response.get("status", "Failed"), "request_duration": f"{elapsed_time.seconds}.{elapsed_time.microseconds} seconds"})
         if response and response.get("status") == "Success":
             statuses = response.get("response")
             success = []
-            print("Statuses: %s" % statuses )
+            record_queue_log("Statuses: %s" % statuses )
             for submission_id, is_on_server_server in statuses.items():
                 if not is_on_server_server:
                     jobid = submissions.get(int(submission_id)).get("jobsub_job_id", None)

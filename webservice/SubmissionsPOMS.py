@@ -1274,7 +1274,7 @@ class SubmissionsPOMS:
                     status = str(data_entry.get("status", None))
                     
                     # Submission updates
-                    print("submission status: sub=%s, status=%s" % (submission.submission_id, status))
+                    logit.log("DEBUG", "submission status: sub=%s, status=%s" % (submission.submission_id, status))
                     if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct:
                         status = "Completed"
                     if status is not None:
@@ -1351,7 +1351,10 @@ class SubmissionsPOMS:
             if status == "Failed" and submission.recovery_tasks_parent:
                 status = "Completed"
             status_id = known_statuses.get(status, None)
-            print("sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist))
+            logit.log(
+                "DEBUG",
+                "sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist)
+            )
             if not status_id:
                 # not a known status, go to next data_entry
                 continue
@@ -2237,6 +2240,8 @@ class SubmissionsPOMS:
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             f"chmod 0600 {vaultfile}; ls -l {vaultfile};" if vaultfile else "",
             #"export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/pu1ppetlabs/bin\";",
+            # need to export HTGETTOKENOPTS for jobsub if not set; use ":- %s" because value might start with a "-"
+            "export HTGETTOKENOPTS=\"${HTGETTOKENOPTS:- %s}\"; "%htgettokenopts,
             ("htgettoken %s;" % (htgettokenopts))
         ]
         # END TOKEN LOGIC
@@ -2389,6 +2394,9 @@ class SubmissionsPOMS:
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
             "spack load fife-utils@3.7.8 os=default_os;",
             "SSR1=$SPACK_ROOT;",
+            "PYTHONPATH1=$PYTHONPATH;",
+            "PYTHONHOME1=$PYTHONHOME;",
+            "PYTHON_INCLUDE1=$PYTHON_INCLUDE;",
             (
                 lt.launch_setup
                 % input_dict
@@ -2431,9 +2439,22 @@ class SubmissionsPOMS:
             # but with the old spack root we saved... so we don't mess up the spack environment they may 
             # have laoded in their launch_setup.
             "SSR2=$SPACK_ROOT;",
+            "PYTHONPATH2=$PYTHONPATH;",
+            "PYTHONHOME2=$PYTHONHOME;",
+            "PYTHON_INCLUDE2=$PYTHON_INCLUDE;",
             "SPACK_ROOT=$SSR1;",
-            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os);",
+            "PYTHONPATH=$PYTHONPATH1;",
+            "PYTHONHOME=$PYTHONHOME1;",
+            "PYTHON_INCLUDE=$PYTHON_INCLUDE1;",
+            # This is sort of evil looking due to the python quotes vs bash quotes vs both doing
+            # backslash substitutions...
+            "setuptxt=\"$($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os | sed -e ' \"'\" ' s/\([A-Z_]*PATH\)=\([^:]*:[^:]*:\).*/\\1=\\2$\\1/ ' \"'\" ' )\";",
             "SPACK_ROOT=$SSR2;",
+            "PYTHONPATH=$PYTHONPATH2;",
+            "PYTHONHOME=$PYTHONHOME2;",
+            "PYTHON_INCLUDE=$PYTHON_INCLUDE2;",
+            "echo  \"$setuptxt\"",
+            "eval \"$setuptxt\"",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
             ("vtk=%s" % vaultfile) if vaultfile and role == "analysis" else "",

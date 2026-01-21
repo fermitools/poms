@@ -170,7 +170,11 @@ class SubmissionQueue:
             for task in item["queued"]:
                 if str(task["pomsTaskID"]) not in queued_tasks:
                     current_queue.append(task)
-                    print("Added task to queue: %s" % task["pomsTaskID"])
+                    record_queue_log(
+                        "Added task to queue",
+                        pomsTaskID=task["pomsTaskID"]
+                    )
+
             data["queued"] = current_queue
         # Items are stored as dicts in the json, but tend to form duplicates
         # So we update the dict with the new values,

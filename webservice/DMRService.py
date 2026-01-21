@@ -16,6 +16,7 @@ import uuid
 import hashlib
 import base64
 import traceback
+import metacat
 
 import utc
 from . import logit
@@ -424,7 +425,11 @@ class DMRService:
         if poms_attributes is not None:
             retval['poms_attributes'] = poms_attributes
             logit.log("DMR-Service  | list_filtered_projects | Got poms project-attributes: %s" % poms_attributes)
-            retval['projects_active'] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
+            try:
+                retval['projects_active'] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
+            except metacat.common.exceptions.WebAPIError:
+                self.login_with_x509()
+                retval['projects_active'] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects() if project.get("project_id", None) and project["project_id"] in poms_attributes]
             retval['projects_active_count'] = len(retval["projects_active"])
             for p_state in ["done", "failed","cancelled", "abandoned"]:
                 retval["projects_%s" % p_state] = [project for project in cherrypy.session["Shrek"]["dd_client"].list_projects(state=p_state,  not_state='active') if project.get("project_id", None) and project["project_id"] in poms_attributes] or []
@@ -925,7 +930,7 @@ class DMRService:
                 project_attributes["load_limit"] = cs.data_dispatcher_settings.get("load_limit", cs.data_dispatcher_load_limit) or None
                 project_attributes["campaign_name"] = cs.campaign_obj.name
                 project_attributes["campaign_stage_name"] = cs.name
-                project_attributes["software_version"] = cs.software_version
+                project_attributes["software_version"] = cs.software_version % cs.campaign_obj.campaign_keywords
                 if check_stage:
                     idle_timeout = cs.data_dispatcher_settings.get("idle_timeout", cs.data_dispatcher_idle_timeout) or 259200
                     worker_timeout = cs.data_dispatcher_settings.get("worker_timeout", cs.data_dispatcher_worker_timeout) or 0

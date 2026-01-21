@@ -738,14 +738,11 @@ class LocalJsonQueue:
                 session_info["secret"] = base64.b64decode(session_info["secret"])
                 session_info["secret"] = cipher_suite.decrypt(session_info["secret"])
                 session_info["secret"] = session_info["secret"].decode('utf-8')
-                print("received:", session_info)
-                print("eval:", evaluate)
             for key, val in evaluate.items():
-                print(key, "in session_info ?", key in session_info, "|", str(session_info[key]), "=", str(val), "?", str(session_info[key]) == str(val))
                 if not (key in session_info and str(session_info[key]) == str(val)):
                     print("Failed to authorize agent")
                     return False
-        
+        print("Authorized Agent")
         return True
     
     

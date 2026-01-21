@@ -208,8 +208,8 @@ class samweb_lite:
             base = "%s" % config.get("SAM", "sam_base").replace("\"", "")
             urls = [
                 "%s/sam/%s/api/projects/name/%s/summary?format=json&process_limit=0"
-                % (base.replace("web",s.campaign_stage_snapshot_obj.experiment).replace("samsamdev","samdev"), s.campaign_stage_snapshot_obj.experiment, s.project)
-                if s.project and s.project != "None"
+                % (base.replace("web",s.campaign_stage_snapshot_obj.experiment).replace("samsamdev","samdev"), s.campaign_stage_snapshot_obj.experiment, s.get("project") if isinstance(s, dict) else s.project)
+                if (isinstance(s, dict) and s.get("project")) or (hasattr(s, "project") and s.project and s.project != "None")
                 else None
                 for s in task_list
             ]
@@ -465,8 +465,9 @@ class samweb_lite:
                         data=pdict,
                         verify=False,
                         cert=(
-                            "%s/private/gsi/%scert.pem" % (os.environ["HOME"], os.environ["USER"]),
-                            "%s/private/gsi/%skey.pem" % (os.environ["HOME"], os.environ["USER"]),
+                            os.environ["X509_USER_CERT"],
+                            os.environ["X509_USER_KEY"]
+
                         ),
                     )
                     res.raise_for_status()
