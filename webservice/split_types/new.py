@@ -111,7 +111,8 @@ class new:
         self.samhandle.create_definition(
             self.cs.job_type_obj.experiment,
             new,
-            "defname: %s and end_time > '%s' and end_time <= '%s'" % (self.cs.dataset, sstime, setime),
+            "defname: %s and create_date > '%s' and create_date <= '%s'" % (self.cs.dataset, sstime, setime),
+#           "defname: %s and end_time > '%s' and end_time <= '%s'" % (self.cs.dataset, sstime, setime),
         )
 
         return new

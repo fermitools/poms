@@ -954,7 +954,10 @@ class CampaignsPOMS:
                     
                     if "data_handling_service" in defaults:
                         if 'sam' in defaults["data_handling_service"]:
-                            sam_defaults = defaults["data_handling_service"]["sam"]
+                            if not isinstance(defaults["data_handling_service"], dict):
+                                sam_defaults = defaults
+                            else:
+                                sam_defaults = defaults["data_handling_service"]["sam"]
                             res.append("[sam_defaults]")
                             res.append("dataset_or_split_data=%s" % sam_defaults.get("dataset"))
                             res.append("")

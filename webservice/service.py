@@ -278,8 +278,8 @@ def parse_command_line():
 run_it = True
 if run_it:
 
-    poms_config_path = "config/poms.ini"
-    shrek_config_path = "config/shrek.toml"
+    poms_config_path = os.environ.get("WEB_CONFIG", "/home/poms/private/poms/config/prod.webservice.toml")
+    shrek_config_path = os.environ.get("SHREK_CONFIG", "/home/poms/private/shrek/config/dev.shrek.toml")
     parser, args = parse_command_line()
     if args.config:
         poms_config_path = args.config
