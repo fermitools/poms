@@ -97,7 +97,7 @@ then
     JOBSUB_JOB_ID=`echo $JOBSUB_JOB_ID | sed -e 's/\.0@/@/'`
     curl -o - -H "Authorization: Bearer $(cat ${BEARER_TOKEN_FILE})" "$reporturl?submission_id=$POMS_TASK_ID&jobsub_job_id=$JOBSUB_JOB_ID&status=New" 
 
-    submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;'`
+    submission_url=`echo "$submission_url" | sed -e 's;:8443/;/;' -e 's;:9443/;/;'`
     echo "For Status, use URL: $submission_url"
     add_item "STATUS: success"
 else

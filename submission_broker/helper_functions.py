@@ -31,6 +31,9 @@ def set_run_start(time):
     global _run_start
     _run_start = time
 
+def set_log_level(level):
+    LOGIT.setLevel(level)
+
 def current_run_info():
     now = datetime.now(utc)
     run_info = {

@@ -1274,7 +1274,7 @@ class SubmissionsPOMS:
                     status = str(data_entry.get("status", None))
                     
                     # Submission updates
-                    print("submission status: sub=%s, status=%s" % (submission.submission_id, status))
+                    logit.log("DEBUG", "submission status: sub=%s, status=%s" % (submission.submission_id, status))
                     if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct:
                         status = "Completed"
                     if status is not None:
@@ -1351,7 +1351,10 @@ class SubmissionsPOMS:
             if status == "Failed" and submission.recovery_tasks_parent:
                 status = "Completed"
             status_id = known_statuses.get(status, None)
-            print("sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist))
+            logit.log(
+                "DEBUG",
+                "sub: %s, status=%s, status_id=%s, last_hist:%s" % (submission.submission_id, status, status_id, lasthist)
+            )
             if not status_id:
                 # not a known status, go to next data_entry
                 continue
@@ -1595,6 +1598,10 @@ class SubmissionsPOMS:
 
     # h3. set_job_launches
     def set_job_launches(self, ctx, hold):
+
+        # getting bogus holds as "poms" user somehow, blocking here.
+        if ctx.username == 'poms':
+            return
 
         # getting bogus holds as "poms" user somehow, blocking here.
         if ctx.username == 'poms':
@@ -2233,6 +2240,8 @@ class SubmissionsPOMS:
             "export BEARER_TOKEN_FILE=/tmp/token%s; " % uu,
             f"chmod 0600 {vaultfile}; ls -l {vaultfile};" if vaultfile else "",
             #"export PATH=\"/opt/jobsub_lite/bin:$PATH:/opt/pu1ppetlabs/bin\";",
+            # need to export HTGETTOKENOPTS for jobsub if not set; use ":- %s" because value might start with a "-"
+            "export HTGETTOKENOPTS=\"${HTGETTOKENOPTS:- %s}\"; "%htgettokenopts,
             ("htgettoken %s;" % (htgettokenopts))
         ]
         # END TOKEN LOGIC
@@ -2371,13 +2380,23 @@ class SubmissionsPOMS:
             #  * by the analysis user uploading their vault token...
             #
             #
-
-            "echo \"Vault file permissions:\"",
-            "ls -l %s" % vaultfile if role == "analysis" else "",
+            
+            # Not using proxies anymore ... mengel@fnal.gov
+            #"export X509_USER_PROXY=%s;" % proxyfile,
+            # proxy file has to belong to us, apparently, so...
+            #"cp $X509_USER_PROXY /tmp/proxy%s; export X509_USER_PROXY=/tmp/proxy%s; chmod 0400 $X509_USER_PROXY; ls -l $X509_USER_PROXY;" % (uu, uu),
              
+            #"source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups;",
+            #"setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db, ifdhc_config v2_6_16; export IFDH_TOKEN_ENABLE=1; export IFDH_PROXY_ENABLE=1;" if do_tokens
+            #else "setup poms_jobsub_wrapper -g poms41 -z /cvmfs/fermilab.opensciencegrid.org/products/common/db;",
+            # use new spack setup of new poms-client and poms-jobsub-wrapper -- mengel
+            # save our spack root in SSR1 for later..
             "source /cvmfs/fermilab.opensciencegrid.org/packages/common/setup-env.sh;",
             "spack load fife-utils@3.7.8 os=default_os;",
             "SSR1=$SPACK_ROOT;",
+            "PYTHONPATH1=$PYTHONPATH;",
+            "PYTHONHOME1=$PYTHONHOME;",
+            "PYTHON_INCLUDE1=$PYTHON_INCLUDE;",
             (
                 lt.launch_setup
                 % input_dict
@@ -2420,9 +2439,22 @@ class SubmissionsPOMS:
             # but with the old spack root we saved... so we don't mess up the spack environment they may 
             # have laoded in their launch_setup.
             "SSR2=$SPACK_ROOT;",
+            "PYTHONPATH2=$PYTHONPATH;",
+            "PYTHONHOME2=$PYTHONHOME;",
+            "PYTHON_INCLUDE2=$PYTHON_INCLUDE;",
             "SPACK_ROOT=$SSR1;",
-            "eval $($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os);",
+            "PYTHONPATH=$PYTHONPATH1;",
+            "PYTHONHOME=$PYTHONHOME1;",
+            "PYTHON_INCLUDE=$PYTHON_INCLUDE1;",
+            # This is sort of evil looking due to the python quotes vs bash quotes vs both doing
+            # backslash substitutions...
+            "setuptxt=\"$($SPACK_ROOT/bin/spack load --sh poms-jobsub-wrapper@4.5.1 os=default_os | sed -e ' \"'\" ' s/\([A-Z_]*PATH\)=\([^:]*:[^:]*:\).*/\\1=\\2$\\1/ ' \"'\" ' )\";",
             "SPACK_ROOT=$SSR2;",
+            "PYTHONPATH=$PYTHONPATH2;",
+            "PYTHONHOME=$PYTHONHOME2;",
+            "PYTHON_INCLUDE=$PYTHON_INCLUDE2;",
+            "echo  \"$setuptxt\"",
+            "eval \"$setuptxt\"",
             ("export CONDOR_VAULT_STORER_ID=%s;" % uu) if role == "analysis" else "",
             ("export CONDOR_VAULT_STORER_USER=$USER@fnal.gov") if role == "analysis" else "",
             ("vtk=%s" % vaultfile) if vaultfile and role == "analysis" else "",

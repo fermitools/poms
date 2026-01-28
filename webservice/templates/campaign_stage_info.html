@@ -373,10 +373,20 @@ all the time...
     <b>Dataset</b>: {{CampaignStage.dataset}}<br/>
     {% endif %}
     <b>Data Handling Service</b>: {{CampaignStage.campaign_obj.data_handling_service}}<br/>
-    <b>Software Version</b>: {{CampaignStage.software_version}}<br/>
+    <!-- <b>Software Version</b>: {{CampaignStage.software_version}}<br/> -->
+    <!-- with campaign_keywords replacement -->
+    <b>Software Version</b>: {{CampaignStage.software_version|format(**CampaignStage.campaign_obj.campaign_keywords) }}<br/>
     <b>VO Role</b>: {{CampaignStage.vo_role}}<br/>
+    <!--
+    <b>Campaign Keywords</b> [{% for key,value in CampaignStage.campaign_obj.campaign_keywords.items() %} <br/>&nbsp; {{key}} = {{value}} {% endfor %}] <br>
+    -->
     {% if CampaignStage.param_overrides %}
+    <!-- <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br> -->
+    {% if CampaignStage.campaign_obj.campaign_keywords %}
+    <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp; {{pair|format(**CampaignStage.campaign_obj.campaign_keywords)}}  {% endfor %}] <br>
+    {% else %}
     <b>Param Overrides</b>: [{% for pair in CampaignStage.param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>
+    {% endif %}
     {% endif %}
     {% if CampaignStage.test_param_overrides %}
     <b>Test Param Overrides</b>: [{% for pair in CampaignStage.test_param_overrides %} <br/>&nbsp; {{pair}}  {% endfor %}] <br>

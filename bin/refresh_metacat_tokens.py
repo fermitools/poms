@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import logging
 from data_dispatcher.api import DataDispatcherClient
 from metacat.webapi import MetaCatClient
-
+import os 
 _supported_experiments = ['hypot', 'mu2e', 'dune']
 
 
@@ -15,7 +15,7 @@ debug = False
 def refresh_experiments():
         try:
             # Set new client
-            shrek_config = toml.load('/home/poms/poms/webservice/config/shrek.toml')
+            shrek_config = toml.load(os.environ.get("SHREK_CONFIG_FILE"))
             for experiment in _supported_experiments:
                 try:
                     mc_server_url = shrek_config[experiment]["metacat"]["METACAT_SERVER_URL"]
