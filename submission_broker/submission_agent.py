@@ -870,7 +870,12 @@ class Agent:
             data=jobs_query,
             timeout=self.timeouts,
         )
-        jobs_dict = jobs_results.json()
+        try:
+            jobs_dict = jobs_results.json()
+        except requests.exceptions.JSONDecodeError:
+            record_queue_log("request yielded non-json %s" % jobs_results.text)
+            jobs_dict = {}
+
         jobs_results.close()
         
         if jobs_dict.get("errors", None) != None:
