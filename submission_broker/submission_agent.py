@@ -8,7 +8,7 @@ import logging
 import os
 import time
 from http.client import HTTPConnection
-from tkinter import N
+#from tkinter import N
 import requests
 import configparser
 import json
@@ -222,6 +222,10 @@ class Agent:
             return None
 
         ddict = ddict.get("data", {}).get("submission", None)
+        if "jobs" in ddict and ddict["jobs"]:
+            # if the query has jobs(limit:1){x y z}, move the resulting
+            # x y z values up to the main dictionary
+            ddict.update(ddict["jobs"][0])
 
         return ddict
 
@@ -248,15 +252,21 @@ class Agent:
         )
         ddict = postresult.json()
         ddict = ddict["data"]["submission"]
+        if "jobs" in ddict and ddict["jobs"]:
+            # if the query has jobs(limit:1){x y z}, move the resulting
+            # x y z values up to the main dictionary
+            ddict.update(ddict["jobs"][0])
         record_queue_log("Received Data", **ddict)
         postresult.close()
         
-         # it looks like we should do this, to update our cache, *but* we
-        # need to defer it for the logic in check_submissions() below,
+        # it looks like we should do this, to update our cache, *but* we
+        # need to defer it for the logic in check_entry_for_project() below,
         # otherwise we'll never report it...
         # self.known['project'][entry['pomsTaskID']] = res
+
+        entry.update(ddict)
            
-        return self.check_entry_for_project(ddict, True)
+        return self.check_entry_for_project(entry)
 
        
     
@@ -282,6 +292,7 @@ class Agent:
         if not project and entry.get("SAM_PROJECT", None):
             project = entry["SAM_PROJECT"]
         if project:
+            self.known["project"][entry["pomsTaskID"]] = project
             record_queue_log("found sam project: %s" % project, task_id=entry["pomsTaskID"])
             return project
         return project
@@ -434,6 +445,11 @@ class Agent:
             )
             ddict = htr.json()
             ddict = ddict.get("data",{}).get("submissions",[])
+            for sub in ddict:
+                if "jobs" in sub and sub["jobs"]:
+                    # if the query has jobs(limit:1){x y z}, move the resulting
+                    # x y z values up to the main dictionary
+                    sub.update(sub["jobs"][0])
             htr.close()
             # only remember it if we succeed...
             start_time = start.time()
@@ -663,6 +679,8 @@ class Agent:
                 do_sam = entry.get("POMS_DATA_DISPATCHER_TASK_ID",'') == ''
                     
                 if do_sam:
+                    record_queue_log("Doing SAM get_project and  maybe_report: %s"%repr(entry))
+                    self.get_project(entry)
                     update_submission = self.maybe_report(entry)
                     if update_submission:
                         submissions_to_update[pomsTaskID] = update_submission
