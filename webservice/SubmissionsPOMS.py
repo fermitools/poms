@@ -1128,12 +1128,39 @@ class SubmissionsPOMS:
                 listfiles = "%s/show_dimension_files/%s/%s?project_id=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_id", 0))
             else:
                 listfiles = "%s/show_dimension_files/%s/%s?project_idx=%d" % (cherrypy.request.app.root.path, cs.experiment, ctx.role, details.get("project_idx", 0))
+                
+            stats = details.get("statistics", {})
+
+            def stat_row(label, key, indent=0, query_key=None):
+                if query_key is None:
+                    query_key = key
+                return {
+                    "label": label,
+                    "count": stats.get(key, 0),
+                    "href": listfiles + f"&querying={query_key}&mc_query={details.get(query_key, None)}",
+                    "indent": indent,
+                }
+
             statuses = [
-                ["Initial: ",details.get("statistics",{}).get("initial", 0), listfiles  + "&querying=initial&mc_query=%s" % details.get("initial", None)],
-                ["Reserved: ", details.get("statistics",{}).get("reserved", 0), listfiles  + "&querying=reserved&mc_query=%s" % details.get("reserved", None)],
-                ["Done: ", details.get("statistics",{}).get("done", 0), listfiles  + "&querying=done&mc_query=%s" % details.get("done", None)],
-                ["Total Files in Dataset: ",details.get("statistics",{}).get("total", 0), listfiles  + "&querying=all&mc_query=%s" % (details.get("total", None))],
-            ] 
+                stat_row("Total files", "total", indent=0, query_key="total"),
+                {"separator": True},
+
+                stat_row("Initial", "initial", indent=0),
+                stat_row("Unprocessed", "unprocessed", indent=1),
+                stat_row("Available", "available", indent=2),
+                stat_row("Unavailable", "unavailable", indent=2),
+                stat_row("Recycled", "recycled", indent=1),
+                stat_row("Timeout", "initial_timedout", indent=1, query_key="initial_timedout"),
+
+                stat_row("Reserved", "reserved", indent=0),
+
+                stat_row("Failed", "failed", indent=0),
+                stat_row("Return code", "returncode", indent=1),
+                stat_row("Timeout", "failed_timeout", indent=1, query_key="failed_timeout"),
+
+                stat_row("Done", "done", indent=0),
+            ]
+            
         data_dispatcher_projects = None
         campaign = submission.campaign_stage_obj.campaign_obj
         if campaign.data_handling_service == "data_dispatcher":

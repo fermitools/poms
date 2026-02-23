@@ -270,12 +270,20 @@ Launch Recovery for Submission
     {% endfor %}
 
 {% elif submission.data_dispatcher_submission_obj and data_handling_service == "data_dispatcher" %}
-    <h3>DD File Stats</h3>
-    {% for stat in statuses %}
-        <span class="fn">{{ stat[0] }}</span> <a href="{{ stat[2] }}"><span class="val">{{ stat[1] }}</span></a><br>
-    {% endfor %}
+  <h3>DD File Stats</h3>
 
+  {% for s in statuses %}
+    {% if s.separator %}
+      <hr style="margin: 6px 0;">
+    {% else %}
+      <div style="margin-left: {{ s.indent * 18 }}px;">
+        <span class="fn">{{ s.label }}:</span>
+        <a href="{{ s.href }}"><span class="val">{{ s.count }}</span></a>
+      </div>
+    {% endif %}
+  {% endfor %}
 {% endif %}
+
 
 </div>
 </div>
