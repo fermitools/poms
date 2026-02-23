@@ -549,7 +549,7 @@ class DMRService:
                 if not self.login_metacat():
                     raise AuthenticationError()
             except:
-                retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
+                retvals = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[], "unprocessed":[], "available":[], "unavailable":[], "recycled":[], "initial_timedout":[], "returncode":[], "failed_timeout":[], "unknown":[], "submitted":[], "parents":[], "children":[], "statistics":[], "project_id":[]}
                 return list(retvals.values())
         
         
@@ -667,21 +667,9 @@ class DMRService:
         project_queries = {item.project_id if item.project_id else "idx: %s" % item.data_dispatcher_project_idx: {} for item in dd_projects}
         project_index_queries = {"idx: %s" % item.data_dispatcher_project_idx: item.named_dataset for item in dd_projects if not item.project_id}
         for project_id in project_queries.keys():
-            file_stats = {"total":0, "initial":0, "done":0, "failed":0, "reserved":0, "unknown":0, "submitted":0, "parents":0, "children":0}
-            project_fids_dict = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[],"unknown":[], "submitted":[], "parents":[], "children":[]}
+            file_stats = {"total":0, "initial":0, "done":0, "failed":0, "reserved":0, "unprocessed":0, "available":0, "unavailable":0, "recycled":0, "initial_timedout":0, "returncode":0, "failed_timeout":0, "unknown":0, "submitted":0, "parents":0, "children":0}
+            project_fids_dict = {"total":[], "initial":[], "done":[], "failed":[], "reserved":[], "unprocessed":[], "available":[], "unavailable":[], "recycled":[], "initial_timedout":[], "returncode":[], "failed_timeout":[], "unknown":[], "submitted":[], "parents":[], "children":[]}
 
-            #if project_index_queries.get(project_id, None):
-            #    file_handles = []
-            #    is_project_submission = False
-            #    all_files = list(cherrypy.session["Shrek"]["mc_client"].query(project_index_queries[project_id], with_metadata=True, with_provenance=True))
-            #else:
-            #    project = cherrypy.session["Shrek"]["dd_client"].get_project(project_id, True, True)
-            #    is_project_submission = True
-            #    file_handles = project.get("file_handles", []) if project else None
-            #    if not file_handles and project_dict[project_id].named_dataset:
-            #        all_files = list(cherrypy.session["Shrek"]["mc_client"].query(project_dict[project_id].named_dataset, with_metadata=True, with_provenance=True))
-            #    else:
-            #        all_files = list(cherrypy.session["Shrek"]["mc_client"].get_files(file_handles, with_metadata=True, with_provenance=True))
             dd_project = project_dict[project_id]
             if project_index_queries.get(project_id,None) and "project_id:" not in project_index_queries[project_id]:
                 file_handles=[]
@@ -706,23 +694,60 @@ class DMRService:
             
             # Create fid lists and increment corresponding counts
             for handle in file_handles:
-                file_did = "%s:%s" % (handle.get("namespace"),handle.get("name"))
-                file_fid = metacat_did_to_fid.get(file_did, None)
+            
+                # Build DID and FID
+                file_did = f'{handle.get("namespace")}:{handle.get("name")}'
+                file_fid = metacat_did_to_fid.get(file_did)
+
+                # Skip if FID not found (prevents None pollution)
+                if file_fid is None:
+                    continue
+
                 file_state = handle.get("state")
-                # Enter basics
-                project_fids_dict.get("total").append(file_fid)
-                project_fids_dict.get(file_state).append(file_fid)
-                
-                # Enter conditionals
-                if file_state == "done" or file_state == "failed" or file_state == "reserved":
-                    project_fids_dict.get("submitted").append(file_fid)
-                if not handle.get("replicas"):
-                    project_fids_dict.get("unknown").append(file_fid)
+                file_attempts = handle.get("attempts", 0)
+                file_timeouts = handle.get("attributes", {}).get("timeouts", 0)
+
+                # Determine availability (boolean)
+                replicas = handle.get("replicas")
+                replicas_dict = replicas or {}
+
+                file_available = any(
+                    r.get("available") and r.get("rse_available")
+                    for r in replicas_dict.values()
+                )
+
+                # Base buckets (always)
+                project_fids_dict["total"].append(file_fid)
+
+                if file_state in project_fids_dict:
+                    project_fids_dict[file_state].append(file_fid)
+
+                # Initial-state logic
+                if file_state == "initial":
+                    if file_attempts == 0:
+                        project_fids_dict["unprocessed"].append(file_fid)
+                        project_fids_dict["available" if file_available else "unavailable"].append(file_fid)
+                    else:
+                        project_fids_dict["initial_timedout" if file_timeouts > 0 else "recycled"].append(file_fid)
+                # Failed-state logic
+                elif file_state == "failed":
+                    project_fids_dict["failed_timeout" if file_timeouts > 0 else "returncode"].append(file_fid)
+
+                # Submitted bucket
+                if file_state in ("done", "failed", "reserved"):
+                    project_fids_dict["submitted"].append(file_fid)
+
+                # Unknown replica metadata
+                if replicas is None:
+                    project_fids_dict["unknown"].append(file_fid)
                     
             if not is_project_submission:
                 for file in all_files:
-                    project_fids_dict.get("total").append(file.get("fid"))
-                    project_fids_dict.get("unknown").append(file.get("fid"))
+                    fid = file.get("fid")
+                if fid is None:
+                    continue
+                project_fids_dict["total"].append(fid)
+                project_fids_dict["unknown"].append(fid)
             
             if len(all_files) > 0:
                 child_query= "%s%s%s" % (
@@ -763,7 +788,7 @@ class DMRService:
         for project in dd_projects:
             index = project.project_id if project.project_id else "idx: %s" % project.data_dispatcher_project_idx
             retval[project.submission_id] = {}
-            for key in ["total", "initial", "done", "failed", "reserved","unknown", "submitted", "parents", "children", "statistics", "project_id","project_idx"]:
+            for key in ["total", "initial", "done", "failed", "reserved", "unprocessed", "available", "unavailable", "recycled", "initial_timedout", "returncode", "failed_timeout", "unknown", "submitted", "parents", "children", "statistics", "project_id","project_idx"]:
                 if key in project_queries[index]:
                     retval[project.submission_id][key] = project_queries[index][key]
         return retval

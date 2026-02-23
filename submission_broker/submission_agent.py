@@ -79,7 +79,7 @@ class Agent:
         self.ssess.headers.update(self.submission_headers)
         # last_seen[group] is set of poms task ids seen last time
         self.last_seen = {}
-        self.timeouts = (300, 300)
+        self.timeouts = (600, 600)
         self.strikes = {}
         self.poll_interval = 120
 
@@ -443,8 +443,12 @@ class Agent:
                 data=self.cfg.get("submission_agent", "running_query") % (group, since),
                 timeout=self.timeouts,
             )
-            ddict = htr.json()
-            ddict = ddict.get("data",{}).get("submissions",[])
+            try:
+                ddict = htr.json()
+                ddict = ddict.get("data",{}).get("submissions",[])
+            except requests.exceptions.JSONDecodeError:
+                record_queue_log("get_running_submissions request yielded non-json %s" % jobs_results.text)
+                ddict = {}
             for sub in ddict:
                 if "jobs" in sub and sub["jobs"]:
                     # if the query has jobs(limit:1){x y z}, move the resulting
@@ -847,8 +851,6 @@ class Agent:
         else:
             submissions_dict = {}
             record_queue_log("No submissions to query for.")
-
-        
         
         
         # Now generate the lens queries for the rest of the known job ids
@@ -870,7 +872,12 @@ class Agent:
             data=jobs_query,
             timeout=self.timeouts,
         )
-        jobs_dict = jobs_results.json()
+        try:
+            jobs_dict = jobs_results.json()
+        except requests.exceptions.JSONDecodeError:
+            record_queue_log("jobs_query request yielded non-json %s" % jobs_results.text)
+            jobs_dict = {}
+
         jobs_results.close()
         
         if jobs_dict.get("errors", None) != None:
