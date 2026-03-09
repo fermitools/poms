@@ -330,7 +330,7 @@ class Agent:
         # also, if there really is just one job in the submission, the
         # "done" flag will be true, so it won't matter.
         #
-        if ntot > 1:
+        if ntot > 2:
             report_pct_complete = ncomp * 100.0 / ntot
         else:
             report_pct_complete = None
@@ -753,7 +753,7 @@ class Agent:
 
             ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
 
-            if ntot > 0:
+            if ntot > 2:
                 dd_pct = ncomp * 100.0 / ntot
             else:
                 dd_pct = 0
