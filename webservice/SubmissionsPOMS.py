@@ -1302,7 +1302,7 @@ class SubmissionsPOMS:
                     
                     # Submission updates
                     logit.log("DEBUG", "submission status: sub=%s, status=%s" % (submission.submission_id, status))
-                    if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct:
+                    if data_entry and status == "Running" and data_entry.get("pct_complete", None) and float(data_entry.get("pct_complete", 0)) >= submission.campaign_stage_snapshot_obj.completion_pct and submission.campaign_stage_snapshot_obj.completion_pct < 100 :
                         status = "Completed"
                     if status is not None:
                         submission_statuses_to_update[submission.submission_id] = status
