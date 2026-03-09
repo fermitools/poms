@@ -744,14 +744,14 @@ class Agent:
         if type(dd_pct) == str:
             ntot = (int(entry["running"]) + int(entry["idle"]) + 
                 int(entry["held"]) + int(entry["completed"]) + 
-                int(entry["failed"]) + int(entry["cancelled"]))
+                int(entry["cancelled"]))
 
             if ntot >= self.known["maxjobs"].get(entry["pomsTaskID"], 0):
                 self.known["maxjobs"][entry["pomsTaskID"]] = ntot
             else:
                 ntot = self.known["maxjobs"][entry["pomsTaskID"]]
 
-            ncomp = int(entry["completed"]) + int(entry["failed"]) + int(entry["cancelled"])
+            ncomp = int(entry["completed"]) + int(entry["cancelled"])
 
             if ntot > 2:
                 dd_pct = ncomp * 100.0 / ntot
