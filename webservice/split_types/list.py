@@ -23,7 +23,7 @@ class list:
         if ls == None:
             if self.test:
                 self.cs.test_last_split = 0
-            else
+            else:
                 self.cs.cs_last_split = 0
             ls = 0
         if ls >= len(self.list):

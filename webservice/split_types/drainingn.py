@@ -32,7 +32,7 @@ class drainingn:
         if not ls:
             if self.test:
                 self.cs.test_last_split = 0
-            else
+            else:
                 self.cs.cs_last_split = 0
             ls = 0
             snapshotbit = ""
