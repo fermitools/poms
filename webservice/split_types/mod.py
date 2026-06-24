@@ -18,26 +18,42 @@ class mod:
         return ["modulus"]
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
-        if self.cs.cs_last_split >= self.m:
+        if self.test:
+            ls = self.cs.test_last_split
+        else:
+            ls = self.cs.cs_last_split
+
+        if not ls:
+            if self.test:
+                self.cs.test_last_split = 0
+            else:
+                self.cs.cs_last_split = 0
+            ls = 0
+
+        if ls >= self.m:
             raise StopIteration
 
-        new = self.ds + "_slice%d_of_%d" % (self.cs.cs_last_split, self.m)
+        new = self.ds + "_slice%d_of_%d" % (ls, self.m)
         self.samhandle.create_definition(
             self.cs.job_type_obj.experiment,
             new,
-            "defname: %s with stride %d offset %d" % (self.cs.dataset, self.m, self.cs.cs_last_split),
+            "defname: %s with stride %d offset %d" % (self.cs.dataset, self.m, ls),
         )
         return new
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        if self.test:
+            self.cs.test_last_split = self.cs.test_last_split + 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split - 1
+        if self.test:
+            self.cs.test_last_split = self.cs.test_last_split - 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()
         return res
 

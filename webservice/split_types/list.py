@@ -16,19 +16,33 @@ class list:
         return []
 
     def peek(self):
-        if self.cs.cs_last_split == None:
-            self.cs.cs_last_split = 0
-        if self.cs.cs_last_split >= len(self.list):
+        if self.test:
+            ls = self.cs.test_last_split
+        else:
+            ls = self.cs.cs_last_split
+        if ls == None:
+            if self.test:
+                self.cs.test_last_split = 0
+            else
+                self.cs.cs_last_split = 0
+            ls = 0
+        if ls >= len(self.list):
             raise StopIteration
-        return "%s" % (self.list[self.cs.cs_last_split])
+        return "%s" % (self.list[ls])
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        if self.test:
+            self.cs.test_last_split = self.cs.test_last_split + 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split - 1
+        if self.test:
+            self.cs.test_last_split = self.cs.test_last_split - 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()
         return res
 

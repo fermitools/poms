@@ -24,13 +24,22 @@ class drainingn:
         return ["nfiles"]
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
+        if self.test:
+            ls = self.cs.test_last_split
+        else:
+            ls = self.cs.cs_last_split
+
+        if not ls:
+            if self.test:
+                self.cs.test_last_split = 0
+            else
+                self.cs.cs_last_split = 0
+            ls = 0
             snapshotbit = ""
         else:
-            snapshotbit = "minus snapshot_id %d" % self.cs.cs_last_split
+            snapshotbit = "minus snapshot_id %d" % ls
 
-        new = self.cs.dataset + "_slice_%i_stage_%d" % (self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_slice_%i_stage_%d" % (ls, self.n)
         self.samhandle.create_definition(
             self.cs.experiment, new, "defname: %s  %s  with limit %d " % (self.cs.dataset, snapshotbit, self.n)
         )
@@ -44,10 +53,14 @@ class drainingn:
         res = self.peek()
         newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
-        if self.cs.cs_last_split:
-            self.cs.cs_last_split
+        if self.test:
+            ls = self.cs.test_last_split
+        else:
+            ls = self.cs.cs_last_split
+
+        if ls:
             self.samhandle.create_definition(
-                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s" % (self.cs.cs_last_split, snap1)
+                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s" % (ls, snap1)
             )
 
             snap = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, newfullname)
@@ -56,7 +69,10 @@ class drainingn:
 
         logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
 
-        self.cs.cs_last_split = snap
+        if self.test:
+            self.cs.test_last_split = snap
+        else:
+            self.cs.cs_last_split = snap
 
         return res
 
