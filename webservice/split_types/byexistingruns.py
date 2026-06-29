@@ -32,9 +32,9 @@ class byexistingruns:
             ls = 0
         else:
             if self.test:
-                ls = self.cs.test_last_split
+                ls = self.cs.last_split_test
             else:
-                ls = self.cs.cs__last_split
+                ls = self.cs.cs_last_split
             snapshotbit = "minus snapshot_id %d" % ls
 
         filel = self.samhandle.plain_list_files(self.cs.experiment, "defname:%s %s with limit 1" % (self.dataset, snapshotbit))
@@ -60,7 +60,7 @@ class byexistingruns:
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
 
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
         if ls:
@@ -75,7 +75,7 @@ class byexistingruns:
         logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
 
         if self.test:
-            self.cs.test_last_split = snap
+            self.cs.last_split_test = snap
         else:
             self.cs.cs_last_split = snap
 

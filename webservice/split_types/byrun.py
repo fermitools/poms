@@ -31,9 +31,9 @@ class byrun:
     def peek(self):
        
         if self.test:
-            if not self.cs.test_last_split:
-                self.cs.test_last_split = self.low
-            ls = self.cs.test_last_split
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = self.low
+            ls = self.cs.last_split_test
         else:
             if not self.cs.cs_last_split:
                 self.cs.cs_last_split = self.low
@@ -51,14 +51,14 @@ class byrun:
     def next(self):
         res = self.peek()
         if self.test:
-            self.cs.test_last_split = self.cs.test_last_split + 1
+            self.cs.last_split_test = self.cs.last_split_test + 1
         else:
             self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
         if self.test:
-            self.cs.test_last_split = self.cs.test_last_split - 1
+            self.cs.last_split_test = self.cs.last_split_test - 1
         else:
             self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()

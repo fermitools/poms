@@ -25,13 +25,13 @@ class drainingn:
 
     def peek(self):
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
         if not ls:
             if self.test:
-                self.cs.test_last_split = 0
+                self.cs.last_split_test = 0
             else:
                 self.cs.cs_last_split = 0
             ls = 0
@@ -54,7 +54,7 @@ class drainingn:
         newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
@@ -70,7 +70,7 @@ class drainingn:
         logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
 
         if self.test:
-            self.cs.test_last_split = snap
+            self.cs.last_split_test = snap
         else:
             self.cs.cs_last_split = snap
 

@@ -19,13 +19,13 @@ class mod:
 
     def peek(self):
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
         if not ls:
             if self.test:
-                self.cs.test_last_split = 0
+                self.cs.last_split_test = 0
             else:
                 self.cs.cs_last_split = 0
             ls = 0
@@ -44,14 +44,14 @@ class mod:
     def next(self):
         res = self.peek()
         if self.test:
-            self.cs.test_last_split = self.cs.test_last_split + 1
+            self.cs.last_split_test = self.cs.last_split_test + 1
         else:
             self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
         if self.test:
-            self.cs.test_last_split = self.cs.test_last_split - 1
+            self.cs.last_split_test = self.cs.last_split_test - 1
         else:
             self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()

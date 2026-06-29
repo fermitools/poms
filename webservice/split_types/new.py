@@ -86,7 +86,7 @@ class new:
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
@@ -124,7 +124,7 @@ class new:
 
     def prev(self):
         if self.test:
-            self.cs.test_last_split = self.etime - self.twindow
+            self.cs.last_split_test = self.etime - self.twindow
         else:
             self.cs.cs_last_split = self.etime - self.twindow
         res = self.peek()
@@ -133,7 +133,7 @@ class new:
     def next(self):
         res = self.peek()
         if self.test:
-            self.cs.test_last_split = self.etime
+            self.cs.last_split_test = self.etime
         else:
             self.cs.cs_last_split = self.etime
         return res

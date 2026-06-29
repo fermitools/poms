@@ -22,13 +22,13 @@ class stagedfiles:
 
     def peek(self):
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
         if not ls:
             if self.test:
-                self.cs.test_last_split = 0
+                self.cs.last_split_test = 0
             else:
                 self.cs.cs_last_split = 0
             ls = 0
@@ -53,7 +53,7 @@ class stagedfiles:
         newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
 
         if self.test:
-            ls = self.cs.test_last_split
+            ls = self.cs.last_split_test
         else:
             ls = self.cs.cs_last_split
 
@@ -68,7 +68,7 @@ class stagedfiles:
 
         
         if self.test:
-            self.cs.test_last_split = snap
+            self.cs.last_split_test = snap
         else:
             self.cs.cs_last_split = snap
         return res
