@@ -23,19 +23,18 @@ class byexistingruns:
         return []
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            if self.test:
+        if self.test:
+            if not self.cs.last_split_test:
                 self.cs.last_split_test = 0
-            else:
-                self.cs.cs_last_split = 0
-            snapshotbit = ""
-            ls = 0
+            ls = self.cs.last_split_test
         else:
-            if self.test:
-                ls = self.cs.last_split_test
-            else:
-                ls = self.cs.cs_last_split
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = 0
+            ls = self.cs.cs_last_split
+        if ls:
             snapshotbit = "minus snapshot_id %d" % ls
+        else:
+            snapshotbit = ""
 
         filel = self.samhandle.plain_list_files(self.cs.experiment, "defname:%s %s with limit 1" % (self.dataset, snapshotbit))
         if len(filel) == 0:

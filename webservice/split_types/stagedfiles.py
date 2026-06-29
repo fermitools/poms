@@ -22,19 +22,17 @@ class stagedfiles:
 
     def peek(self):
         if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = 0
             ls = self.cs.last_split_test
         else:
-            ls = self.cs.cs_last_split
-
-        if not ls:
-            if self.test:
-                self.cs.last_split_test = 0
-            else:
+            if not self.cs.cs_last_split:
                 self.cs.cs_last_split = 0
-            ls = 0
-            snapshotbit = ""
-        else:
+            ls = self.cs.cs_last_split
+        if ls:
             snapshotbit = "minus snapshot_id %d" % ls
+        else:
+            snapshotbit = ""
 
         new = self.cs.dataset + "_slice_%d_stage_%d" % (ls, self.n)
         self.samhandle.create_definition(
