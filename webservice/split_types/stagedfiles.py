@@ -29,7 +29,7 @@ class stagedfiles:
             if not self.cs.cs_last_split:
                 self.cs.cs_last_split = 0
             ls = self.cs.cs_last_split
-        if ls:
+        if ls != 0:
             snapshotbit = "minus snapshot_id %d" % ls
         else:
             snapshotbit = ""
@@ -55,7 +55,7 @@ class stagedfiles:
         else:
             ls = self.cs.cs_last_split
 
-        if ls:
+        if ls != 0:
             snapshotbit = "snapshot_id %s or" % ls
             self.samhandle.create_definition(
                 self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s " % (ls, snap1)
