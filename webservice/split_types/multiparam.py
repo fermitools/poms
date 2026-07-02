@@ -37,11 +37,17 @@ class multiparam:
         return []
 
     def peek(self):
-        if self.cs.cs_last_split == None:
-            self.cs.cs_last_split = 0
-        if self.cs.cs_last_split >= self.len():
+        if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = 0
+            ls = self.cs.last_split_test
+        else:
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = 0
+            ls = self.cs.cs_last_split
+        if ls >= self.len():
             raise StopIteration
-        n = self.cs.cs_last_split
+        n = ls
         res = []
         i = 0
         for l1 in self.list:
@@ -53,11 +59,17 @@ class multiparam:
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        if self.test:
+            self.cs.last_split_test = self.cs.last_split_test + 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split - 1
+        if self.test:
+            self.cs.last_split_test = self.cs.last_split_test - 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()
         return res
 

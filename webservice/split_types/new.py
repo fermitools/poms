@@ -91,15 +91,20 @@ class new:
         bound_time = self.tlasttime - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
-        if not self.cs.cs_last_split:
+        if self.test:
+            ls = self.cs.last_split_test
+        else:
+            ls = self.cs.cs_last_split
+
+        if not ls:
             if self.tfirsttime:
                 stime = self.tfirsttime
             else:
                 stime = bound_time
         else:
-            if self.cs.cs_last_split > bound_time:
+            if ls > bound_time:
                 raise StopIteration
-            stime = self.cs.cs_last_split
+            stime = ls
 
         etime = stime + self.twindow
 
@@ -124,13 +129,19 @@ class new:
         return new
 
     def prev(self):
-        self.cs.cs_last_split = self.etime - self.twindow
+        if self.test:
+            self.cs.last_split_test = self.etime - self.twindow
+        else:
+            self.cs.cs_last_split = self.etime - self.twindow
         res = self.peek()
         return res
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.etime
+        if self.test:
+            self.cs.last_split_test = self.etime
+        else:
+            self.cs.cs_last_split = self.etime
         return res
 
     def len(self):

@@ -21,13 +21,20 @@ class stagedfiles:
         return []
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
-            snapshotbit = ""
+        if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = 0
+            ls = self.cs.last_split_test
         else:
-            snapshotbit = "minus snapshot_id %d" % self.cs.cs_last_split
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = 0
+            ls = self.cs.cs_last_split
+        if ls != 0:
+            snapshotbit = "minus snapshot_id %d" % ls
+        else:
+            snapshotbit = ""
 
-        new = self.cs.dataset + "_slice_%d_stage_%d" % (self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_slice_%d_stage_%d" % (ls, self.n)
         self.samhandle.create_definition(
             self.cs.experiment,
             new,
@@ -42,17 +49,26 @@ class stagedfiles:
         res = self.peek()
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
         newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
-        if self.cs.cs_last_split:
-            snapshotbit = "snapshot_id %s or" % self.cs.cs_last_split
+
+        if self.test:
+            ls = self.cs.last_split_test
+        else:
+            ls = self.cs.cs_last_split
+
+        if ls != 0:
+            snapshotbit = "snapshot_id %s or" % ls
             self.samhandle.create_definition(
-                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s " % (self.cs.cs_last_split, snap1)
+                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s " % (ls, snap1)
             )
             snap = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, newfullname)
         else:
             snap = snap1
 
         
-        self.cs.cs_last_split = snap
+        if self.test:
+            self.cs.last_split_test = snap
+        else:
+            self.cs.cs_last_split = snap
         return res
 
     def len(self):

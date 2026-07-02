@@ -23,11 +23,18 @@ class byexistingruns:
         return []
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
-            snapshotbit = ""
+        if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = 0
+            ls = self.cs.last_split_test
         else:
-            snapshotbit = "minus snapshot_id %d" % self.cs.cs_last_split
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = 0
+            ls = self.cs.cs_last_split
+        if ls != 0:
+            snapshotbit = "minus snapshot_id %d" % ls
+        else:
+            snapshotbit = ""
 
         filel = self.samhandle.plain_list_files(self.cs.experiment, "defname:%s %s with limit 1" % (self.dataset, snapshotbit))
         if len(filel) == 0:
@@ -38,7 +45,7 @@ class byexistingruns:
             raise StopIteration
 
         run_number = "%d.%04d" % (md["runs"][0][0], md["runs"][0][1])
-        new = self.cs.dataset + "_slice_%i_run_%s" % (self.cs.cs_last_split, run_number)
+        new = self.cs.dataset + "_slice_%i_run_%s" % (ls, run_number)
 
         self.samhandle.create_definition(
             self.cs.experiment, new, "defname: %s  %s and run_number %s " % (self.cs.dataset, snapshotbit, run_number)
@@ -50,9 +57,14 @@ class byexistingruns:
         res = self.peek()
         newfullname = res.replace("slice", "full") + "_%s" % int(time.time())
         snap1 = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, res)
-        if self.cs.cs_last_split:
+
+        if self.test:
+            ls = self.cs.last_split_test
+        else:
+            ls = self.cs.cs_last_split
+        if ls != 0:
             self.samhandle.create_definition(
-                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s" % (self.cs.cs_last_split, snap1)
+                self.cs.experiment, newfullname, "snapshot_id %s or snapshot_id %s" % (ls, snap1)
             )
 
             snap = self.samhandle.take_snapshot(self.cs.job_type_obj.experiment, newfullname)
@@ -61,7 +73,10 @@ class byexistingruns:
 
         logit.log("stagedfiles.next(): take_snaphot returns %s " % snap)
 
-        self.cs.cs_last_split = snap
+        if self.test:
+            self.cs.last_split_test = snap
+        else:
+            self.cs.cs_last_split = snap
 
         return res
 

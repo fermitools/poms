@@ -29,24 +29,38 @@ class byrun:
         return ["low=", "high="]
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = self.low
-        if self.cs.cs_last_split >= self.high:
+       
+        if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = self.low
+            ls = self.cs.last_split_test
+        else:
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = self.low
+            ls = self.cs.cs_last_split
+
+        if ls >= self.high:
             raise StopIteration
 
-        new = self.cs.dataset + "_%s_run_%d" % (str(self.id),self.cs.cs_last_split)
+        new = self.cs.dataset + "_%s_run_%d" % (str(self.id),ls)
         self.samhandle.create_definition(
-            self.cs.job_type_obj.experiment, new, "defname: %s and run_number %d" % (self.ds, self.cs.cs_last_split)
+            self.cs.job_type_obj.experiment, new, "defname: %s and run_number %d" % (self.ds, ls)
         )
         return new
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        if self.test:
+            self.cs.last_split_test = self.cs.last_split_test + 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def prev(self):
-        self.cs.cs_last_split = self.cs.cs_last_split - 1
+        if self.test:
+            self.cs.last_split_test = self.cs.last_split_test - 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split - 1
         res = self.peek()
         return res
 

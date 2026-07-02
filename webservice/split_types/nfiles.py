@@ -22,14 +22,20 @@ class nfiles:
         return ["n"]
 
     def peek(self):
-        if not self.cs.cs_last_split:
-            self.cs.cs_last_split = 0
+        if self.test:
+            if not self.cs.last_split_test:
+                self.cs.last_split_test = 0
+            ls = self.cs.last_split_test
+        else:
+            if not self.cs.cs_last_split:
+                self.cs.cs_last_split = 0
+            ls = self.cs.cs_last_split
 
-        new = self.cs.dataset + "_slice%d_files%d" % (self.cs.cs_last_split, self.n)
+        new = self.cs.dataset + "_slice%d_files%d" % (ls, self.n)
         self.samhandle.create_definition(
             self.cs.experiment,
             new,
-            "defname: %s with limit %d offset %d" % (self.cs.dataset, self.n, self.cs.cs_last_split * self.n),
+            "defname: %s with limit %d offset %d" % (self.cs.dataset, self.n, ls * self.n),
         )
         if self.samhandle.count_files(self.cs.job_type_obj.experiment, "defname:" + new) == 0:
             raise StopIteration
@@ -38,7 +44,10 @@ class nfiles:
 
     def next(self):
         res = self.peek()
-        self.cs.cs_last_split = self.cs.cs_last_split + 1
+        if self.test:
+            self.cs.last_split_test = self.cs.last_split_test + 1
+        else:
+            self.cs.cs_last_split = self.cs.cs_last_split + 1
         return res
 
     def len(self):
