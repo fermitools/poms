@@ -1,6 +1,10 @@
 import time
 import uuid
 
+import logging
+logger = logging.getLogger("cherrypy.error")
+
+
 
 class new:
     """
@@ -73,15 +77,17 @@ class new:
                 if p.startswith("firsttime="):
                     self.tfirsttime = float(p[10:]) * pmult
                 if p.startswith("lasttime="):
-                    self.tlasttime = float(p[10:]) * pmult
+                    self.tlasttime = float(p[9:]) * pmult
 
         # make sure time-window is a multiple of rounding factor
         self.twindow = int(self.twindow) - (int(self.twindow) % int(self.tround))
+        logger.info(f"new.__init__: {self.tlasttime=} {self.tfts=} {self.twindow=} {self.tround=}")
 
     def params(self):
         return ["window=", "round=", "fts=", "localtime=", "firsttime=", "lasttime="]
 
     def peek(self):
+        logger.info(f"new.peek: {self.tlasttime=} {self.tfts=} {self.twindow=} {self.tround=}")
         bound_time = self.tlasttime - self.tfts - self.twindow
         bound_time = int(bound_time) - (int(bound_time) % int(self.tround))
 
