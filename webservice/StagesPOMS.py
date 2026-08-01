@@ -1079,12 +1079,14 @@ class StagesPOMS:
         
         if dd_submissions:
             dd_output = ctx.dmr_service.get_output_file_details_for_submissions(dd_submissions)
+            dd_stats = ctx.dmr_service.get_handle_state_summary_for_submissions(dd_submissions)
             submission_ids_dd = set(sub.submission_id for sub in dd_submissions if sub.submission_id)
             for entry in submission_ids_dd:
                 if entry in sam_subs:
                     del sam_subs[entry]
                     
         if sam_subs:
+            sam_list = list(sam_subs.values())
             (
                 summary_list,
                 some_kids_decl_needed,
@@ -1096,7 +1098,10 @@ class StagesPOMS:
                 some_kids_list,
                 some_kids_decl_list,
                 all_kids_decl_list,
-            ) = sam_specifics(ctx).get_file_stats_for_submissions(list(sam_subs.values()), ctx.experiment)
+            ) = sam_specifics(ctx).get_file_stats_for_submissions(sam_list, ctx.experiment)
+            # the lists above are in sam_list order; index them by submission_id rather
+            # than by a counter walking a differently-ordered set of rows
+            sam_index = {sub.submission_id: n for n, sub in enumerate(sam_list)}
 
         try:
             changes_made = False
@@ -1130,12 +1135,13 @@ class StagesPOMS:
         submissions = []
         
         dd_output = [] if not dd_submissions else dd_output
+        dd_stats = {} if not dd_submissions else dd_stats
         submission_ids_dd = set() if not dd_submissions else submission_ids_dd
-        
+
         sam_output_list = [] if not sam_subs else sam_output_list
         sam_output_files = [] if not sam_subs else sam_output_files
+        sam_index = {} if not sam_subs else sam_index
 
-        i = 0
         for tup in tuples:
             sid = tup.Submission.submission_id
             pd = tup.Submission.submission_params.get("dataset", "")
@@ -1162,20 +1168,37 @@ class StagesPOMS:
             
             # Define output
             handler= "Unknown"
+            # per-row: these used to be set only on the SAM path, so a Data Dispatcher
+            # row inherited whatever the previous SAM row had left behind
+            statuses = []
+            dd_summary = None
             if sid in sam_subs:
                 cs = tup.Submission.campaign_stage_snapshot_obj.campaign_stage
                 listfiles = "%s/show_dimension_files/%s/%s?dims=%%s" % (cherrypy.request.app.root.path, cs.experiment, ctx.role)
                 handler = "SAM"
-                output = sam_output_files[i]
-                output_length = sam_output_list[i]
-                psummary = summary_list[i]
+                si = sam_index[sid]
+                output = sam_output_files[si]
+                output_length = sam_output_list[si]
+                psummary = summary_list[si]
                 statuses = [
-                    ["Available output: ", sam_output_list[i], listfiles % sam_output_files[i]],
+                    ["Available output: ", sam_output_list[si], listfiles % sam_output_files[si]],
                 ]
             elif sid in submission_ids_dd and "query" in dd_output[sid]:
                 handler = "Data Dispatcher"
                 output = dd_output[sid]["query"]
                 output_length = dd_output[sid]["length"]
+                stats = dd_stats.get(sid, None)
+                if stats:
+                    project_id = stats.get("project_id", None)
+                    dd_summary = {
+                        "initial": stats.get("initial", 0),
+                        "reserved": stats.get("reserved", 0),
+                        "done": stats.get("done", 0),
+                        "total": stats.get("total", 0),
+                        "project_id": project_id,
+                        "active": stats.get("state", None) == "active",
+                        "project_url": ctx.dmr_service.get_data_dispatcher_project_url(ctx.experiment, project_id),
+                    }
             else:
                 continue
             
@@ -1205,11 +1228,11 @@ class StagesPOMS:
                 "output_dims": output,
                 "handler": handler,
                 "statuses": statuses,
+                "dd_summary": dd_summary,
             }
             submissions.append(row)
-            if handler == "SAM":
-                i = i + 1
-            
+
+
         sids.sort()
         
         for sid in sids:

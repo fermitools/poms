@@ -516,7 +516,85 @@ class DMRService:
         for handle in handles:
             retval[handle.get("state")] += 1
         return retval
-    
+
+    def get_data_dispatcher_project_url(self, experiment, project_id):
+        """
+            Link to a project in the data-dispatcher web UI.
+
+            NOTE: the host and namespace are still hardcoded here, matching what
+            submission_details.html has always done.  They belong in the Shrek
+            config next to DATA_DISPATCHER_URL, but that value points at the API
+            server, not the GUI, so it cannot be derived from it today.
+        """
+        if not project_id:
+            return None
+        suffix = "" if experiment == "hypot" else "_prod"
+        return "https://metacat.fnal.gov:9443/%s_dd%s/gui/P/project?project_id=%s" % (experiment, suffix, project_id)
+
+    def get_handle_state_summary_for_submissions(self, dd_projects):
+        """
+            Cheap per-submission file-handle state counts, for list views.
+
+            Unlike get_file_stats_for_submissions() this makes no metacat calls and
+            no children()/parents() queries.  It asks data-dispatcher once for every
+            project on the page and counts handle states, so the cost stays flat as
+            the number of rows grows.
+
+            Returns { submission_id: {"state", "initial", "reserved", "done",
+                                      "failed", "total", "project_id"} }
+        """
+        if not dd_projects:
+            return {}
+
+        # several submissions can share one project, so map id -> [submission_id]
+        wanted = {}
+        for project in dd_projects:
+            if project.project_id:
+                wanted.setdefault(project.project_id, []).append(project.submission_id)
+        if not wanted:
+            return {}
+
+        try:
+            if (not cherrypy.session or "Shrek" not in cherrypy.session
+                    or cherrypy.session["Shrek"].get("dd_client", None) is None):
+                self.set_configuration(True)
+            all_projects = cherrypy.session["Shrek"]["dd_client"].list_projects(
+                state="any", not_state="ignore", with_files=True
+            )
+        except Exception as e:
+            logit.log("DMR-Service  | get_handle_state_summary_for_submissions | Exception: %s" % repr(e))
+            return {}
+
+        retval = {}
+        logged_keys = False
+        for project in all_projects:
+            project_id = project.get("project_id", None)
+            if project_id not in wanted:
+                continue
+            if not logged_keys:
+                # the green/black project colouring depends on "state" being present here
+                logit.log("DMR-Service  | get_handle_state_summary_for_submissions | project keys: %s" % sorted(project.keys()))
+                logged_keys = True
+
+            handles = project.get("file_handles", []) or []
+            counts = {"initial": 0, "reserved": 0, "done": 0, "failed": 0}
+            for handle in handles:
+                state = handle.get("state", None)
+                if state in counts:
+                    counts[state] += 1
+            counts["total"] = len(handles)
+            counts["state"] = project.get("state", None)
+            counts["project_id"] = project_id
+
+            for submission_id in wanted[project_id]:
+                retval[submission_id] = dict(counts)
+
+        logit.log(
+            "DMR-Service  | get_handle_state_summary_for_submissions | matched %d projects of %d wanted"
+            % (len(set(s["project_id"] for s in retval.values())), len(wanted))
+        )
+        return retval
+
     def is_query(self, named_dataset):
 
         # Match "{namespace}:{name}" pattern.

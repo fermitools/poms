@@ -121,9 +121,32 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             </td>
             <td>
-                 {% for stat in rec.statuses %}
-                  <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
-                 {% endfor %}
+                {% if rec.dd_summary %}
+                    <table style="border:none; border-collapse:collapse; margin:0;">
+                        <tr>
+                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Initial|</td>
+                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Reserved|</td>
+                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Done|</td>
+                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Total</td>
+                        </tr>
+                        <tr>
+                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.initial}}</td>
+                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.reserved}}</td>
+                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.done}}</td>
+                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.total}}</td>
+                        </tr>
+                    </table>
+                    {% if rec.dd_summary.project_id %}
+                        <a href="{{rec.dd_summary.project_url}}" target="_blank"
+                           style="color: {% if rec.dd_summary.active %}green{% else %}black{% endif %};">
+                            {{rec.dd_summary.project_id}}
+                        </a>
+                    {% endif %}
+                {% else %}
+                    {% for stat in rec.statuses %}
+                     <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
+                    {% endfor %}
+                {% endif %}
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}
