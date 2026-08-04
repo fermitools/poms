@@ -739,11 +739,9 @@ class SubmissionsPOMS:
             if status == "Failed" and s.recovery_tasks_parent:
                 status = "Completed"
             
-            lasthist = submissions_dict[s.submission_id].get("last_history_status", None)
             lasthist_created = submissions_dict[s.submission_id].get("last_history_created", "")
  
-            if lasthist is None:
-                   lasthist = self.get_last_history(ctx, s.submission_id)
+            lasthist = self.get_last_history(ctx, s.submission_id)
 
             logit.log(
                 "update_submission_statuses: submission_id: %s  newstatus %s  lasthist: status %s created %s "
