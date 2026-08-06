@@ -64,7 +64,20 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <th>Parent Id</th>
                 <th>Jobsub Id</th>
                 <th>Available<br>Output</th>
-                <th>File Status Summary</th>
+                <th>File Status Summary
+                    {# only label the columns when there is a Data Dispatcher row to label; SAM rows put their own text here #}
+                    {% if data.submissions | selectattr('dd_summary') | list %}
+                        {# Reserved is the widest label and needs 9ch; table-layout:fixed means the labels no longer widen the column themselves #}
+                        <table style="border:none; border-collapse:collapse; margin:0; table-layout:fixed; width:27ch;">
+                            <tr>
+                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Initial</td>
+                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:9ch;">Reserved</td>
+                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Done</td>
+                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Total</td>
+                            </tr>
+                        </table>
+                    {% endif %}
+                </th>
                 <th>Commands</th>
                 <!-- <th>Handler</th> -->
                 <th>Status</th> <!--(History/Current)-->
@@ -100,13 +113,18 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                     None
                   {% else %}
                     <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{data.depends[rec.submission_id]}}" target='_blank'>
-                    {{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.depends[rec.submission_id]|safe}}</td>
-                    </a>
+                    {# no depth indent here: the Stage Name column already shows the tree, and indenting only the non-null ids left them offset from None #}
+                    {{data.depends[rec.submission_id]|safe}}</a>
                 {% endif %}
             </td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
-                    {{rec.jobsub_job_id | replace('.fnal.gov', '')}}
+                    {# break the id before the schedd so the column stays narrow: 12345.0 on one line, @jobsub01 indented under it #}
+                    {% set jjid_parts = (rec.jobsub_job_id | replace('.fnal.gov', '')).split('@') %}
+                    {{ jjid_parts[0] }}
+                    {% if jjid_parts | length > 1 %}
+                        <br>&nbsp;@{{ jjid_parts[1] }}
+                    {% endif %}
                 </a>
             </td>
             <td>
@@ -122,24 +140,19 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
             </td>
             <td>
                 {% if rec.dd_summary %}
-                    <table style="border:none; border-collapse:collapse; margin:0;">
+                    {# labels live in the column header; widths must match it so the numbers line up #}
+                    <table style="border:none; border-collapse:collapse; margin:0; table-layout:fixed; width:27ch;">
                         <tr>
-                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Initial|</td>
-                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Reserved|</td>
-                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Done|</td>
-                            <td style="border:none; padding:0; text-align:right; white-space:nowrap;">Total</td>
-                        </tr>
-                        <tr>
-                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.initial}}</td>
-                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.reserved}}</td>
-                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.done}}</td>
-                            <td style="border:none; padding:0; text-align:right;">{{rec.dd_summary.total}}</td>
+                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.initial}}</td>
+                            <td style="border:none; padding:0; text-align:left; width:9ch;">{{rec.dd_summary.reserved}}</td>
+                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.done}}</td>
+                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.total}}</td>
                         </tr>
                     </table>
                     {% if rec.dd_summary.project_id %}
                         <a href="{{rec.dd_summary.project_url}}" target="_blank"
-                           style="color: {% if rec.dd_summary.active %}green{% else %}black{% endif %};">
-                            {{rec.dd_summary.project_id}}
+                           style="font-weight: bold; text-decoration: underline; color: {% if rec.dd_summary.active %}green{% else %}gray{% endif %};">
+                            DD: {{rec.dd_summary.project_id}}
                         </a>
                     {% endif %}
                 {% else %}
