@@ -536,9 +536,17 @@ class DMRService:
             Cheap per-submission file-handle state counts, for list views.
 
             Unlike get_file_stats_for_submissions() this makes no metacat calls and
-            no children()/parents() queries.  It asks data-dispatcher once for every
-            project on the page and counts handle states, so the cost stays flat as
-            the number of rows grows.
+            no children()/parents() queries.  It asks data-dispatcher for each
+            distinct project on the page and counts handle states locally, which is
+            the expensive part of get_file_stats_for_submissions() left out: that one
+            follows every get_project with a metacat get_files and three more queries.
+
+            get_project() is used rather than list_projects() because data-dispatcher
+            matches the list_projects state filter against the project's state column
+            literally -- there is no "all states" value -- so listing would have to
+            either fetch every project for every owner or loop over DBProject.States.
+            Looking each project up by id sidesteps that and stays bounded by the
+            number of distinct projects on the page.
 
             Returns { submission_id: {"state", "initial", "reserved", "done",
                                       "failed", "total", "project_id"} }
@@ -558,19 +566,27 @@ class DMRService:
             if (not cherrypy.session or "Shrek" not in cherrypy.session
                     or cherrypy.session["Shrek"].get("dd_client", None) is None):
                 self.set_configuration(True)
-            all_projects = cherrypy.session["Shrek"]["dd_client"].list_projects(
-                state="any", not_state="ignore", with_files=True
-            )
+            dd_client = cherrypy.session["Shrek"]["dd_client"]
         except Exception as e:
             logit.log("DMR-Service  | get_handle_state_summary_for_submissions | Exception: %s" % repr(e))
             return {}
 
         retval = {}
+        matched = 0
         logged_keys = False
-        for project in all_projects:
-            project_id = project.get("project_id", None)
-            if project_id not in wanted:
+        for project_id, submission_ids in wanted.items():
+            try:
+                # get_project returns None rather than raising when the id is unknown
+                project = dd_client.get_project(project_id, True, False)
+            except Exception as e:
+                logit.log(
+                    "DMR-Service  | get_handle_state_summary_for_submissions | project %s | Exception: %s"
+                    % (project_id, repr(e))
+                )
                 continue
+            if not project:
+                continue
+            matched += 1
             if not logged_keys:
                 # the green/black project colouring depends on "state" being present here
                 logit.log("DMR-Service  | get_handle_state_summary_for_submissions | project keys: %s" % sorted(project.keys()))
@@ -586,12 +602,12 @@ class DMRService:
             counts["state"] = project.get("state", None)
             counts["project_id"] = project_id
 
-            for submission_id in wanted[project_id]:
+            for submission_id in submission_ids:
                 retval[submission_id] = dict(counts)
 
         logit.log(
             "DMR-Service  | get_handle_state_summary_for_submissions | matched %d projects of %d wanted"
-            % (len(set(s["project_id"] for s in retval.values())), len(wanted))
+            % (matched, len(wanted))
         )
         return retval
 
