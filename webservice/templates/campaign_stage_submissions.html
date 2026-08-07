@@ -68,14 +68,11 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                     {# only label the columns when there is a Data Dispatcher row to label; SAM rows put their own text here #}
                     {% if data.submissions | selectattr('dd_summary') | list %}
                         {# Reserved is the widest label and needs 9ch; table-layout:fixed means the labels no longer widen the column themselves #}
-                        <table style="border:none; border-collapse:collapse; margin:0; table-layout:fixed; width:27ch;">
-                            <tr>
-                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Initial</td>
-                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:9ch;">Reserved</td>
-                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Done</td>
-                                <td style="border:none; padding:0; text-align:left; white-space:nowrap; width:6ch;">Total</td>
-                            </tr>
-                        </table>
+                        {# inline-block spans, not a nested table: tablesort.min.js selects rows with
+                           find("tbody tr") and columns with find("td"), both of which would match a
+                           nested table's own tr/td and scramble the sort.  No whitespace between the
+                           spans either, or it renders as a space and shifts the columns. #}
+                        <div><span style="display:inline-block; width:8ch; white-space:nowrap;">Initial</span><span style="display:inline-block; width:11ch; white-space:nowrap;">Reserved</span><span style="display:inline-block; width:7ch; white-space:nowrap;">Done</span><span style="display:inline-block; width:7ch; white-space:nowrap;">Total</span></div>
                     {% endif %}
                 </th>
                 <th>Commands</th>
@@ -119,12 +116,7 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
             </td>
             <td>
                 <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{rec.submission_id}}" target='_blank'>
-                    {# break the id before the schedd so the column stays narrow: 12345.0 on one line, @jobsub01 indented under it #}
-                    {% set jjid_parts = (rec.jobsub_job_id | replace('.fnal.gov', '')).split('@') %}
-                    {{ jjid_parts[0] }}
-                    {% if jjid_parts | length > 1 %}
-                        <br>&nbsp;@{{ jjid_parts[1] }}
-                    {% endif %}
+                    {{rec.jobsub_job_id | replace('.fnal.gov', '')}}
                 </a>
             </td>
             <td>
@@ -140,21 +132,11 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
             </td>
             <td>
                 {% if rec.dd_summary %}
-                    {# labels live in the column header; widths must match it so the numbers line up #}
-                    <table style="border:none; border-collapse:collapse; margin:0; table-layout:fixed; width:27ch;">
-                        <tr>
-                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.initial}}</td>
-                            <td style="border:none; padding:0; text-align:left; width:9ch;">{{rec.dd_summary.reserved}}</td>
-                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.done}}</td>
-                            <td style="border:none; padding:0; text-align:left; width:6ch;">{{rec.dd_summary.total}}</td>
-                        </tr>
-                    </table>
-                    {% if rec.dd_summary.project_id %}
-                        <a href="{{rec.dd_summary.project_url}}" target="_blank"
-                           style="font-weight: bold; text-decoration: underline; color: {% if rec.dd_summary.active %}green{% else %}gray{% endif %};">
-                            DD: {{rec.dd_summary.project_id}}
-                        </a>
-                    {% endif %}
+                    {# labels live in the column header; the first four widths must match it so the numbers line up.
+                       the project id is one more inline-block, so it shares the line and the baseline
+                       with the counts.  No whitespace between the spans, or it renders as a space. #}
+                    <div><span style="display:inline-block; width:8ch;">{{rec.dd_summary.initial}}</span><span style="display:inline-block; width:11ch;">{{rec.dd_summary.reserved}}</span><span style="display:inline-block; width:7ch;">{{rec.dd_summary.done}}</span><span style="display:inline-block; width:7ch;">{{rec.dd_summary.total}}</span>{% if rec.dd_summary.project_id %}<a href="{{rec.dd_summary.project_url}}" target="_blank"
+                           style="white-space:nowrap; font-weight: bold; text-decoration: underline; color: {% if rec.dd_summary.active %}green{% else %}gray{% endif %};">DD: {{rec.dd_summary.project_id}}</a>{% endif %}</div>
                 {% else %}
                     {% for stat in rec.statuses %}
                      <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
