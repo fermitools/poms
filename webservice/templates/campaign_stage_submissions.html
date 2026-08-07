@@ -64,7 +64,17 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 <th>Parent Id</th>
                 <th>Jobsub Id</th>
                 <th>Available<br>Output</th>
-                <th>File Status Summary</th>
+                <th>File Status Summary
+                    {# only label the columns when there is a Data Dispatcher row to label; SAM rows put their own text here #}
+                    {% if data.submissions | selectattr('dd_summary') | list %}
+                        {# Reserved is the widest label and needs 9ch; table-layout:fixed means the labels no longer widen the column themselves #}
+                        {# inline-block spans, not a nested table: tablesort.min.js selects rows with
+                           find("tbody tr") and columns with find("td"), both of which would match a
+                           nested table's own tr/td and scramble the sort.  No whitespace between the
+                           spans either, or it renders as a space and shifts the columns. #}
+                        <div><span style="display:inline-block; width:8ch; white-space:nowrap;">Initial</span><span style="display:inline-block; width:11ch; white-space:nowrap;">Reserved</span><span style="display:inline-block; width:7ch; white-space:nowrap;">Done</span><span style="display:inline-block; width:7ch; white-space:nowrap;">Total</span></div>
+                    {% endif %}
+                </th>
                 <th>Commands</th>
                 <!-- <th>Handler</th> -->
                 <th>Status</th> <!--(History/Current)-->
@@ -100,8 +110,8 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                     None
                   {% else %}
                     <a href="{{pomspath}}/submission_details/{{session_experiment}}/{{session_role}}?submission_id={{data.depends[rec.submission_id]}}" target='_blank'>
-                    {{"&nbsp;"*(4*data.depth[rec.submission_id])}}{{data.depends[rec.submission_id]|safe}}</td>
-                    </a>
+                    {# no depth indent here: the Stage Name column already shows the tree, and indenting only the non-null ids left them offset from None #}
+                    {{data.depends[rec.submission_id]|safe}}</a>
                 {% endif %}
             </td>
             <td>
@@ -121,9 +131,17 @@ Campaign Stage:&nbsp;&nbsp; {{stage_name}}
                 {% endif %}
             </td>
             <td>
-                 {% for stat in rec.statuses %}
-                  <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
-                 {% endfor %}
+                {% if rec.dd_summary %}
+                    {# labels live in the column header; the first four widths must match it so the numbers line up.
+                       the project id is one more inline-block, so it shares the line and the baseline
+                       with the counts.  No whitespace between the spans, or it renders as a space. #}
+                    <div><span style="display:inline-block; width:8ch;">{{rec.dd_summary.initial}}</span><span style="display:inline-block; width:11ch;">{{rec.dd_summary.reserved}}</span><span style="display:inline-block; width:7ch;">{{rec.dd_summary.done}}</span><span style="display:inline-block; width:7ch;">{{rec.dd_summary.total}}</span>{% if rec.dd_summary.project_id %}<a href="{{rec.dd_summary.project_url}}" target="_blank"
+                           style="white-space:nowrap; font-weight: bold; text-decoration: underline; color: {% if rec.dd_summary.active %}green{% else %}gray{% endif %};">DD: {{rec.dd_summary.project_id}}</a>{% endif %}</div>
+                {% else %}
+                    {% for stat in rec.statuses %}
+                     <span class="fn">{{stat[0]}}</span> <a href="{{stat[2]}}"><span class="val"></span>{{stat[1]}}</span></a><br>
+                    {% endfor %}
+                {% endif %}
             </td>
             <td>
             {% if rec.status in ('New', 'Idle', 'Running', 'Held') %}

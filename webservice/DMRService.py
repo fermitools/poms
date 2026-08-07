@@ -516,7 +516,101 @@ class DMRService:
         for handle in handles:
             retval[handle.get("state")] += 1
         return retval
-    
+
+    def get_data_dispatcher_project_url(self, experiment, project_id):
+        """
+            Link to a project in the data-dispatcher web UI.
+
+            NOTE: the host and namespace are still hardcoded here, matching what
+            submission_details.html has always done.  They belong in the Shrek
+            config next to DATA_DISPATCHER_URL, but that value points at the API
+            server, not the GUI, so it cannot be derived from it today.
+        """
+        if not project_id:
+            return None
+        suffix = "" if experiment == "hypot" else "_prod"
+        return "https://metacat.fnal.gov:9443/%s_dd%s/gui/P/project?project_id=%s" % (experiment, suffix, project_id)
+
+    def get_handle_state_summary_for_submissions(self, dd_projects):
+        """
+            Cheap per-submission file-handle state counts, for list views.
+
+            Unlike get_file_stats_for_submissions() this makes no metacat calls and
+            no children()/parents() queries.  It asks data-dispatcher for each
+            distinct project on the page and counts handle states locally, which is
+            the expensive part of get_file_stats_for_submissions() left out: that one
+            follows every get_project with a metacat get_files and three more queries.
+
+            get_project() is used rather than list_projects() because data-dispatcher
+            matches the list_projects state filter against the project's state column
+            literally -- there is no "all states" value -- so listing would have to
+            either fetch every project for every owner or loop over DBProject.States.
+            Looking each project up by id sidesteps that and stays bounded by the
+            number of distinct projects on the page.
+
+            Returns { submission_id: {"state", "initial", "reserved", "done",
+                                      "failed", "total", "project_id"} }
+        """
+        if not dd_projects:
+            return {}
+
+        # several submissions can share one project, so map id -> [submission_id]
+        wanted = {}
+        for project in dd_projects:
+            if project.project_id:
+                wanted.setdefault(project.project_id, []).append(project.submission_id)
+        if not wanted:
+            return {}
+
+        try:
+            if (not cherrypy.session or "Shrek" not in cherrypy.session
+                    or cherrypy.session["Shrek"].get("dd_client", None) is None):
+                self.set_configuration(True)
+            dd_client = cherrypy.session["Shrek"]["dd_client"]
+        except Exception as e:
+            logit.log("DMR-Service  | get_handle_state_summary_for_submissions | Exception: %s" % repr(e))
+            return {}
+
+        retval = {}
+        matched = 0
+        logged_keys = False
+        for project_id, submission_ids in wanted.items():
+            try:
+                # get_project returns None rather than raising when the id is unknown
+                project = dd_client.get_project(project_id, True, False)
+            except Exception as e:
+                logit.log(
+                    "DMR-Service  | get_handle_state_summary_for_submissions | project %s | Exception: %s"
+                    % (project_id, repr(e))
+                )
+                continue
+            if not project:
+                continue
+            matched += 1
+            if not logged_keys:
+                # the green/black project colouring depends on "state" being present here
+                logit.log("DMR-Service  | get_handle_state_summary_for_submissions | project keys: %s" % sorted(project.keys()))
+                logged_keys = True
+
+            handles = project.get("file_handles", []) or []
+            counts = {"initial": 0, "reserved": 0, "done": 0, "failed": 0}
+            for handle in handles:
+                state = handle.get("state", None)
+                if state in counts:
+                    counts[state] += 1
+            counts["total"] = len(handles)
+            counts["state"] = project.get("state", None)
+            counts["project_id"] = project_id
+
+            for submission_id in submission_ids:
+                retval[submission_id] = dict(counts)
+
+        logit.log(
+            "DMR-Service  | get_handle_state_summary_for_submissions | matched %d projects of %d wanted"
+            % (matched, len(wanted))
+        )
+        return retval
+
     def is_query(self, named_dataset):
 
         # Match "{namespace}:{name}" pattern.
