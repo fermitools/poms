@@ -2034,7 +2034,11 @@ class CampaignsPOMS:
             "cdh": data_handling_defaults,
             "campaign_keywords": c.campaign_keywords,
             "stages": cstages,
-            "jt":job_types
+            "jt":job_types,
+            # make sure the page renders with the actual campaign_id of the
+            # campaign being edited, not whatever campaign_id was in the
+            # request (e.g. the source campaign_id on a clone request)
+            "campaign_id": c.campaign_id
             }
         return retval
     
