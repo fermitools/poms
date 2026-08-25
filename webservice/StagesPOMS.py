@@ -346,12 +346,12 @@ class StagesPOMS:
                         cs.test_param_overrides = test_param_overrides
                         cs.data_dispatcher_dataset_query = dd_dataset_query
                         cs.data_dispatcher_project_id = int(dd_project_id_override) if dd_project_id_override else None
-                        cs.data_dispatcher_project_virtual = dd_project_virtual,
-                        cs.data_dispatcher_load_limit = dd_project_load_limit,
-                        cs.data_dispatcher_stage_methodology= dd_project_stage_methodology,
-                        cs.data_dispatcher_recovery_mode= dd_project_recovery_mode,
-                        cs.data_dispatcher_idle_timeout= dd_project_idle_timeout,
-                        cs.data_dispatcher_worker_timeout= dd_project_worker_timeout,
+                        cs.data_dispatcher_project_virtual = dd_project_virtual
+                        cs.data_dispatcher_load_limit = dd_project_load_limit
+                        cs.data_dispatcher_stage_methodology= dd_project_stage_methodology
+                        cs.data_dispatcher_recovery_mode= dd_project_recovery_mode
+                        cs.data_dispatcher_idle_timeout= dd_project_idle_timeout
+                        cs.data_dispatcher_worker_timeout= dd_project_worker_timeout
                         cs.data_dispatcher_settings = {
                                 "idle_timeout": dd_project_idle_timeout,
                                 "worker_timeout": dd_project_worker_timeout,
@@ -361,7 +361,7 @@ class StagesPOMS:
                                 "stage_methodology": dd_project_stage_methodology,
                                 "recovery_mode": dd_project_recovery_mode,
                                 "load_limit": dd_project_load_limit
-                            },
+                            }
                         cs.job_type_id = job_type_id
                         cs.login_setup_id = login_setup_id
                         cs.updated = datetime.now(utc)

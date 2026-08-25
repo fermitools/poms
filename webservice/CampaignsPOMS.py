@@ -106,7 +106,10 @@ class CampaignsPOMS:
                         }
                     }
             elif "stage_name" in kwargs:
-                stage = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == int(kwargs["campaign_id"]) and CampaignStage.name == kwargs["stage_name"]).first()
+                stage = ctx.db.query(CampaignStage).filter(and_(
+                    CampaignStage.campaign_id == int(kwargs["campaign_id"]),
+                    CampaignStage.name == kwargs["stage_name"]
+                )).first()
                 if stage:
                     retval = {"currently_using": str(stage.campaign_obj.data_handling_service)}
                     if retval["currently_using"] == "data_dispatcher":
@@ -207,7 +210,10 @@ class CampaignsPOMS:
                     print("New Defaults: " + str(camp.defaults))
             elif kwargs["type"] == "campaign_stage":
                 assert "stage" in kwargs, "No stage defined"
-                stage = ctx.db.query(CampaignStage).filter(CampaignStage.campaign_id == int(kwargs["id"]) and CampaignStage.name == kwargs["stage"]).first()
+                stage = ctx.db.query(CampaignStage).filter(and_(
+                    CampaignStage.campaign_id == int(kwargs["id"]),
+                    CampaignStage.name == kwargs["stage"]
+                )).first()
                 if stage:
                     if kwargs["service"] == "sam":
                         stage.dataset = kwargs.get("dataset_or_split_data", "")
@@ -2028,7 +2034,11 @@ class CampaignsPOMS:
             "cdh": data_handling_defaults,
             "campaign_keywords": c.campaign_keywords,
             "stages": cstages,
-            "jt":job_types
+            "jt":job_types,
+            # make sure the page renders with the actual campaign_id of the
+            # campaign being edited, not whatever campaign_id was in the
+            # request (e.g. the source campaign_id on a clone request)
+            "campaign_id": c.campaign_id
             }
         return retval
     

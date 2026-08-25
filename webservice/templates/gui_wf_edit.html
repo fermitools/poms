@@ -169,6 +169,23 @@
 <script src="{{pomspath}}/static/js/data_handling_service_config.js"></script>
 <script type="text/javascript">
 
+/* On a clone (gui_wf_clone), the URL's campaign_id query param is the
+ * *source* campaign being cloned from, not the new campaign being edited
+ * here. gui_editor_3.js reads campaign_id straight off the URL for every
+ * per-stage save, so fix it up to the real campaign_id before anything
+ * else on this page can read it -- otherwise edits made here land on the
+ * original campaign instead of this clone.
+ */
+{% if campaign_id %}
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('campaign_id') !== '{{campaign_id}}') {
+        params.set('campaign_id', '{{campaign_id}}');
+        history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+    }
+})();
+{% endif %}
+
 function main() {
    const to = "{{to}}";
    var args = mwm_utils.getSearchParams()
