@@ -288,6 +288,7 @@ json_field_editor.addrow = function (res, fid, i, k, v, blanks) {
     res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink minus square"></i>');
     res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square up"></i>');
     res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square down"></i>');
+    res.push('</td>');
 }
 
 json_field_editor.renumber = function (fid, c, blanks) {
@@ -324,13 +325,20 @@ json_field_editor.renumber = function (fid, c, blanks) {
 json_field_editor.plus = function (fid, i, blanks) {
     var res = [];
     var tb = document.getElementById(fid + '_tbody');
-    var tr = document.createElement('TR');
     var ce = document.getElementById(fid + '_count');
     console.log("before: count: " + ce.value);
     var c = parseInt(ce.value);
 
     json_field_editor.addrow(res, fid, c, "", "", blanks);
-    tr.innerHTML = res.join("\n");
+    // Build the <td> markup inside a real <table><tbody><tr> context (via a
+    // detached TABLE element) rather than setting innerHTML directly on a
+    // bare <tr>: parsing <td> markup with a <tr> as the fragment context is
+    // inconsistent across browsers (WebKit/Safari in particular can leave
+    // the row with missing/merged cells), which breaks renumber()'s
+    // tr.children[...] indexing.
+    var wrapper = document.createElement('TABLE');
+    wrapper.innerHTML = '<tbody><tr>' + res.join("\n") + '</tr></tbody>';
+    var tr = wrapper.querySelector('tr');
 
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value);
