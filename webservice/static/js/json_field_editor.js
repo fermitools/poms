@@ -343,7 +343,8 @@ json_field_editor.plus = function (fid, i, blanks) {
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value);
 
-    tb.insertBefore(tr, tb.children[i]);
+    // Insert the new row after the row whose "+" was clicked, not before it.
+    tb.insertBefore(tr, tb.children[i + 1]);
     json_field_editor.renumber(fid, c + 1, blanks);
 }
 
