@@ -145,7 +145,7 @@ json_field_editor.dictstart = function (id, name=null) {
     }
     v = e.value || e.placeholder;
     if ('' == v || '[]' == v || '{}' == v || '"[]"' == v) {
-        j = {}
+        j = {'': ''}
     } else {
         j = JSON.parse(v);
     }
@@ -153,7 +153,7 @@ json_field_editor.dictstart = function (id, name=null) {
     for( k in j ) {
         count = count + 1
     }
-    
+
     fid = 'edit_form_' + id;
     res = [];
     res.push('<input type="hidden" id="' + fid + '_count" value="' + count.toString() + '">');
@@ -174,11 +174,6 @@ json_field_editor.dictstart = function (id, name=null) {
         json_field_editor.addrow(res, fid, i, k, v,false);
         res.push('</tr>');
         i = i + 1
-    }
-    if(i == 0) {
-        res.push('<tr><td>')
-        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + ')" class="blue icon dlink plus square"></i>');
-        res.push('</td></tr>')
     }
     res.push('</tbody>');
     res.push('</table>');
