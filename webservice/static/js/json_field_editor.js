@@ -145,7 +145,7 @@ json_field_editor.dictstart = function (id, name=null) {
     }
     v = e.value || e.placeholder;
     if ('' == v || '[]' == v || '{}' == v || '"[]"' == v) {
-        j = {}
+        j = {'': ''}
     } else {
         j = JSON.parse(v);
     }
@@ -153,7 +153,7 @@ json_field_editor.dictstart = function (id, name=null) {
     for( k in j ) {
         count = count + 1
     }
-    
+
     fid = 'edit_form_' + id;
     res = [];
     res.push('<input type="hidden" id="' + fid + '_count" value="' + count.toString() + '">');
@@ -174,11 +174,6 @@ json_field_editor.dictstart = function (id, name=null) {
         json_field_editor.addrow(res, fid, i, k, v,false);
         res.push('</tr>');
         i = i + 1
-    }
-    if(i == 0) {
-        res.push('<tr><td>')
-        res.push('<i onclick="json_field_editor.plus(\'' + fid + '\',' + istr + ', ' + ')" class="blue icon dlink plus square"></i>');
-        res.push('</td></tr>')
     }
     res.push('</tbody>');
     res.push('</table>');
@@ -293,6 +288,7 @@ json_field_editor.addrow = function (res, fid, i, k, v, blanks) {
     res.push('<i onclick="json_field_editor.minus(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink minus square"></i>');
     res.push('<i onclick="json_field_editor.up(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square up"></i>');
     res.push('<i onclick="json_field_editor.down(\'' + fid + '\',' + istr + ', ' + blanks_symbol + ')" class="blue icon dlink arrow square down"></i>');
+    res.push('</td>');
 }
 
 json_field_editor.renumber = function (fid, c, blanks) {
@@ -329,18 +325,26 @@ json_field_editor.renumber = function (fid, c, blanks) {
 json_field_editor.plus = function (fid, i, blanks) {
     var res = [];
     var tb = document.getElementById(fid + '_tbody');
-    var tr = document.createElement('TR');
     var ce = document.getElementById(fid + '_count');
     console.log("before: count: " + ce.value);
     var c = parseInt(ce.value);
 
     json_field_editor.addrow(res, fid, c, "", "", blanks);
-    tr.innerHTML = res.join("\n");
+    // Build the <td> markup inside a real <table><tbody><tr> context (via a
+    // detached TABLE element) rather than setting innerHTML directly on a
+    // bare <tr>: parsing <td> markup with a <tr> as the fragment context is
+    // inconsistent across browsers (WebKit/Safari in particular can leave
+    // the row with missing/merged cells), which breaks renumber()'s
+    // tr.children[...] indexing.
+    var wrapper = document.createElement('TABLE');
+    wrapper.innerHTML = '<tbody><tr>' + res.join("\n") + '</tr></tbody>';
+    var tr = wrapper.querySelector('tr');
 
     ce.value = (c + 1).toString();
     console.log("after: count: " + ce.value);
 
-    tb.insertBefore(tr, tb.children[i]);
+    // Insert the new row after the row whose "+" was clicked, not before it.
+    tb.insertBefore(tr, tb.children[i + 1]);
     json_field_editor.renumber(fid, c + 1, blanks);
 }
 

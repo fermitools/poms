@@ -1136,7 +1136,16 @@ gui_editor.prototype.draw_state = function () {
         if(this.campaign_dd_settings[k]){
             this.mode.data_dispatcher_settings = this.campaign_dd_settings[k];
         }
-        b = new stage_box(k, this.state[k], mwm_utils.dict_keys(this.mode), this.div, x, y, this);
+        // "campaign_keywords" is a campaign-only field that ended up in this.mode
+        // purely so the *campaign* box (below) could reuse it as a field list.
+        // CampaignStage has no such column, and save_campaign never reads a
+        // stage's "campaign_keywords" back, so exposing it here renders a
+        // look-alike, silently-no-op field on every stage popup -- easy to
+        // mistake for the real campaign-level field and edit by accident.
+        // ("name" stays: stages have their own real name, and toggle_form's
+        // network-node relabeling reads form.name.value for every box type.)
+        const stage_klist = mwm_utils.dict_keys(this.mode).filter(x => x != 'campaign_keywords');
+        b = new stage_box(k, this.state[k], stage_klist, this.div, x, y, this);
         this.stageboxes.push(b);
     }
 
@@ -2195,7 +2204,10 @@ gui_editor.prototype.new_stage = function (name, label) {
     
     this.state[k] = {
         'name': label,
-        'campaign_keywords': null,
+        // no 'campaign_keywords' here -- that's a campaign-only field;
+        // CampaignStage has no such column and save_campaign never reads
+        // it back for a stage, so it would just be a non-functional
+        // look-alike of the real campaign-level field.
         'vo_role': null,
         // 'state': null,
         'software_version': null,
