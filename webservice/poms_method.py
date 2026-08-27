@@ -104,7 +104,7 @@ def error_rewrite(f):
             # new files that haven't shown up yet) rather than a bug -- log
             # briefly instead of a full traceback to keep this from spamming
             # the error log on every unsuccessful poll.
-            logit.log("No more splits: %s" % repr(e))
+            logit.log(str(e))
             error_counter.labels(error=type(e).__name__, code="400").inc()
             raise cherrypy.HTTPError(400, str(e))
         except Exception as e:

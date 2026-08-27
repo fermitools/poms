@@ -1344,7 +1344,10 @@ class StagesPOMS:
                         file.truncate()
                 except Exception as e:
                     pass
-            raise NoMoreSplits("No more splits in this campaign.")
+            raise NoMoreSplits(
+                "No more splits in campaign '%s' stage '%s' (campaign_stage_id=%s)."
+                % (camp.campaign_obj.name, camp.name, camp.campaign_stage_id)
+            )
 
         return res
     
