@@ -51,6 +51,17 @@ from .utc import utc
 from .SAMSpecifics import sam_specifics
 
 
+class NoMoreSplits(Exception):
+    """
+        Raised by get_dataset_for() when a campaign stage's split type has
+        no more data to hand out. This is an expected, routine condition
+        for stages that keep polling for new files to arrive (i.e.
+        default_clear_cronjob=False) -- poms_method's error_rewrite logs it
+        briefly instead of a full traceback, unlike a genuine bug.
+    """
+    pass
+
+
 class StagesPOMS:
     """
        Business logic for CampaignStage related items
@@ -1333,7 +1344,7 @@ class StagesPOMS:
                         file.truncate()
                 except Exception as e:
                     pass
-            raise AssertionError("No more splits in this campaign.")
+            raise NoMoreSplits("No more splits in this campaign.")
 
         return res
     
