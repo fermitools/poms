@@ -26,6 +26,7 @@ import urllib.parse as urlparse
 # h3. locals
 from .Ctx import Ctx
 from .poms_model import CampaignStage, Submission, Experiment, LoginSetup, Base, Experimenter
+from .StagesPOMS import NoMoreSplits
 from . import (
     CampaignsPOMS,
     DBadminPOMS,
@@ -98,6 +99,14 @@ def error_rewrite(f):
         except cherrypy.HTTPError as e:
             error_counter.labels(error=e.reason, code=e.code).inc()
             raise
+        except NoMoreSplits as e:
+            # Routine condition (e.g. a draining-style stage cron-polling for
+            # new files that haven't shown up yet) rather than a bug -- log
+            # briefly instead of a full traceback to keep this from spamming
+            # the error log on every unsuccessful poll.
+            logit.log(str(e))
+            error_counter.labels(error=type(e).__name__, code="400").inc()
+            raise cherrypy.HTTPError(400, str(e))
         except Exception as e:
             logging.exception("rewriting:")
             error_counter.labels(error=type(e).__name__, code="400").inc()
