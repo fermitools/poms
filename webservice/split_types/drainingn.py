@@ -34,7 +34,7 @@ class drainingn:
             ls = self.cs.cs_last_split
         if ls != 0:
             snapshotbit = "minus snapshot_id %d" % ls
-        else:`
+        else:
             snapshotbit = ""
 
         new = self.cs.dataset + "_slice_%i_stage_%d" % (ls, self.n)
