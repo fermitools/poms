@@ -202,6 +202,9 @@ def add_users(cursor, exp, new_users):
             experimenter_id = cursor.fetchone()[0]
             logging.debug("add_user: inserted new experimenter id=%s username: %s commonname: %s ", experimenter_id, username, user['commonname'])
         add_relationship(cursor, experimenter_id, exp, user['role'], username)
+        # special case for sbn experiments
+        if exp in ('icarus','sbnd'):
+            add_relationship(cursor, experimenter_id, 'sbn', user['role'], username)
 
 def add_relationship(cursor, experimenter_id, exp, role, username):
     sql = "select 1 from experiments_experimenters where experiment = '%s' and experimenter_id = %s" % (exp, experimenter_id)
