@@ -265,10 +265,62 @@ class CampaignsPOMS:
         experimenter = ctx.get_experimenter()
         data = {}
         name = kwargs.get("campaign_name")
-        data_handling_service = kwargs.get("service", "SAM")
+        # The rest of POMS (campaign_deps_ini, save_campaign, gui_editor_3.js)
+        # only ever compares data_handling_service against the lower-case
+        # "sam" / "data_dispatcher" spellings, so normalize here -- storing
+        # "SAM" makes the SAM code paths (e.g. sam_settings emission) silently
+        # skip themselves.
+        data_handling_service = (kwargs.get("service") or "sam").lower()
+        # vo_role is stored capitalized ("Production" / "Analysis"); derive it
+        # from the role this request came in as rather than always assuming
+        # Production (cf. the clone path, which uses creator_role.capitalize()).
+        vo_role = (ctx.role or "Production").capitalize()
         data["message"] = "ok"
         try:
             camp = Campaign(name=name, data_handling_service=data_handling_service, experiment=ctx.experiment, creator=experimenter.experimenter_id, creator_role=ctx.role)
+            # A campaign created from scratch here still needs a fully-formed
+            # "defaults" blob.  campaign_deps_ini only emits the
+            # [campaign_defaults] section when Campaign.defaults is populated,
+            # and the GUI editor builds both the campaign bubble and the stage
+            # bubbles from that section.  Without it the editor falls back to
+            # reconstructing the fields from the [campaign_stage] sections,
+            # which drops campaign_keywords / data_handling_service /
+            # output_ancestor_depth / sam_settings and reorders the rest.
+            # Mirror the structure that save_campaign writes.
+            camp.defaults = {
+                "defaults": {
+                    "vo_role": vo_role,
+                    "software_version": "v1_0",
+                    "cs_split_type": "None",
+                    "test_split_type": None,
+                    "completion_type": "complete",
+                    "completion_pct": "95",
+                    "param_overrides": "[]",
+                    "test_param_overrides": "[]",
+                    "merge_overrides": "False",
+                    "login_setup": "generic",
+                    "job_type": "generic",
+                    "stage_type": "regular",
+                    "output_ancestor_depth": "1",
+                    "data_handling_service": {
+                        "sam": {
+                            "dataset_or_split_data": None,
+                        },
+                        "data_dispatcher": {
+                            "data_dispatcher_idle_timeout": 259200,
+                            "data_dispatcher_worker_timeout": None,
+                            "data_dispatcher_project_id": None,
+                            "data_dispatcher_dataset_query": None,
+                            "data_dispatcher_project_virtual": False,
+                            "data_dispatcher_stage_methodology": "standard",
+                            "data_dispatcher_recovery_mode": "standard",
+                            "data_dispatcher_load_limit": None,
+                        },
+                    },
+                },
+                "positions": {},
+            }
+            camp.campaign_keywords = {}
             ctx.db.add(camp)
             ctx.db.commit()
             c_s = CampaignStage(
@@ -301,7 +353,7 @@ class CampaignsPOMS:
                 param_overrides=[],
                 software_version="v1_0",
                 test_param_overrides=[],
-                vo_role="Production",
+                vo_role=vo_role,
                 #
                 creator=experimenter.experimenter_id,
                 creator_role=ctx.role,
