@@ -265,7 +265,7 @@ class CampaignsPOMS:
         experimenter = ctx.get_experimenter()
         data = {}
         name = kwargs.get("campaign_name")
-        # The rest of POMS (campaign_deps_ini, save_campaign, gui_editor_3.js)
+        # The rest of POMS (campaign_deps_ini, save_campaign, gui_editor.js)
         # only ever compares data_handling_service against the lower-case
         # "sam" / "data_dispatcher" spellings, so normalize here -- storing
         # "SAM" makes the SAM code paths (e.g. sam_settings emission) silently
