@@ -12,7 +12,7 @@
 {% endif %}
 
 <script src="{{pomspath}}/static/js/json_field_editor.js"></script>
-<script src="{{pomspath}}/static/js/gui_editor_3.js"></script>
+<script src="{{pomspath}}/static/js/gui_editor.js"></script>
 
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/gui_editor_3.css">
 <link rel="stylesheet" type="text/css" href="{{pomspath}}/static/css/json_field_editor.css">
@@ -171,7 +171,7 @@
 
 /* On a clone (gui_wf_clone), the URL's campaign_id query param is the
  * *source* campaign being cloned from, not the new campaign being edited
- * here. gui_editor_3.js reads campaign_id straight off the URL for every
+ * here. gui_editor.js reads campaign_id straight off the URL for every
  * per-stage save, so fix it up to the real campaign_id before anything
  * else on this page can read it -- otherwise edits made here land on the
  * original campaign instead of this clone.
