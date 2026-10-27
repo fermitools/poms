@@ -466,7 +466,7 @@ class PomsService:
 
     # h4. job_type_edit
 
-    @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
+    @poms_method(p=[{"p": "can_modify", "t": "JobType", "name": "ae_definition_name"}],  t="job_type_edit.html")
     def job_type_edit(self, ctx, **kwargs):
         res = {"data": self.miscPOMS.job_type_edit(ctx, **kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
