@@ -348,6 +348,7 @@ class MiscPOMS:
             else:
                 cid = kwargs.pop("job_type_id")
             try:
+                self.poms_service.permissions.can_modify(ctx, "JobType", item_id=cid)
                 (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
                 (ctx.db.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
                 ctx.db.commit()
@@ -382,6 +383,7 @@ class MiscPOMS:
 
                 if action == "edit":
                     job_type_id = ctx.db.query(JobType).filter(JobType.name == name).one().job_type_id  # Check here!
+                    self.poms_service.permissions.can_modify(ctx, "JobType", item_id=job_type_id)
                 else:
                     pass
                 input_files_per_job = kwargs.pop("ae_input_files_per_job", 0)
@@ -403,7 +405,7 @@ class MiscPOMS:
                     definition_parameters = []
             else:
                 experimenter_id = kwargs.pop("experimenter_id")
-                job_type_id = kwargs.pop("ae_campaign_definition_id")
+                job_type_id = kwargs.pop("ae_job_type_id")
                 name = kwargs.pop("ae_definition_name")
                 if isinstance(name, str):
                     name = name.strip()

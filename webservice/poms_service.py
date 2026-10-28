@@ -466,12 +466,12 @@ class PomsService:
 
     # h4. job_type_edit
 
-    @poms_method(p=[{"p": "can_modify", "t": "LoginSetup", "name": "ae_launch_name"}], t="job_type_edit.html")
+    @poms_method(p=[{"p": "can_modify", "t": "JobType", "item_id": "ae_job_type_id"}],  t="job_type_edit.html")
     def job_type_edit(self, ctx, **kwargs):
         res = {"data": self.miscPOMS.job_type_edit(ctx, **kwargs), "jquery_ui": False}
         if kwargs.get("test_template"):
             test_campaign = self.campaignsPOMS.make_test_campaign_for(
-                ctx, kwargs.get("ae_campaign_definition_id"), kwargs.get("ae_definition_name")
+                ctx, kwargs.get("ae_job_type_id"), kwargs.get("ae_definition_name")
             )
             raise cherrypy.HTTPRedirect(
                 "%s/campaign_stage_edit/%s/%s?jump_to_campaign=%d&extra_edit_flag=launch_test_job"
