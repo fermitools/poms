@@ -405,7 +405,7 @@ class MiscPOMS:
                     definition_parameters = []
             else:
                 experimenter_id = kwargs.pop("experimenter_id")
-                job_type_id = kwargs.pop("ae_campaign_definition_id")
+                job_type_id = kwargs.pop("ae_job_type_id")
                 name = kwargs.pop("ae_definition_name")
                 if isinstance(name, str):
                     name = name.strip()
