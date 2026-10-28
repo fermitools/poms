@@ -176,10 +176,10 @@ class Permissions:
                 Experimenter, Experimenter.experimenter_id == JobType.creator
             )
             if item_id:
-                k = "c:%s" % item_id
+                k = "jt:%s" % item_id
                 q = q.filter(JobType.job_type_id == item_id)
             if name:
-                k = "c:%s_%s" % (experiment, name)
+                k = "jt:%s_%s" % (experiment, name)
                 q = q.filter(JobType.name == name, JobType.experiment == experiment)
         else:
             raise Exception("unknown item type '%s'" % t)
