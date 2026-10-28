@@ -348,6 +348,7 @@ class MiscPOMS:
             else:
                 cid = kwargs.pop("job_type_id")
             try:
+                self.poms_service.permissions.can_modify(ctx, "JobType", item_id=cid)
                 (ctx.db.query(CampaignRecovery).filter(CampaignRecovery.job_type_id == cid).delete(synchronize_session=False))
                 (ctx.db.query(JobType).filter(JobType.job_type_id == cid).delete(synchronize_session=False))
                 ctx.db.commit()
@@ -382,6 +383,7 @@ class MiscPOMS:
 
                 if action == "edit":
                     job_type_id = ctx.db.query(JobType).filter(JobType.name == name).one().job_type_id  # Check here!
+                    self.poms_service.permissions.can_modify(ctx, "JobType", item_id=job_type_id)
                 else:
                     pass
                 input_files_per_job = kwargs.pop("ae_input_files_per_job", 0)
