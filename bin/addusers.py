@@ -10,6 +10,7 @@ import psycopg2
 import requests
 import os
 from configparser import ConfigParser
+from functools import cache
 
 config = ConfigParser()
 config.read(os.environ["WEB_CONFIG"])
@@ -21,6 +22,18 @@ except ImportError:
 
 urllib3.disable_warnings()
 
+
+tokenfn = "/etc/osg/tokens/host.token"
+os.environ["BEARER_TOKEN_FILE"] = tokenfn
+
+
+@cache
+def get_token_header():
+    with open(tokenfn,"r") as tokenf:
+        token = tokenf.read().strip()
+    return {"Authorization": f"Bearer {token}"}
+
+
 def parse_command_line():
     doc = "Loads a VOMS generated JSON file of experimenters into POMS."
     parser = argparse.ArgumentParser(description=doc)
@@ -28,7 +41,7 @@ def parse_command_line():
     parser.add_argument('port', type=int, help="Database Port number.")
     parser.add_argument('dbname', help="Database to connect to.")
     parser.add_argument('user', help="User to connect as")
-    parser.add_argument('cert', help="Location of certificates.")
+    parser.add_argument('cert', help="Location of certificates. Now ignored, uses host token", default="")
     parser.add_argument('-c', '--commit', action="store_true", help='Save changes to the database. Required to save data!')
     parser.add_argument('-f', '--ferry', help='FERRY url to use.')
     parser.add_argument('-s', '--skip_analysis', action="store_true", help='Do not include analysis users.')
@@ -84,7 +97,7 @@ def query_ferry(cert, ferry_url, exp, role):
     logging.debug("query_ferry for experiment: %s  role: %s", exp, role)
     url = ferry_url + "/getAffiliationMembersRoles?unitname=%s&role=%s" % (exp, role)
     logging.debug("query_ferry: requested url: %s", url)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, headers=get_token_header())
     payload = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
@@ -97,7 +110,7 @@ def query_ferry(cert, ferry_url, exp, role):
 def query_superusers(cert, ferry_url, exp, anal_users):
     results = []
     url = ferry_url + "/getGroupMembers?grouptype=BatchSuperusers&groupname=%s" % (exp)
-    r = requests.get(url, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    r = requests.get(url, verify=False, headers=get_token_header())
     payload  = r.json()
     if r.status_code != requests.codes.get('ok'):
         logging.debug("get_ferry_experiment_users -- error status_code: %s  -- %s", r.status_code, url)
@@ -136,7 +149,7 @@ def get_ferry_data(cert, ferry_url, exp, skip_analysis):
 def get_voms_data(cert, exp):
     logging.debug("get_voms_data for: %s", exp)
     payload = {"accountName": "%spro" % exp}
-    req = requests.get(config.get("VOMS", "data_url"), params=payload, verify=False, cert=('%s/pomscert.pem' % cert, '%s/pomskey.pem' % cert))
+    req = requests.get(config.get("VOMS", "data_url"), params=payload, verify=False, headers=get_token_header())
     users = {}
     for line in req.iter_lines():
         line = line.decode('utf-8')
